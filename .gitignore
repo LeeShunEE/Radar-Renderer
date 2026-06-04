@@ -1,0 +1,81 @@
+# === Frontend (frontend/) ===
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/dist/
+frontend/.pnp
+frontend.pnp.js
+
+# TypeScript 缓存
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+
+# 测试覆盖率
+frontend/coverage/
+
+# Vercel
+frontend/.vercel/
+
+# 资源文件（不 commit，仅保留占位符）
+frontend/public/silhouettes/*.png
+frontend/public/silhouettes/*.jpg
+frontend/public/silhouettes/*.jpeg
+frontend/public/music/*.flac
+frontend/public/music/*.mp3
+frontend/public/music/*.wav
+
+# === Backend (backend/) ===
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/**/*.pyc
+backend/.pytest_cache/
+backend/.ruff_cache/
+backend/.mypy_cache/
+backend/htmlcov/
+backend/.coverage
+backend/coverage.xml
+
+# 数据库文件
+backend/*.db
+backend/data.db
+
+# === 测试目录 (tests/) ===
+tests/.pytest_cache/
+tests/**/__pycache__/
+tests/htmlcov/
+tests/.coverage
+
+# === 根目录 ===
+# Claude Code
+.claude/
+
+# Playwright MCP（临时）
+.playwright-mcp/
+
+# 环境变量
+.env
+.env*.local
+.env.development
+.env.test
+.env.production
+
+# 系统文件
+.DS_Store
+Thumbs.db
+*.pem
+
+# 日志
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# 临时目录
+.temp
+.tmp
+/tmp
+out/
