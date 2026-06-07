@@ -7,7 +7,7 @@ import {
 import { getRadarLabelAnchor } from "../../lib/math";
 import { calculateRating, getRatingColor } from "../../lib/rating";
 import type { AnimationConfig } from "../../types/radar";
-import { RADAR_MAX_RADIUS, computePhaseStarts } from "../../../types/constants";
+import { RADAR_MAX_RADIUS, computePhaseStarts } from "../../types/constants";
 
 const MAX_RADIUS = RADAR_MAX_RADIUS;
 type RatingLabelProps = {

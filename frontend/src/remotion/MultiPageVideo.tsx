@@ -2,7 +2,7 @@ import React from "react";
 import { AbsoluteFill, Audio, Sequence, staticFile } from "remotion";
 import { RadarVideo } from "./RadarVideo";
 import type { ComparisonPairConfig, MultiPageConfig, RadarVideoProps } from "../types/radar";
-import { calculateComparisonDuration, calculateDuration } from "../../types/constants";
+import { calculateComparisonDuration, calculateDuration } from "../types/constants";
 import { applyGlobalOverride } from "../lib/global-override";
 
 type RenderItem =

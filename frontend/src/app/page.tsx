@@ -1,7 +1,30 @@
 "use client";
 
-import { RadarEditor } from "../components/editor/RadarEditor";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 
+/**
+ * 根页面：检查认证状态后重定向。
+ * 已认证 → /app，未认证 → /login。
+ */
 export default function Home() {
-  return <RadarEditor />;
+  const { isAuthenticated, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading) {
+      if (isAuthenticated) {
+        router.replace("/app");
+      } else {
+        router.replace("/login");
+      }
+    }
+  }, [loading, isAuthenticated, router]);
+
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="text-muted-foreground">加载中…</div>
+    </div>
+  );
 }

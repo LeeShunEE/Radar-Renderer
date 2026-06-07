@@ -6,7 +6,7 @@ import {
 } from "remotion";
 import { getRadarLabelAnchor } from "../../lib/math";
 import type { AnimationConfig } from "../../types/radar";
-import { RADAR_MAX_RADIUS, computePhaseStarts } from "../../../types/constants";
+import { RADAR_MAX_RADIUS, computePhaseStarts } from "../../types/constants";
 
 type AttributeLabelProps = {
   cx: number;

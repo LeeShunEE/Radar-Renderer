@@ -1,18 +1,13 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import React from "react";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Slider } from "../ui/slider";
 import { Switch } from "../ui/switch";
+import { AssetSelector } from "../files/AssetSelector";
 import type { RadarVideoProps, SlugConfig } from "../../types/radar";
 import { FontSelect } from "./FontFamilyEditor";
-
-type ImageOption = {
-  name: string;
-  path: string;
-};
 
 type CharacterConfigProps = {
   characterName: string;
@@ -54,25 +49,6 @@ export const CharacterConfig: React.FC<CharacterConfigProps> = ({
   const updateSlug = (patch: Partial<SlugConfig>) => {
     onChange({ slug: { ...slug, ...patch } as SlugConfig });
   };
-  const [images, setImages] = useState<ImageOption[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
-
-  const loadImages = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      const r = await fetch("/api/images", { cache: "no-store" });
-      const data = await r.json();
-      setImages(data);
-    } catch {
-      // ignore
-    } finally {
-      setRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadImages();
-  }, [loadImages]);
 
   const effectiveSilX = syncSilhouetteOffset ? characterNameOffsetX : silhouetteOffsetX;
   const effectiveSilY = syncSilhouetteOffset ? characterNameOffsetY : silhouetteOffsetY;
@@ -274,53 +250,12 @@ export const CharacterConfig: React.FC<CharacterConfigProps> = ({
         </div>
         {/* 右列 */}
         <div className="space-y-3">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>选择图片</Label>
-              <button
-                type="button"
-                onClick={loadImages}
-                disabled={refreshing}
-                title="刷新图片列表"
-                className="inline-flex items-center gap-1 text-xs text-subtitle hover:text-foreground disabled:opacity-50"
-              >
-                <RefreshCw
-                  size={12}
-                  className={refreshing ? "animate-spin" : ""}
-                />
-                刷新
-              </button>
-            </div>
-            {images.length === 0 ? (
-              <p className="text-xs text-muted-foreground">加载中…</p>
-            ) : (
-              <div className="grid grid-cols-5 gap-1.5">
-                {images.map((img) => {
-                  const selected = silhouetteSrc === img.path;
-                  return (
-                    <button
-                      key={img.path}
-                      type="button"
-                      onClick={() => onChange({ silhouetteSrc: img.path })}
-                      className={`rounded-lg border-2 p-1 transition-all ${
-                        selected
-                          ? "border-primary scale-105 opacity-100"
-                          : "border-transparent opacity-50 hover:opacity-80 hover:border-muted-foreground/30"
-                      }`}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={`/${img.path}`}
-                        alt={img.name}
-                        className="mx-auto max-h-12 object-contain"
-                        loading="lazy"
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          {/* 剪影选择器 */}
+          <AssetSelector
+            category="silhouettes"
+            value={silhouetteSrc}
+            onChange={(path) => onChange({ silhouetteSrc: path })}
+          />
           <div className="space-y-1">
             <Label className="text-xs">剪影透明度: {Math.round(silhouetteOpacity * 100)}%</Label>
             <Slider

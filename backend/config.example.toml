@@ -1,0 +1,27 @@
+# 后端配置模板。复制为 backend/config.toml 并填入真实值（config.toml 不进 git）。
+# 优先级：环境变量 > config.toml > 字段默认值。
+# testenv 等环境的连接配置由测试系统通过环境变量注入（见 CLAUDE.md §3.3.1），不要写进仓库。
+
+# 数据库连接串。
+#   dev:  sqlite+aiosqlite:///./data.db
+#   prod: postgresql+asyncpg://user:pass@host:5432/dbname
+database_url = "sqlite+aiosqlite:///./data.db"
+
+# API
+api_prefix = "/api/v1"
+cors_origins = ["http://localhost:3000"]
+
+# 鉴权（生产务必改 jwt_secret_string）
+jwt_secret_string = "change-me-please-use-a-long-random-string"
+jwt_algorithm = "HS256"
+jwt_expire_minutes = 1440          # access token 有效期（分钟）
+jwt_refresh_expire_minutes = 10080 # refresh token 有效期（分钟）
+
+# 文件存储
+storage_root = "./storage"
+max_user_storage_bytes = 209715200 # 单用户配额上限（字节），默认 200 MiB
+
+# 渲染
+render_concurrency = 2                  # 服务端渲染固定并发数
+worker_base_url = "http://localhost:3100"
+render_timeout_seconds = 600

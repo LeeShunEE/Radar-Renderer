@@ -1,10 +1,18 @@
-"""跨阶段通用 fixture。"""
+"""跨阶段通用数据 fixture（见 CLAUDE.md §6.1）。"""
+
+from datetime import UTC, datetime
 
 import pytest
-from unittest.mock import MagicMock
+
+from app.models.user import User
 
 
 @pytest.fixture
-def mock_task():
-    """跨阶段通用 Task mock。"""
-    return MagicMock(id="t001", title="Test Task")
+def mock_user() -> User:
+    """一个领域层 User 示例。"""
+    return User(
+        id=1,
+        username="alice",
+        email="alice@example.com",
+        created_at=datetime(2026, 1, 1, tzinfo=UTC),
+    )

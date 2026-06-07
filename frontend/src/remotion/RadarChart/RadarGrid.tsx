@@ -1,6 +1,6 @@
 import React from "react";
 import { getGridRingPoints, getOctagonPoint } from "../../lib/math";
-import { RADAR_MAX_RADIUS } from "../../../types/constants";
+import { RADAR_MAX_RADIUS } from "../../types/constants";
 
 type RadarGridProps = {
   cx: number;

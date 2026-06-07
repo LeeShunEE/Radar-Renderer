@@ -9,7 +9,7 @@ import {
   VIDEO_FPS,
   VIDEO_HEIGHT,
   VIDEO_WIDTH,
-} from "../../types/constants";
+} from "../types/constants";
 import { RadarVideo } from "./RadarVideo";
 import { MultiPageVideo } from "./MultiPageVideo";
 

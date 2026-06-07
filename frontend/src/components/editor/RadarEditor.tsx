@@ -8,11 +8,13 @@ import { PageConfigPanel } from "./PageConfigPanel";
 import { RadarValuesTable } from "./RadarValuesTable";
 import { ExportPanel } from "./ExportPanel";
 import { ConfigPersistencePanel } from "./ConfigPersistencePanel";
+import { FileManagerPanel } from "../files/FileManagerPanel";
+import { TaskQueuePanel } from "../tasks/TaskQueuePanel";
 import { FieldFocusProvider } from "./FieldFocusContext";
 import { applyGlobalOverride } from "../../lib/global-override";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
 import type { MultiPageConfig, RadarVideoProps } from "../../types/radar";
-import { defaultMultiPageConfig, defaultRadarProps } from "../../../types/constants";
+import { defaultMultiPageConfig, defaultRadarProps } from "../../types/constants";
 
 export const RadarEditor: React.FC = () => {
   const [config, setConfig] = useState<MultiPageConfig>(defaultMultiPageConfig);
@@ -176,132 +178,135 @@ export const RadarEditor: React.FC = () => {
       setPageExpanded={setPageExpanded}
       setActiveTab={setActiveTab}
     >
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-unfocused-border-color px-6 py-3">
-        <h1 className="text-lg font-semibold text-foreground">
-          雷达图动画生成器
-        </h1>
-      </header>
-      <div className="flex h-[calc(100vh-52px)]">
-        {/* 左侧预览 */}
-        <div className="w-[45%] p-6 border-r border-unfocused-border-color overflow-y-auto">
-          <PreviewPanel
-            {...(previewMode === "single"
-              ? {
-                  mode: "single" as const,
-                  props: playerProps,
-                  musicUrl: config.musicUrl,
-                }
-              : { mode: "multi" as const, config: config })}
-          />
-        </div>
+    <div className="flex h-[calc(100vh-52px)]">
+      {/* 左侧预览 */}
+      <div className="w-[45%] p-6 border-r border-unfocused-border-color overflow-y-auto">
+        <PreviewPanel
+          {...(previewMode === "single"
+            ? {
+                mode: "single" as const,
+                props: playerProps,
+                musicUrl: config.musicUrl,
+              }
+            : { mode: "multi" as const, config: config })}
+        />
+      </div>
 
-        {/* 右侧配置面板 */}
-        <div className="w-[55%] flex flex-col overflow-hidden">
-          <Tabs
-            value={activeTab}
-            onValueChange={(v) => setActiveTab(String(v))}
-            className="flex flex-col flex-1 min-h-0 gap-0"
-          >
-            <div className="px-6 pt-4 pb-2 border-b border-unfocused-border-color bg-background">
-              <TabsList className="w-full justify-start">
-                <TabsTrigger value="persistence">配置</TabsTrigger>
-                <TabsTrigger value="global">全局</TabsTrigger>
-                <TabsTrigger value="comparison">对比</TabsTrigger>
-                <TabsTrigger value="values">数值</TabsTrigger>
-                <TabsTrigger value="pages">页面</TabsTrigger>
-                <TabsTrigger value="export">导出</TabsTrigger>
-              </TabsList>
-            </div>
+      {/* 右侧配置面板 */}
+      <div className="w-[55%] flex flex-col overflow-hidden">
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(String(v))}
+          className="flex flex-col flex-1 min-h-0 gap-0"
+        >
+          <div className="px-6 pt-4 pb-2 border-b border-unfocused-border-color bg-background">
+            <TabsList className="w-full justify-start">
+              <TabsTrigger value="persistence">配置</TabsTrigger>
+              <TabsTrigger value="global">全局</TabsTrigger>
+              <TabsTrigger value="comparison">对比</TabsTrigger>
+              <TabsTrigger value="values">数值</TabsTrigger>
+              <TabsTrigger value="pages">页面</TabsTrigger>
+              <TabsTrigger value="assets">素材</TabsTrigger>
+              <TabsTrigger value="tasks">任务</TabsTrigger>
+              <TabsTrigger value="export">导出</TabsTrigger>
+            </TabsList>
+          </div>
 
-            <TabsContent value="persistence" className="overflow-y-auto p-6 space-y-4">
-              <ConfigPersistencePanel
-                currentConfig={config}
-                onLoadConfig={(loaded) => {
-                  setConfig(loaded);
-                  setActivePageIndex(0);
-                }}
-              />
-            </TabsContent>
+          <TabsContent value="persistence" className="overflow-y-auto p-6 space-y-4">
+            <ConfigPersistencePanel
+              currentConfig={config}
+              onLoadConfig={(loaded) => {
+                setConfig(loaded);
+                setActivePageIndex(0);
+              }}
+            />
+          </TabsContent>
 
-            <TabsContent value="global" className="overflow-y-auto p-6 space-y-4">
-              <GlobalConfigEditor
-                config={config}
-                activePageIndex={activePageIndex}
-                currentPage={activePage}
-                onChange={setConfig}
-                onSetActive={setActivePageIndex}
-                onAddPage={addPage}
-                onDuplicatePage={duplicatePage}
-                onRemovePage={removePage}
-                onMovePage={movePage}
-                onPreviewAll={() => setPreviewMode("multi")}
-              />
-            </TabsContent>
+          <TabsContent value="global" className="overflow-y-auto p-6 space-y-4">
+            <GlobalConfigEditor
+              config={config}
+              activePageIndex={activePageIndex}
+              currentPage={activePage}
+              onChange={setConfig}
+              onSetActive={setActivePageIndex}
+              onAddPage={addPage}
+              onDuplicatePage={duplicatePage}
+              onRemovePage={removePage}
+              onMovePage={movePage}
+              onPreviewAll={() => setPreviewMode("multi")}
+            />
+          </TabsContent>
 
-            <TabsContent value="comparison" className="overflow-y-auto p-6 space-y-4">
-              <ComparisonConfigPanel config={config} onChange={setConfig} />
-            </TabsContent>
+          <TabsContent value="comparison" className="overflow-y-auto p-6 space-y-4">
+            <ComparisonConfigPanel config={config} onChange={setConfig} />
+          </TabsContent>
 
-            <TabsContent value="values" className="overflow-y-auto p-6 space-y-4">
-              <RadarValuesTable
-                config={config}
-                onChange={setConfig}
-                activePageIndex={activePageIndex}
-                onSetActive={setActivePageIndex}
-              />
-            </TabsContent>
+          <TabsContent value="values" className="overflow-y-auto p-6 space-y-4">
+            <RadarValuesTable
+              config={config}
+              onChange={setConfig}
+              activePageIndex={activePageIndex}
+              onSetActive={setActivePageIndex}
+            />
+          </TabsContent>
 
-            <TabsContent value="pages" className="overflow-y-auto p-6 space-y-4">
-              {config.pages.map((page, i) => {
-                const isSecondary = config.comparisons?.some(
-                  (c) => c.secondPageIndex === i,
-                );
-                const activate = () => {
-                  if (i !== activePageIndex) setActivePageIndex(i);
-                };
-                return (
-                  <div
-                    key={i}
-                    onFocus={activate}
-                    onMouseDown={activate}
-                  >
-                    <PageConfigPanel
-                      index={i}
-                      page={page}
-                      allPages={config.pages}
-                      isActive={i === activePageIndex}
-                      isSecondary={!!isSecondary}
-                      expanded={expandedMap[i] ?? false}
-                      onToggle={() => togglePageExpanded(i)}
-                      onUpdate={(updates) => {
-                        activate();
-                        updatePage(i, updates);
-                      }}
-                      onPreview={() => {
-                        setActivePageIndex(i);
-                        setPreviewMode("single");
-                      }}
-                      onDuplicate={() => duplicatePage(i)}
-                      onRemove={() => removePage(i)}
-                      canRemove={config.pages.length > 1}
-                      globalOverrideEnabled={config.globalOverride?.enabled}
-                      onToggleIgnoreOverride={(path, ignored) => toggleIgnoreOverride(i, path, ignored)}
-                    />
-                  </div>
-                );
-              })}
-            </TabsContent>
+          <TabsContent value="pages" className="overflow-y-auto p-6 space-y-4">
+            {config.pages.map((page, i) => {
+              const isSecondary = config.comparisons?.some(
+                (c) => c.secondPageIndex === i,
+              );
+              const activate = () => {
+                if (i !== activePageIndex) setActivePageIndex(i);
+              };
+              return (
+                <div
+                  key={i}
+                  onFocus={activate}
+                  onMouseDown={activate}
+                >
+                  <PageConfigPanel
+                    index={i}
+                    page={page}
+                    allPages={config.pages}
+                    isActive={i === activePageIndex}
+                    isSecondary={!!isSecondary}
+                    expanded={expandedMap[i] ?? false}
+                    onToggle={() => togglePageExpanded(i)}
+                    onUpdate={(updates) => {
+                      activate();
+                      updatePage(i, updates);
+                    }}
+                    onPreview={() => {
+                      setActivePageIndex(i);
+                      setPreviewMode("single");
+                    }}
+                    onDuplicate={() => duplicatePage(i)}
+                    onRemove={() => removePage(i)}
+                    canRemove={config.pages.length > 1}
+                    globalOverrideEnabled={config.globalOverride?.enabled}
+                    onToggleIgnoreOverride={(path, ignored) => toggleIgnoreOverride(i, path, ignored)}
+                  />
+                </div>
+              );
+            })}
+          </TabsContent>
 
-            <TabsContent value="export" className="overflow-y-auto p-6 space-y-4">
-              <ExportPanel
-                props={playerProps}
-                config={config}
-                mode="single"
-              />
-            </TabsContent>
-          </Tabs>
-        </div>
+          <TabsContent value="assets" className="overflow-y-auto p-6 space-y-4">
+            <FileManagerPanel />
+          </TabsContent>
+
+          <TabsContent value="tasks" className="overflow-y-auto p-6 space-y-4">
+            <TaskQueuePanel />
+          </TabsContent>
+
+          <TabsContent value="export" className="overflow-y-auto p-6 space-y-4">
+            <ExportPanel
+              props={playerProps}
+              config={config}
+              mode="single"
+            />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
     </FieldFocusProvider>

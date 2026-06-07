@@ -1,0 +1,214 @@
+/**
+ * 集中 API 客户端：自动注入 Bearer token、401 刷新重试、分组方法。
+ */
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+// 单飞锁：防止并发刷新 token 竞态
+let _refreshPromise: Promise<string> | null = null;
+
+/** 从 localStorage 获取当前 access token。 */
+export function getAccessToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("access_token");
+}
+
+/** 从 localStorage 获取当前 refresh token。 */
+export function getRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("refresh_token");
+}
+
+/** 存储 token 到 localStorage。 */
+export function setTokens(access: string, refresh: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem("access_token", access);
+  localStorage.setItem("refresh_token", refresh);
+}
+
+/** 清除 localStorage 中的 token。 */
+export function clearTokens(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+}
+
+/** 使用 refresh token 刷新 access token（单飞锁）。 */
+async function refreshAccessToken(): Promise<string> {
+  const existingRefresh = getRefreshToken();
+  if (!existingRefresh) {
+    throw new Error("无 refresh token");
+  }
+  // 单飞：已有刷新进行中，等待其完成
+  if (_refreshPromise) {
+    return _refreshPromise;
+  }
+  _refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: existingRefresh }),
+      });
+      if (!res.ok) {
+        clearTokens();
+        throw new Error("Token 刷新失败");
+      }
+      const data = await res.json();
+      setTokens(data.access_token, data.refresh_token);
+      return data.access_token;
+    } finally {
+      _refreshPromise = null;
+    }
+  })();
+  return _refreshPromise;
+}
+
+/** 带认证的 fetch：自动注入 Authorization、401 自动刷新重试。 */
+async function authFetch<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const url = `${API_BASE}${path}`;
+  const accessToken = getAccessToken();
+
+  const headers = new Headers(options.headers);
+  if (accessToken && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${accessToken}`);
+  }
+  if (!headers.has("Content-Type") && options.body) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  let res = await fetch(url, { ...options, headers });
+
+  // 401 且有 refresh token → 刷新后重试一次
+  if (res.status === 401 && getRefreshToken()) {
+    try {
+      const newToken = await refreshAccessToken();
+      headers.set("Authorization", `Bearer ${newToken}`);
+      res = await fetch(url, { ...options, headers });
+    } catch {
+      // 刷新失败，清除 token，抛出原始错误
+    }
+  }
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: "未知错误" }));
+    const err = new Error(body.error ?? `HTTP ${res.status}`);
+    (err as any).code = body.code;
+    (err as any).status = res.status;
+    throw err;
+  }
+
+  // 空响应（204）
+  if (res.status === 204) {
+    return null as T;
+  }
+
+  return res.json();
+}
+
+// ── Auth ──────────────────────────────────────────────
+export const auth = {
+  register: (username: string, email: string, password: string) =>
+    authFetch<{ id: number; username: string; email: string; created_at: string }>(
+      "/api/v1/auth/register",
+      { method: "POST", body: JSON.stringify({ username, email, password }) },
+    ),
+  login: (username: string, password: string) =>
+    authFetch<{ access_token: string; refresh_token: string; token_type: string }>(
+      "/api/v1/auth/login",
+      { method: "POST", body: JSON.stringify({ username, password }) },
+    ),
+  refresh: (refreshToken: string) =>
+    authFetch<{ access_token: string; refresh_token: string }>(
+      "/api/v1/auth/refresh",
+      { method: "POST", body: JSON.stringify({ refresh_token: refreshToken }) },
+    ),
+  me: () =>
+    authFetch<{ id: number; username: string; email: string; created_at: string }>(
+      "/api/v1/auth/me",
+    ),
+};
+
+// ── Files ─────────────────────────────────────────────
+export const files = {
+  list: () =>
+    authFetch<{ files: Array<{ name: string; size_bytes: number; modified_at: string }>; quota: { used_bytes: number; limit_bytes: number; available_bytes: number } }>(
+      "/api/v1/files",
+    ),
+  upload: async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const accessToken = getAccessToken();
+    const res = await fetch(`${API_BASE}/api/v1/files`, {
+      method: "POST",
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      body: formData,
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: "上传失败" }));
+      throw new Error(body.error);
+    }
+    return res.json();
+  },
+  downloadUpload: (name: string) => `${API_BASE}/api/v1/files/uploads/${name}`,
+  downloadOutput: (taskId: number) => `${API_BASE}/api/v1/files/outputs/${taskId}`,
+  delete: (name: string) =>
+    authFetch<void>(`/api/v1/files/${encodeURIComponent(name)}`, { method: "DELETE" }),
+};
+
+// ── Render ────────────────────────────────────────────
+export const render = {
+  submit: (mode: "single" | "multi", codec: "h264" | "gif", inputProps: Record<string, unknown>) =>
+    authFetch<{
+      id: number;
+      mode: string;
+      codec: string;
+      status: string;
+      input_props: Record<string, unknown>;
+      output_path: string;
+      created_at: string;
+    }>(
+      "/api/v1/render",
+      { method: "POST", body: JSON.stringify({ mode, codec, input_props: inputProps }) },
+    ),
+};
+
+// ── Tasks ─────────────────────────────────────────────
+export const tasks = {
+  list: () =>
+    authFetch<{ queue_size: number; tasks: Array<TaskResponse> }>("/api/v1/tasks"),
+  get: (id: number) => authFetch<TaskResponse>(`/api/v1/tasks/${id}`),
+  delete: (id: number) => authFetch<void>(`/api/v1/tasks/${id}`, { method: "DELETE" }),
+};
+
+// ── Assets ────────────────────────────────────────────
+export const assets = {
+  listSilhouettes: () =>
+    authFetch<Array<{ name: string; path: string; size_bytes: number }>>(
+      "/api/v1/assets/silhouettes",
+    ),
+  listMusic: () =>
+    authFetch<Array<{ name: string; path: string; size_bytes: number }>>(
+      "/api/v1/assets/music",
+    ),
+  url: (category: string, name: string) =>
+    `${API_BASE}/api/v1/assets/${category}/${encodeURIComponent(name)}`,
+};
+
+export interface TaskResponse {
+  id: number;
+  mode: string;
+  codec: string;
+  status: string;
+  input_props: Record<string, unknown>;
+  output_path: string;
+  error: string | null;
+  duration_ms: number | null;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  position: number;
+  eta_seconds: number | null;
+}

@@ -1,7 +1,8 @@
 """Unit 阶段特化 fixture。"""
 
-import pytest
 from unittest.mock import AsyncMock
+
+import pytest
 
 
 @pytest.fixture

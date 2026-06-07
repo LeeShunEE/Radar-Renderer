@@ -42,6 +42,12 @@ backend/coverage.xml
 backend/*.db
 backend/data.db
 
+# 真实配置（仅提交 config.example.toml）
+backend/config.toml
+
+# 用户文件存储
+backend/storage/
+
 # === 测试目录 (tests/) ===
 tests/.pytest_cache/
 tests/**/__pycache__/

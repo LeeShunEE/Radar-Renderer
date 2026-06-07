@@ -6,12 +6,12 @@ import {
   calculateDuration,
   calculateComparisonDuration,
   computePhaseStarts,
-} from "../../../types/constants";
+} from "../../types/constants";
 import type { MultiPageConfig, RadarVideoProps } from "../../types/radar";
 import { RadarVideo } from "../../remotion/RadarVideo";
 import { MultiPageVideo } from "../../remotion/MultiPageVideo";
 import { applyGlobalOverride } from "../../lib/global-override";
-import { VIDEO_FPS, VIDEO_WIDTH, VIDEO_HEIGHT } from "../../../types/constants";
+import { VIDEO_FPS, VIDEO_WIDTH, VIDEO_HEIGHT } from "../../types/constants";
 import { useFieldFocus } from "./FieldFocusContext";
 
 type PreviewPanelProps =

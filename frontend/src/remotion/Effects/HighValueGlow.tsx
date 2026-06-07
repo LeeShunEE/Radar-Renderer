@@ -2,7 +2,7 @@ import React from "react";
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { getOctagonPoint } from "../../lib/math";
 import type { AnimationConfig } from "../../types/radar";
-import { RADAR_MAX_RADIUS, computePhaseStarts } from "../../../types/constants";
+import { RADAR_MAX_RADIUS, computePhaseStarts } from "../../types/constants";
 
 const MAX_RADIUS = RADAR_MAX_RADIUS;
 

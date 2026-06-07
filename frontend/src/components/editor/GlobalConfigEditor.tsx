@@ -1,16 +1,16 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
+import { AssetSelector } from "../files/AssetSelector";
 import type { ComparisonPairConfig, MultiPageConfig, RadarVideoProps } from "../../types/radar";
-import { defaultComparisonConfig } from "../../../types/constants";
+import { defaultComparisonConfig } from "../../types/constants";
 import {
   calculateDuration,
   calculateComparisonDuration,
   VIDEO_FPS,
-} from "../../../types/constants";
-import { useVideoRender } from "../../hooks/useVideoRender";
+} from "../../types/constants";
 import { GlobalOverridePanel } from "./GlobalOverridePanel";
 import { applyGlobalOverride } from "../../lib/global-override";
 
@@ -39,7 +39,6 @@ export const GlobalConfigEditor: React.FC<GlobalConfigEditorProps> = ({
   onMovePage,
   onPreviewAll,
 }) => {
-  const { rendering, error, startRender } = useVideoRender();
   const totalPages = config.pages.length;
 
   // Check if a page is involved in any comparison
@@ -103,42 +102,6 @@ export const GlobalConfigEditor: React.FC<GlobalConfigEditorProps> = ({
     return total;
   })();
   const totalSeconds = (totalFrames / VIDEO_FPS).toFixed(1);
-
-  // 音乐文件列表
-  const [musicFiles, setMusicFiles] = useState<
-    { name: string; path: string }[]
-  >([]);
-  const [playingFile, setPlayingFile] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  useEffect(() => {
-    fetch("/api/music")
-      .then((r) => r.json())
-      .then(setMusicFiles);
-  }, []);
-
-  const togglePlay = (filePath: string) => {
-    if (playingFile === filePath) {
-      audioRef.current?.pause();
-      setPlayingFile(null);
-    } else {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      const audio = new Audio(`/${filePath}`);
-      audio.onended = () => setPlayingFile(null);
-      audio.play();
-      audioRef.current = audio;
-      setPlayingFile(filePath);
-    }
-  };
-
-  // 组件卸载时停止播放
-  useEffect(() => {
-    return () => {
-      audioRef.current?.pause();
-    };
-  }, []);
 
   return (
     <>
@@ -233,67 +196,12 @@ export const GlobalConfigEditor: React.FC<GlobalConfigEditorProps> = ({
       </div>
 
       {/* 背景音乐选择 */}
-      <div className="space-y-1.5">
-        <Label className="text-xs text-subtitle">背景音乐</Label>
-        <div className="border border-unfocused-border-color rounded-md overflow-hidden">
-          {musicFiles.length === 0 ? (
-            <div className="px-3 py-4 text-xs text-muted-foreground text-center">
-              请将音乐文件放入 public/music/ 目录
-            </div>
-          ) : (
-            musicFiles.map((file) => {
-              const isSelected = config.musicUrl === file.path;
-              const isPlaying = playingFile === file.path;
-              return (
-                <div
-                  key={file.path}
-                  onClick={() =>
-                    onChange({
-                      ...config,
-                      musicUrl: isSelected ? "" : file.path,
-                    })
-                  }
-                  className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer transition-colors border-l-2 ${
-                    isSelected
-                      ? "border-l-blue-500 bg-blue-500/10"
-                      : "border-l-transparent hover:bg-muted/50"
-                  }`}
-                >
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      togglePlay(file.path);
-                    }}
-                    className="w-5 h-5 flex items-center justify-center rounded hover:bg-muted text-xs shrink-0"
-                  >
-                    {isPlaying ? "⏸" : "▶"}
-                  </button>
-                  <span className="text-xs truncate flex-1">
-                    {file.name}
-                  </span>
-                  {isSelected && (
-                    <span className="text-xs text-blue-500 shrink-0">
-                      选中
-                    </span>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-        {config.musicUrl && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-6 text-xs text-muted-foreground"
-            onClick={() => onChange({ ...config, musicUrl: "" })}
-          >
-            清除选择
-          </Button>
-        )}
-      </div>
+      <AssetSelector
+        category="music"
+        value={config.musicUrl}
+        onChange={(path) => onChange({ ...config, musicUrl: path })}
+        showPlayButton
+      />
 
       {/* 总时长统计 */}
       <div className="space-y-1.5">
@@ -352,29 +260,6 @@ export const GlobalConfigEditor: React.FC<GlobalConfigEditorProps> = ({
           <p className="text-xs text-subtitle">
             共 {totalFrames} 帧 / {totalSeconds} 秒
           </p>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              onClick={() => startRender("h264", "multi", currentPage, config)}
-              disabled={rendering}
-              className="flex-1"
-              size="sm"
-              variant="secondary"
-            >
-              {rendering ? "渲染中..." : "导出全部 MP4"}
-            </Button>
-            <Button
-              type="button"
-              onClick={() => startRender("gif", "multi", currentPage, config)}
-              disabled={rendering}
-              variant="outline"
-              className="flex-1"
-              size="sm"
-            >
-              {rendering ? "渲染中..." : "导出全部 GIF"}
-            </Button>
-          </div>
-          {error && <p className="text-xs text-geist-error">{error}</p>}
         </div>
       )}
     </div>

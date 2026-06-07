@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { RadarVideoSchema, MultiPageSchema, ComparisonPairSchema } from "../src/types/radar";
+import { RadarVideoSchema, MultiPageSchema, ComparisonPairSchema } from "./radar";
 
 export const COMP_NAME = "RadarChartVideo";
 export const VIDEO_FPS = 30;

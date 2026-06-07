@@ -19,7 +19,7 @@ import { ComparisonFill } from "./RadarChart/ComparisonFill";
 import { DualRatingLabel } from "./Labels/DualRatingLabel";
 import { Legend } from "./Labels/Legend";
 import type { AnimationConfig, ComparisonArrowStyle, ComparisonPairConfig, RadarTheme, RadarVideoProps, ComparisonOverlayConfig } from "../types/radar";
-import { RADAR_MAX_RADIUS, calculateDuration, computePhaseStarts } from "../../types/constants";
+import { RADAR_MAX_RADIUS, calculateDuration, computePhaseStarts } from "../types/constants";
 import { getOctagonPoint } from "../lib/math";
 import { loadSelectedFonts } from "../lib/fonts";
 

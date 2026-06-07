@@ -7,7 +7,7 @@ import {
 import { getRadarLabelAnchor } from "../../lib/math";
 import { calculateRating, getRatingColor } from "../../lib/rating";
 import type { ComparisonArrowStyle, RadarVideoProps } from "../../types/radar";
-import { RADAR_MAX_RADIUS } from "../../../types/constants";
+import { RADAR_MAX_RADIUS } from "../../types/constants";
 
 const MAX_RADIUS = RADAR_MAX_RADIUS;
 const DIFF_DOUBLE_THRESHOLD = 25;

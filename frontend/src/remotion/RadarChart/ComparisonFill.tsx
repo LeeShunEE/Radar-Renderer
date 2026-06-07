@@ -6,7 +6,7 @@ import {
 } from "remotion";
 import { getRadarPolygonPoints } from "../../lib/math";
 import type { AnimationConfig, RadarAttribute, RadarTheme } from "../../types/radar";
-import { RADAR_MAX_RADIUS } from "../../../types/constants";
+import { RADAR_MAX_RADIUS } from "../../types/constants";
 
 type ComparisonFillProps = {
   cx: number;

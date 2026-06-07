@@ -2,12 +2,13 @@ import { Metadata, Viewport } from "next";
 import "../../styles/global.css";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
+import { AuthProvider } from "@/contexts/AuthContext";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "Remotion and Next.js",
-  description: "Remotion and Next.js",
+  title: "雷达图动画生成器",
+  description: "基于 Remotion 的雷达图动画视频生成工具",
 };
 
 export const viewport: Viewport = {
@@ -22,8 +23,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={cn("font-sans", geist.variable)}>
-      <body className="bg-background">{children}</body>
+    <html lang="zh" className={cn("font-sans", geist.variable)}>
+      <body className="bg-background">
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }
