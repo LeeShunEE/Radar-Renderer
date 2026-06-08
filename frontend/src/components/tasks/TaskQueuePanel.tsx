@@ -13,13 +13,17 @@ import { files } from "@/lib/api-client";
 export function TaskQueuePanel() {
   const { tasks, queueSize, loading, error, refreshTasks, deleteTask } = useTaskQueue();
 
-  const handleDownload = (taskId: number, codec: string) => {
-    const url = files.downloadOutput(taskId);
+  const handleDownload = async (taskId: number, codec: string) => {
+    // 产物端点需鉴权：先带 token 拉 Blob，再用 blob URL 触发保存。
+    // 直接 <a href> 直链会不带 token 而 401。
+    const blob = await files.fetchOutputBlob(taskId);
     const ext = codec === "h264" ? "mp4" : "gif";
+    const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
+    a.href = blobUrl;
     a.download = `render-${taskId}.${ext}`;
     a.click();
+    URL.revokeObjectURL(blobUrl);
   };
 
   // 按创建时间倒序

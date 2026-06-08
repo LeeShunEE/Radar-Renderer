@@ -21,19 +21,14 @@ export interface UseServerRenderResult {
 export function useServerRender(): UseServerRenderResult {
   const [status, setStatus] = useState<"idle" | "submitting" | "queued" | "rendering" | "downloading" | "done" | "failed">("idle");
   const [error, setError] = useState<string | null>(null);
-  const { task, isPolling, error: pollingError, start: startPolling, stop: stopPolling } = useTaskPolling();
+  const { task, error: pollingError, start: startPolling, stop: stopPolling } = useTaskPolling();
 
   /** 触发浏览器下载产物。 */
   const triggerDownload = useCallback(async (t: TaskResponse) => {
     setStatus("downloading");
     try {
-      const url = files.downloadOutput(t.id);
-      // 使用 fetch 获取文件并触发下载
-      const res = await fetch(url);
-      if (!res.ok) {
-        throw new Error("下载产物失败");
-      }
-      const blob = await res.blob();
+      // 产物端点需鉴权，走带 token 的 Blob 拉取（裸 fetch 会 401）。
+      const blob = await files.fetchOutputBlob(t.id);
       const blobUrl = URL.createObjectURL(blob);
 
       const ext = t.codec === "h264" ? "mp4" : "gif";
@@ -56,7 +51,10 @@ export function useServerRender(): UseServerRenderResult {
 
   /** 监听任务状态变化。 */
   useEffect(() => {
-    if (!task || !isPolling) return;
+    // 不能用 isPolling 作为前置守卫：轮询在拉到终态(done/failed/canceled)的同一批次里
+    // 会 setTask(终态) 并 stop()(isPolling=false)，React 批处理后本 effect 永远看不到
+    // “task=done 且 isPolling=true”的瞬间，会漏掉 done → 不触发下载。只守卫 task 即可。
+    if (!task) return;
 
     // 跳过正在下载或已完成的状态
     if (status === "downloading" || status === "done") return;
@@ -78,7 +76,7 @@ export function useServerRender(): UseServerRenderResult {
       setError("任务已取消");
       stopPolling();
     }
-  }, [task, isPolling, status, triggerDownload, stopPolling]);
+  }, [task, status, triggerDownload, stopPolling]);
 
   /** 提交渲染任务。 */
   const submitRender = useCallback(async (

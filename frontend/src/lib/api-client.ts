@@ -154,6 +154,30 @@ export const files = {
   },
   downloadUpload: (name: string) => `${API_BASE}/api/v1/files/uploads/${name}`,
   downloadOutput: (taskId: number) => `${API_BASE}/api/v1/files/outputs/${taskId}`,
+  /**
+   * 带认证拉取渲染产物为 Blob（401 自动刷新重试一次）。
+   *
+   * 产物端点需要 Bearer 鉴权，故不能用裸 `fetch(url)` 或 `<a href>` 直链下载
+   * （都不带 token，必 401）。下载入口统一走此方法换 Blob 再触发保存。
+   */
+  fetchOutputBlob: async (taskId: number): Promise<Blob> => {
+    const url = `${API_BASE}/api/v1/files/outputs/${taskId}`;
+    const doFetch = (token: string | null) =>
+      fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    let res = await doFetch(getAccessToken());
+    if (res.status === 401 && getRefreshToken()) {
+      try {
+        const newToken = await refreshAccessToken();
+        res = await doFetch(newToken);
+      } catch {
+        // 刷新失败，落到下方错误分支统一抛出
+      }
+    }
+    if (!res.ok) {
+      throw new Error(`下载产物失败 (HTTP ${res.status})`);
+    }
+    return res.blob();
+  },
   delete: (name: string) =>
     authFetch<void>(`/api/v1/files/${encodeURIComponent(name)}`, { method: "DELETE" }),
 };

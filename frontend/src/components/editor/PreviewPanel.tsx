@@ -825,7 +825,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = (panelProps) => {
   return (
     <div className="w-full space-y-2">
       <div
-        className="overflow-hidden rounded-lg border border-unfocused-border-color shadow-lg mx-auto"
+        className="remotion-player-container overflow-hidden rounded-lg border border-unfocused-border-color shadow-lg mx-auto"
         style={{
           width: `min(100%, calc(45vh * ${VIDEO_WIDTH} / ${VIDEO_HEIGHT}))`,
           aspectRatio: `${VIDEO_WIDTH} / ${VIDEO_HEIGHT}`,

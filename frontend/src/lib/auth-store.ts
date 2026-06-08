@@ -90,6 +90,8 @@ export async function login(username: string, password: string): Promise<void> {
     };
   } catch (e: any) {
     _state = { ..._state, loading: false, error: e.message ?? "登录失败" };
+    // 必须在 throw 前 notify，否则订阅方收不到 loading 复位，按钮会卡在“登录中…”。
+    notify();
     throw e;
   }
   notify();
@@ -113,6 +115,8 @@ export async function register(username: string, email: string, password: string
     };
   } catch (e: any) {
     _state = { ..._state, loading: false, error: e.message ?? "注册失败" };
+    // 必须在 throw 前 notify，否则订阅方收不到 loading 复位，按钮会卡在“注册中…”。
+    notify();
     throw e;
   }
   notify();

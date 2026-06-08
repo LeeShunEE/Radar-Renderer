@@ -61,6 +61,12 @@ tests/.coverage
 # Playwright MCP（临时）
 .playwright-mcp/
 
+# Playwright 测试产物（trace / 截图 / 报告）
+frontend/test-results/
+frontend/playwright-report/
+test-results/
+playwright-report/
+
 # 环境变量
 .env
 .env*.local
