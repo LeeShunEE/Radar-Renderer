@@ -3,6 +3,19 @@
  */
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+/** API 错误：携带后端业务错误码与 HTTP 状态，供调用方按需区分处理。 */
+export class ApiError extends Error {
+  readonly code: string | undefined;
+  readonly status: number;
+
+  constructor(message: string, opts: { code?: string; status: number }) {
+    super(message);
+    this.name = "ApiError";
+    this.code = opts.code;
+    this.status = opts.status;
+  }
+}
+
 // 单飞锁：防止并发刷新 token 竞态
 let _refreshPromise: Promise<string> | null = null;
 
@@ -94,10 +107,10 @@ async function authFetch<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: "未知错误" }));
-    const err = new Error(body.error ?? `HTTP ${res.status}`);
-    (err as any).code = body.code;
-    (err as any).status = res.status;
-    throw err;
+    throw new ApiError(body.error ?? `HTTP ${res.status}`, {
+      code: body.code,
+      status: res.status,
+    });
   }
 
   // 空响应（204）
@@ -131,6 +144,30 @@ export const auth = {
     ),
 };
 
+/**
+ * 带认证拉取二进制资源为 Blob（401 自动刷新重试一次）。
+ *
+ * 需鉴权的下载端点不能用裸 `fetch(url)` 或 `<a href>` 直链（都不带 token，必 401）；
+ * 下载入口统一走此方法换 Blob 再触发保存。
+ */
+async function authFetchBlob(url: string, errLabel: string): Promise<Blob> {
+  const doFetch = (token: string | null) =>
+    fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  let res = await doFetch(getAccessToken());
+  if (res.status === 401 && getRefreshToken()) {
+    try {
+      const newToken = await refreshAccessToken();
+      res = await doFetch(newToken);
+    } catch {
+      // 刷新失败，落到下方错误分支统一抛出
+    }
+  }
+  if (!res.ok) {
+    throw new Error(`${errLabel} (HTTP ${res.status})`);
+  }
+  return res.blob();
+}
+
 // ── Files ─────────────────────────────────────────────
 export const files = {
   list: () =>
@@ -154,30 +191,12 @@ export const files = {
   },
   downloadUpload: (name: string) => `${API_BASE}/api/v1/files/uploads/${name}`,
   downloadOutput: (taskId: number) => `${API_BASE}/api/v1/files/outputs/${taskId}`,
-  /**
-   * 带认证拉取渲染产物为 Blob（401 自动刷新重试一次）。
-   *
-   * 产物端点需要 Bearer 鉴权，故不能用裸 `fetch(url)` 或 `<a href>` 直链下载
-   * （都不带 token，必 401）。下载入口统一走此方法换 Blob 再触发保存。
-   */
-  fetchOutputBlob: async (taskId: number): Promise<Blob> => {
-    const url = `${API_BASE}/api/v1/files/outputs/${taskId}`;
-    const doFetch = (token: string | null) =>
-      fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-    let res = await doFetch(getAccessToken());
-    if (res.status === 401 && getRefreshToken()) {
-      try {
-        const newToken = await refreshAccessToken();
-        res = await doFetch(newToken);
-      } catch {
-        // 刷新失败，落到下方错误分支统一抛出
-      }
-    }
-    if (!res.ok) {
-      throw new Error(`下载产物失败 (HTTP ${res.status})`);
-    }
-    return res.blob();
-  },
+  /** 带认证拉取渲染产物为 Blob（见 authFetchBlob）。 */
+  fetchOutputBlob: (taskId: number): Promise<Blob> =>
+    authFetchBlob(`${API_BASE}/api/v1/files/outputs/${taskId}`, "下载产物失败"),
+  /** 带认证拉取用户上传文件为 Blob（见 authFetchBlob）。 */
+  fetchUploadBlob: (name: string): Promise<Blob> =>
+    authFetchBlob(`${API_BASE}/api/v1/files/uploads/${encodeURIComponent(name)}`, "下载文件失败"),
   delete: (name: string) =>
     authFetch<void>(`/api/v1/files/${encodeURIComponent(name)}`, { method: "DELETE" }),
 };

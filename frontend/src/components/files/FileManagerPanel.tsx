@@ -19,7 +19,7 @@ export function FileManagerPanel() {
     refresh,
     upload,
     deleteFile,
-    getDownloadUrl,
+    downloadFile,
     formatQuota,
     quotaPercent,
   } = useFileManagement();
@@ -125,15 +125,15 @@ export function FileManagerPanel() {
               className="flex items-center gap-2 px-3 py-2 border-b border-unfocused-border-color last:border-b-0 hover:bg-muted/50 transition-colors"
             >
               <FileIcon className="w-4 h-4 text-muted-foreground shrink-0" />
-              <a
-                href={getDownloadUrl(file.name)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm truncate flex-1 hover:text-primary"
+              {/* 上传文件端点需鉴权，用按钮走带 token 的 Blob 下载（裸 <a href> 会 401）。 */}
+              <button
+                type="button"
+                onClick={() => downloadFile(file.name)}
+                className="text-sm truncate flex-1 text-left hover:text-primary"
                 title={file.name}
               >
                 {file.name}
-              </a>
+              </button>
               <span className="text-xs text-muted-foreground shrink-0">
                 {formatQuota(file.size_bytes)}
               </span>

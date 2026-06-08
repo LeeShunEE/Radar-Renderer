@@ -93,9 +93,32 @@ export function useFileManagement() {
     }
   }, [refresh]);
 
-  /** 获取上传文件的下载 URL。 */
+  /** 获取上传文件的下载 URL（用于在素材中按 URL 引用，渲染端按需鉴权）。 */
   const getDownloadUrl = useCallback((name: string) => {
     return files.downloadUpload(name);
+  }, []);
+
+  /**
+   * 下载上传文件到本地。
+   *
+   * 上传文件端点需鉴权，裸 `<a href>` 直链会 401；统一走带 token 的 Blob 拉取再触发保存。
+   */
+  const downloadFile = useCallback(async (name: string) => {
+    setState((prev) => ({ ...prev, error: null }));
+    try {
+      const blob = await files.fetchUploadBlob(name);
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(blobUrl);
+    } catch (e) {
+      setState((prev) => ({
+        ...prev,
+        error: e instanceof Error ? e.message : "下载失败",
+      }));
+    }
   }, []);
 
   /** 格式化配额显示。 */
@@ -117,6 +140,7 @@ export function useFileManagement() {
     upload,
     deleteFile,
     getDownloadUrl,
+    downloadFile,
     formatQuota,
     quotaPercent,
   };
