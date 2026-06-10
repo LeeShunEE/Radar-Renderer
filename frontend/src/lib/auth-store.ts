@@ -1,15 +1,17 @@
 /**
  * 认证状态管理：内存 + localStorage 持久化。
  *
- * 提供 login / register / logout / refreshTokens 方法，
+ * 提供 login / register / logout / refreshTokens / oauthLogin 方法，
  * 并在启动时检查存量 token 是否有效。
  */
 import { auth, setTokens, clearTokens, getAccessToken, getRefreshToken } from "./api-client";
 
 export interface User {
   id: number;
-  username: string;
+  username: string | null;
   email: string;
+  isVerified: boolean;
+  displayName: string | null;
   createdAt: string;
 }
 
@@ -59,7 +61,14 @@ export async function initializeAuth(): Promise<void> {
   try {
     const user = await auth.me();
     _state = {
-      user: { id: user.id, username: user.username, email: user.email, createdAt: user.created_at },
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        isVerified: user.is_verified,
+        displayName: user.display_name,
+        createdAt: user.created_at,
+      },
       accessToken: storedAccess,
       refreshToken: storedRefresh,
       loading: false,
@@ -73,16 +82,23 @@ export async function initializeAuth(): Promise<void> {
   notify();
 }
 
-/** 登录并更新状态。 */
-export async function login(username: string, password: string): Promise<void> {
+/** 登录并更新状态（支持用户名或邮箱）。 */
+export async function login(identifier: string, password: string): Promise<void> {
   _state = { ..._state, loading: true, error: null };
   notify();
   try {
-    const tokens = await auth.login(username, password);
+    const tokens = await auth.login(identifier, password);
     setTokens(tokens.access_token, tokens.refresh_token);
     const user = await auth.me();
     _state = {
-      user: { id: user.id, username: user.username, email: user.email, createdAt: user.created_at },
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        isVerified: user.is_verified,
+        displayName: user.display_name,
+        createdAt: user.created_at,
+      },
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token,
       loading: false,
@@ -90,24 +106,150 @@ export async function login(username: string, password: string): Promise<void> {
     };
   } catch (e: unknown) {
     _state = { ..._state, loading: false, error: e instanceof Error ? e.message : "登录失败" };
-    // 必须在 throw 前 notify，否则订阅方收不到 loading 复位，按钮会卡在“登录中…”。
     notify();
     throw e;
   }
   notify();
 }
 
-/** 注册并更新状态。 */
+/** 发送验证码。 */
+export async function sendVerificationCode(email: string, purpose: string = "register"): Promise<void> {
+  await auth.sendCode(email, purpose);
+}
+
+/** 验证码注册并自动登录。 */
+export async function registerWithCode(email: string, code: string): Promise<boolean> {
+  _state = { ..._state, loading: true, error: null };
+  notify();
+  try {
+    const tokens = await auth.register(email, code);
+    setTokens(tokens.access_token, tokens.refresh_token);
+    const user = await auth.me();
+    _state = {
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        isVerified: user.is_verified,
+        displayName: user.display_name,
+        createdAt: user.created_at,
+      },
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      loading: false,
+      error: null,
+    };
+    // 返回是否是新用户
+    return tokens.is_new_user ?? false;
+  } catch (e: unknown) {
+    _state = { ..._state, loading: false, error: e instanceof Error ? e.message : "注册失败" };
+    notify();
+    throw e;
+  }
+  notify();
+  return false;
+}
+
+/** OAuth 登录：发起授权流程。 */
+export async function startOAuthLogin(provider: string): Promise<void> {
+  const { auth_url } = await auth.oauthStart(provider);
+  // 跳转到 OAuth 授权页面
+  window.location.href = auth_url;
+}
+
+/** OAuth 登录：处理回调。 */
+export async function handleOAuthCallback(
+  provider: string,
+  code: string,
+  state: string,
+): Promise<boolean> {
+  _state = { ..._state, loading: true, error: null };
+  notify();
+  try {
+    const tokens = await auth.oauthCallback(provider, code, state);
+    setTokens(tokens.access_token, tokens.refresh_token);
+    const user = await auth.me();
+    _state = {
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        isVerified: user.is_verified,
+        displayName: user.display_name,
+        createdAt: user.created_at,
+      },
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      loading: false,
+      error: null,
+    };
+    // 返回是否是新用户（首次登录自动注册）
+    return tokens.is_new_user ?? false;
+  } catch (e: unknown) {
+    _state = { ..._state, loading: false, error: e instanceof Error ? e.message : "OAuth 登录失败" };
+    notify();
+    throw e;
+  }
+  notify();
+  return false;
+}
+
+/** 设置用户名（OAuth 用户首次登录后设置）。 */
+export async function setUsername(username: string): Promise<void> {
+  _state = { ..._state, loading: true, error: null };
+  notify();
+  try {
+    const user = await auth.setUsername(username);
+    _state = {
+      ..._state,
+      user: {
+        ..._state.user!,
+        username: user.username,
+      },
+      loading: false,
+      error: null,
+    };
+  } catch (e: unknown) {
+    _state = { ..._state, loading: false, error: e instanceof Error ? e.message : "设置用户名失败" };
+    notify();
+    throw e;
+  }
+  notify();
+}
+
+/** 设置密码（OAuth 用户后续设置密码）。 */
+export async function setPassword(password: string): Promise<void> {
+  _state = { ..._state, loading: true, error: null };
+  notify();
+  try {
+    await auth.setPassword(password);
+    _state = { ..._state, loading: false, error: null };
+  } catch (e: unknown) {
+    _state = { ..._state, loading: false, error: e instanceof Error ? e.message : "设置密码失败" };
+    notify();
+    throw e;
+  }
+  notify();
+}
+
+/** 用户名密码注册（已废弃，保留用于兼容）。 */
 export async function register(username: string, email: string, password: string): Promise<void> {
   _state = { ..._state, loading: true, error: null };
   notify();
   try {
-    const user = await auth.register(username, email, password);
+    const user = await auth.registerWithPassword(username, email, password);
     // 注册后自动登录
     const tokens = await auth.login(username, password);
     setTokens(tokens.access_token, tokens.refresh_token);
     _state = {
-      user: { id: user.id, username: user.username, email: user.email, createdAt: user.created_at },
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        isVerified: false,
+        displayName: null,
+        createdAt: user.created_at,
+      },
       accessToken: tokens.access_token,
       refreshToken: tokens.refresh_token,
       loading: false,
@@ -115,7 +257,6 @@ export async function register(username: string, email: string, password: string
     };
   } catch (e: unknown) {
     _state = { ..._state, loading: false, error: e instanceof Error ? e.message : "注册失败" };
-    // 必须在 throw 前 notify，否则订阅方收不到 loading 复位，按钮会卡在“注册中…”。
     notify();
     throw e;
   }

@@ -123,15 +123,36 @@ async function authFetch<T>(
 
 // ── Auth ──────────────────────────────────────────────
 export const auth = {
-  register: (username: string, email: string, password: string) =>
-    authFetch<{ id: number; username: string; email: string; created_at: string }>(
+  /** 发送邮箱验证码 */
+  sendCode: (email: string, purpose: string = "register") =>
+    authFetch<{ message: string }>(
+      "/api/v1/auth/send-code",
+      { method: "POST", body: JSON.stringify({ email, purpose }) },
+    ),
+  /** 验证码注册 */
+  register: (email: string, code: string) =>
+    authFetch<{ access_token: string; refresh_token: string; token_type: string; is_new_user: boolean }>(
       "/api/v1/auth/register",
+      { method: "POST", body: JSON.stringify({ email, code }) },
+    ),
+  /** 用户名密码注册（已废弃） */
+  registerWithPassword: (username: string, email: string, password: string) =>
+    authFetch<{ id: number; username: string; email: string; created_at: string }>(
+      "/api/v1/auth/register-with-password",
       { method: "POST", body: JSON.stringify({ username, email, password }) },
     ),
-  login: (username: string, password: string) =>
+  /** 登录（支持用户名或邮箱） */
+  login: (usernameOrEmail: string, password: string) =>
     authFetch<{ access_token: string; refresh_token: string; token_type: string }>(
       "/api/v1/auth/login",
-      { method: "POST", body: JSON.stringify({ username, password }) },
+      {
+        method: "POST",
+        body: JSON.stringify(
+          usernameOrEmail.includes("@")
+            ? { email: usernameOrEmail, password }
+            : { username: usernameOrEmail, password },
+        ),
+      },
     ),
   refresh: (refreshToken: string) =>
     authFetch<{ access_token: string; refresh_token: string }>(
@@ -139,8 +160,47 @@ export const auth = {
       { method: "POST", body: JSON.stringify({ refresh_token: refreshToken }) },
     ),
   me: () =>
-    authFetch<{ id: number; username: string; email: string; created_at: string }>(
+    authFetch<{ id: number; username: string | null; email: string; is_verified: boolean; display_name: string | null; created_at: string }>(
       "/api/v1/auth/me",
+    ),
+  /** 设置用户名 */
+  setUsername: (username: string) =>
+    authFetch<{ id: number; username: string; email: string; created_at: string }>(
+      "/api/v1/auth/set-username",
+      { method: "POST", body: JSON.stringify({ username }) },
+    ),
+  /** 设置密码 */
+  setPassword: (password: string) =>
+    authFetch<{ id: number; username: string; email: string; created_at: string }>(
+      "/api/v1/auth/set-password",
+      { method: "POST", body: JSON.stringify({ password }) },
+    ),
+  /** 发起 OAuth 登录 */
+  oauthStart: (provider: string) =>
+    authFetch<{ auth_url: string }>(
+      `/api/v1/auth/oauth/${provider}/start`,
+    ),
+  /** 处理 OAuth 回调 */
+  oauthCallback: (provider: string, code: string, state: string) =>
+    authFetch<{ access_token: string; refresh_token: string; token_type: string; is_new_user: boolean }>(
+      `/api/v1/auth/oauth/${provider}/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`,
+    ),
+  /** 获取已绑定的 OAuth 账户列表 */
+  listOAuthAccounts: () =>
+    authFetch<Array<{ id: number; provider: string; provider_email: string | null; provider_display_name: string | null; created_at: string }>>(
+      "/api/v1/auth/oauth/accounts",
+    ),
+  /** 绑定 OAuth 账户 */
+  bindOAuth: (provider: string, code: string, state: string) =>
+    authFetch<{ id: number; username: string; email: string; created_at: string }>(
+      `/api/v1/auth/oauth/${provider}/bind?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`,
+      { method: "POST" },
+    ),
+  /** 解绑 OAuth 账户 */
+  unbindOAuth: (provider: string) =>
+    authFetch<{ success: boolean }>(
+      `/api/v1/auth/oauth/${provider}/unbind`,
+      { method: "DELETE" },
     ),
 };
 

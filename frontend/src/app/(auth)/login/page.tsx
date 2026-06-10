@@ -11,11 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { OAuthButtons } from "@/components/auth/OAuthButtons";
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, loading, error } = useAuth();
-  const [username, setUsername] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -23,7 +24,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLocalError(null);
     try {
-      await login(username, password);
+      await login(identifier, password);
       router.push("/app");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "登录失败";
@@ -44,12 +45,12 @@ export default function LoginPage() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="username">用户名</Label>
+          <Label htmlFor="identifier">用户名或邮箱</Label>
           <Input
-            id="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="输入用户名"
+            id="identifier"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            placeholder="输入用户名或邮箱"
             required
             autoComplete="username"
           />
@@ -76,6 +77,8 @@ export default function LoginPage() {
           {loading ? "登录中…" : "登录"}
         </Button>
       </form>
+
+      <OAuthButtons />
 
       <div className="text-center text-sm text-muted-foreground">
         没有账户？{" "}
