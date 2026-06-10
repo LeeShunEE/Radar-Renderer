@@ -25,8 +25,9 @@ export default function LoginPage() {
     try {
       await login(username, password);
       router.push("/app");
-    } catch (err: any) {
-      setLocalError(err.message ?? "登录失败");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "登录失败";
+      setLocalError(message);
     }
   };
 
