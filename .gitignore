@@ -58,6 +58,9 @@ tests/.coverage
 # Claude Code
 .claude/
 
+# Coverage（根目录）
+/.coverage
+
 # Playwright MCP（临时）
 .playwright-mcp/
 
