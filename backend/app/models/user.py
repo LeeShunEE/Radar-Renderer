@@ -10,13 +10,21 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, SecretStr
 
 
 class User(BaseModel):
-    """用户公开身份。"""
+    """用户公开身份。
+
+    支持邮箱验证码注册 + OAuth 登录：
+    - username 改为可选（OAuth 用户可能无用户名）
+    - is_verified 标记邮箱验证状态
+    - display_name 存储 OAuth 用户显示名称
+    """
 
     model_config = ConfigDict(frozen=True)
 
     id: int
-    username: str = Field(min_length=3, max_length=64)
+    username: str | None = Field(default=None, min_length=3, max_length=64)
     email: EmailStr
+    is_verified: bool = False
+    display_name: str | None = None
     created_at: datetime
 
 
@@ -26,5 +34,19 @@ class UserCredentials(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     user_id: int
-    username: str
-    password_hash_secret_string: SecretStr
+    username: str | None  # OAuth 用户可能无用户名
+    password_hash_secret_string: SecretStr | None  # OAuth 用户可能无密码
+
+
+class OAuthAccount(BaseModel):
+    """OAuth 账户绑定信息。"""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: int
+    user_id: int
+    provider: str  # "google" | "github"
+    provider_user_id: str
+    provider_email: str | None = None
+    provider_display_name: str | None = None
+    created_at: datetime

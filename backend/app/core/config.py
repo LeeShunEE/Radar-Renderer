@@ -37,6 +37,24 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 60 * 24
     jwt_refresh_expire_minutes: int = 60 * 24 * 7
 
+    # 验证码
+    verification_code_expire_minutes: int = 10
+    verification_code_length: int = 6
+    verification_code_cooldown_seconds: int = 60
+
+    # Resend 邮件服务
+    resend_api_key_secret_string: SecretStr | None = None
+
+    # Google OAuth
+    oauth_google_client_id: str | None = None
+    oauth_google_client_secret_secret_string: SecretStr | None = None
+    oauth_google_redirect_uri: str | None = None
+
+    # GitHub OAuth
+    oauth_github_client_id: str | None = None
+    oauth_github_client_secret_secret_string: SecretStr | None = None
+    oauth_github_redirect_uri: str | None = None
+
     # 文件存储
     storage_root: Path = _BACKEND_ROOT / "storage"
     max_user_storage_bytes: int = 200 * 1024 * 1024

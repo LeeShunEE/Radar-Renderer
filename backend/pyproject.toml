@@ -16,6 +16,8 @@ dependencies = [
     "argon2-cffi>=23.1.0",
     "python-multipart>=0.0.12",
     "httpx>=0.28.0",
+    "resend>=2.0.0",
+    "authlib>=1.0.0",
 ]
 
 [project.optional-dependencies]

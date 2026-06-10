@@ -16,6 +16,8 @@ def _to_user(orm: UserORM) -> User:
         id=orm.id,
         username=orm.username,
         email=orm.email,
+        is_verified=orm.is_verified,
+        display_name=orm.display_name,
         created_at=orm.created_at,
     )
 
@@ -26,8 +28,26 @@ class UserDAO:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def create(self, *, username: str, email: str, password_hash: str) -> User:
-        orm = UserORM(username=username, email=email, password_hash=password_hash)
+    async def create(
+        self,
+        *,
+        email: str,
+        password_hash: str | None = None,
+        username: str | None = None,
+        is_verified: bool = False,
+        display_name: str | None = None,
+    ) -> User:
+        """创建用户。
+
+        支持邮箱验证码注册（password_hash/username 可选）和 OAuth 登录（无密码）。
+        """
+        orm = UserORM(
+            email=email,
+            password_hash=password_hash,
+            username=username,
+            is_verified=is_verified,
+            display_name=display_name,
+        )
         self._session.add(orm)
         await self._session.commit()
         await self._session.refresh(orm)
@@ -42,7 +62,24 @@ class UserDAO:
         orm = (await self._session.execute(stmt)).scalar_one_or_none()
         return _to_user(orm) if orm is not None else None
 
+    async def get_by_email(self, email: str) -> User | None:
+        """通过邮箱获取用户。"""
+        stmt = select(UserORM).where(UserORM.email == email)
+        orm = (await self._session.execute(stmt)).scalar_one_or_none()
+        return _to_user(orm) if orm is not None else None
+
+    async def exists_by_email(self, email: str) -> bool:
+        """检查邮箱是否已注册。"""
+        stmt = select(UserORM.id).where(UserORM.email == email)
+        return (await self._session.execute(stmt)).first() is not None
+
+    async def exists_by_username(self, username: str) -> bool:
+        """检查用户名是否已存在。"""
+        stmt = select(UserORM.id).where(UserORM.username == username)
+        return (await self._session.execute(stmt)).first() is not None
+
     async def exists(self, *, username: str, email: str) -> bool:
+        """检查用户名或邮箱是否已存在。"""
         stmt = select(UserORM.id).where(
             (UserORM.username == username) | (UserORM.email == email)
         )
@@ -51,6 +88,7 @@ class UserDAO:
     async def get_credentials_by_username(
         self, username: str
     ) -> UserCredentials | None:
+        """通过用户名获取凭据（用于用户名+密码登录）。"""
         stmt = select(UserORM).where(UserORM.username == username)
         orm = (await self._session.execute(stmt)).scalar_one_or_none()
         if orm is None:
@@ -60,3 +98,47 @@ class UserDAO:
             username=orm.username,
             password_hash_secret_string=orm.password_hash,
         )
+
+    async def get_credentials_by_email(
+        self, email: str
+    ) -> UserCredentials | None:
+        """通过邮箱获取凭据（用于邮箱+密码登录）。"""
+        stmt = select(UserORM).where(UserORM.email == email)
+        orm = (await self._session.execute(stmt)).scalar_one_or_none()
+        if orm is None:
+            return None
+        return UserCredentials(
+            user_id=orm.id,
+            username=orm.username,
+            password_hash_secret_string=orm.password_hash,
+        )
+
+    async def set_username(self, user_id: int, username: str) -> User:
+        """设置用户名（OAuth 用户首次登录后设置）。"""
+        orm = await self._session.get(UserORM, user_id)
+        if orm is None:
+            raise ValueError(f"用户 {user_id} 不存在")
+        orm.username = username
+        await self._session.commit()
+        await self._session.refresh(orm)
+        return _to_user(orm)
+
+    async def set_password(self, user_id: int, password_hash: str) -> User:
+        """设置密码（OAuth 用户后续设置密码）。"""
+        orm = await self._session.get(UserORM, user_id)
+        if orm is None:
+            raise ValueError(f"用户 {user_id} 不存在")
+        orm.password_hash = password_hash
+        await self._session.commit()
+        await self._session.refresh(orm)
+        return _to_user(orm)
+
+    async def set_verified(self, user_id: int, is_verified: bool = True) -> User:
+        """设置邮箱验证状态。"""
+        orm = await self._session.get(UserORM, user_id)
+        if orm is None:
+            raise ValueError(f"用户 {user_id} 不存在")
+        orm.is_verified = is_verified
+        await self._session.commit()
+        await self._session.refresh(orm)
+        return _to_user(orm)

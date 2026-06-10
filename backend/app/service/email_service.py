@@ -1,0 +1,85 @@
+"""邮件服务：Resend API 封装。
+
+发送验证码邮件等。
+"""
+
+import resend
+from pydantic import SecretStr
+
+from app.core.config import settings
+from app.core.exceptions import EmailServiceError
+
+
+class EmailService:
+    """邮件发送服务。"""
+
+    def __init__(self) -> None:
+        # 初始化 Resend API
+        api_key = settings.resend_api_key_secret_string
+        if api_key is None:
+            raise EmailServiceError("Resend API key 未配置")
+        resend.api_key = api_key.get_secret_value()
+
+    async def send_verification_code(
+        self,
+        email: str,
+        code: str,
+        purpose: str,
+    ) -> None:
+        """发送验证码邮件。
+
+        Args:
+            email: 目标邮箱
+            code: 验证码
+            purpose: 用途（"register" | "reset_password"）
+
+        Raises:
+            EmailServiceError: 发送失败
+        """
+        # 根据 purpose 定制邮件内容
+        if purpose == "register":
+            subject = "注册验证码"
+            body = f"您的注册验证码是：{code}\n验证码有效期为 10 分钟，请尽快完成注册。"
+        elif purpose == "reset_password":
+            subject = "重置密码验证码"
+            body = f"您的重置密码验证码是：{code}\n验证码有效期为 10 分钟，请尽快完成操作。"
+        else:
+            raise EmailServiceError(f"未知的验证码用途：{purpose}")
+
+        try:
+            # Resend SDK 是同步的，但我们在 async 方法中调用
+            # 在生产环境中可以考虑使用 asyncio.to_thread 包装
+            resend.Emails.send(
+                {
+                    "from": "noreply@your-domain.com",  # 需要在 Resend 中配置的发件域名
+                    "to": email,
+                    "subject": subject,
+                    "text": body,
+                }
+            )
+        except Exception as e:
+            raise EmailServiceError(f"邮件发送失败：{e}") from e
+
+    async def send_oauth_welcome(self, email: str, provider: str) -> None:
+        """发送 OAuth 登录欢迎邮件（可选）。
+
+        Args:
+            email: 用户邮箱
+            provider: OAuth provider 名称
+        """
+        subject = f"欢迎使用 {provider} 登录"
+        body = f"您已成功通过 {provider} 账户登录雷达图动画生成器。\n请前往账户设置完善您的个人信息。"
+
+        try:
+            resend.Emails.send(
+                {
+                    "from": "noreply@your-domain.com",
+                    "to": email,
+                    "subject": subject,
+                    "text": body,
+                }
+            )
+        except Exception as e:
+            # 欢迎邮件失败不影响登录流程，只记录日志
+            import logging
+            logging.warning(f"OAuth 欢迎邮件发送失败：{e}")

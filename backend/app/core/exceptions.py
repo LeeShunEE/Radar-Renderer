@@ -77,3 +77,50 @@ class RenderFailedError(BusinessError):
 
     status_code = 502
     code = "render_failed"
+
+
+class VerificationCodeError(BusinessError):
+    """验证码相关错误基类。"""
+
+    status_code = 400
+    code = "verification_code_error"
+
+
+class VerificationCodeInvalidError(VerificationCodeError):
+    """验证码无效。"""
+
+    code = "verification_code_invalid"
+
+
+class VerificationCodeExpiredError(VerificationCodeError):
+    """验证码已过期。"""
+
+    code = "verification_code_expired"
+
+
+class VerificationCodeCooldownError(VerificationCodeError):
+    """验证码发送冷却时间未到。"""
+
+    status_code = 429
+    code = "verification_code_cooldown"
+
+
+class OAuthError(BusinessError):
+    """OAuth 流程错误。"""
+
+    status_code = 400
+    code = "oauth_error"
+
+
+class OAuthAccountAlreadyBoundError(BusinessError):
+    """OAuth 账户已被其他用户绑定。"""
+
+    status_code = 409
+    code = "oauth_account_already_bound"
+
+
+class EmailServiceError(BusinessError):
+    """邮件服务错误。"""
+
+    status_code = 503
+    code = "email_service_error"

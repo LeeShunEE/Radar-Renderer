@@ -31,13 +31,30 @@ class TestToUser:
         orm.id = 1
         orm.username = "alice"
         orm.email = "alice@example.com"
+        orm.is_verified = True
+        orm.display_name = "Alice"
         orm.created_at = datetime(2026, 1, 1, tzinfo=UTC)
 
         user = _to_user(orm)
         assert user.id == 1
         assert user.username == "alice"
         assert user.email == "alice@example.com"
+        assert user.is_verified is True
+        assert user.display_name == "Alice"
         assert user.created_at == datetime(2026, 1, 1, tzinfo=UTC)
+
+    def test_converts_orm_without_username(self) -> None:
+        """ORM 无 username 时正确转换（OAuth 用户）。"""
+        orm = MagicMock(spec=UserORM)
+        orm.id = 1
+        orm.username = None
+        orm.email = "alice@example.com"
+        orm.is_verified = True
+        orm.display_name = None
+        orm.created_at = datetime(2026, 1, 1, tzinfo=UTC)
+
+        user = _to_user(orm)
+        assert user.username is None
 
 
 class TestCreate:
@@ -52,6 +69,7 @@ class TestCreate:
             id=1,
             username="alice",
             email="alice@example.com",
+            is_verified=True,
             created_at=datetime(2026, 1, 1, tzinfo=UTC),
         )
 
@@ -66,9 +84,10 @@ class TestCreate:
             m.setattr(dao_module, "_to_user", lambda _: expected_user)
             dao = UserDAO(mock_session)
             user = await dao.create(
-                username="alice",
                 email="alice@example.com",
                 password_hash="hashed_password",
+                username="alice",
+                is_verified=True,
             )
 
         mock_session.add.assert_called_once()
@@ -77,6 +96,35 @@ class TestCreate:
 
         assert user.username == "alice"
         assert user.email == "alice@example.com"
+
+    async def test_create_without_username(
+        self, mock_session: AsyncMock
+    ) -> None:
+        """create 支持无 username（OAuth 用户）。"""
+        expected_user = User(
+            id=1,
+            username=None,
+            email="alice@example.com",
+            is_verified=True,
+            created_at=datetime(2026, 1, 1, tzinfo=UTC),
+        )
+
+        mock_session.add = MagicMock()
+        mock_session.commit = AsyncMock()
+        mock_session.refresh = AsyncMock()
+
+        import app.dao.user_dao as dao_module
+        with pytest.MonkeyPatch.context() as m:
+            m.setattr(dao_module, "_to_user", lambda _: expected_user)
+            dao = UserDAO(mock_session)
+            user = await dao.create(
+                email="alice@example.com",
+                password_hash=None,
+                username=None,
+                is_verified=True,
+            )
+
+        assert user.username is None
 
 
 class TestGetById:
@@ -90,6 +138,8 @@ class TestGetById:
         orm.id = 1
         orm.username = "alice"
         orm.email = "alice@example.com"
+        orm.is_verified = True
+        orm.display_name = None
         orm.created_at = datetime(2026, 1, 1, tzinfo=UTC)
 
         mock_session.get = AsyncMock(return_value=orm)
@@ -120,6 +170,8 @@ class TestGetByUsername:
         orm.id = 1
         orm.username = "alice"
         orm.email = "alice@example.com"
+        orm.is_verified = True
+        orm.display_name = None
         orm.created_at = datetime(2026, 1, 1, tzinfo=UTC)
 
         mock_result = MagicMock()
@@ -140,6 +192,67 @@ class TestGetByUsername:
 
         user = await dao.get_by_username("notfound")
         assert user is None
+
+
+class TestGetByEmail:
+    """get_by_email 方法测试。"""
+
+    async def test_get_by_email_returns_user_when_found(
+        self, dao: UserDAO, mock_session: AsyncMock
+    ) -> None:
+        """get_by_email 返回 User 当用户存在。"""
+        orm = MagicMock()
+        orm.id = 1
+        orm.username = "alice"
+        orm.email = "alice@example.com"
+        orm.is_verified = True
+        orm.display_name = None
+        orm.created_at = datetime(2026, 1, 1, tzinfo=UTC)
+
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = orm
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        user = await dao.get_by_email("alice@example.com")
+        assert user is not None
+        assert user.email == "alice@example.com"
+
+    async def test_get_by_email_returns_none_when_not_found(
+        self, dao: UserDAO, mock_session: AsyncMock
+    ) -> None:
+        """get_by_email 返回 None 当用户不存在。"""
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = None
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        user = await dao.get_by_email("notfound@example.com")
+        assert user is None
+
+
+class TestExistsByEmail:
+    """exists_by_email 方法测试。"""
+
+    async def test_exists_by_email_returns_true_when_found(
+        self, dao: UserDAO, mock_session: AsyncMock
+    ) -> None:
+        """邮箱存在时返回 True。"""
+        mock_result = MagicMock()
+        mock_result.first.return_value = (1,)
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        result = await dao.exists_by_email("alice@example.com")
+        assert result is True
+
+    async def test_exists_by_email_returns_false_when_not_found(
+        self, dao: UserDAO, mock_session: AsyncMock
+    ) -> None:
+        """邮箱不存在时返回 False。"""
+        mock_result = MagicMock()
+        mock_result.first.return_value = None
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        result = await dao.exists_by_email("notfound@example.com")
+        assert result is False
 
 
 class TestExists:
@@ -210,4 +323,36 @@ class TestGetCredentialsByUsername:
         mock_session.execute = AsyncMock(return_value=mock_result)
 
         creds = await dao.get_credentials_by_username("notfound")
+        assert creds is None
+
+
+class TestGetCredentialsByEmail:
+    """get_credentials_by_email 方法测试。"""
+
+    async def test_get_credentials_by_email_returns_credentials_when_found(
+        self, dao: UserDAO, mock_session: AsyncMock
+    ) -> None:
+        """get_credentials_by_email 返回凭据当用户存在。"""
+        orm = MagicMock()
+        orm.id = 1
+        orm.username = "alice"
+        orm.password_hash = "hashed_password"
+
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = orm
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        creds = await dao.get_credentials_by_email("alice@example.com")
+        assert creds is not None
+        assert creds.user_id == 1
+
+    async def test_get_credentials_by_email_returns_none_when_not_found(
+        self, dao: UserDAO, mock_session: AsyncMock
+    ) -> None:
+        """get_credentials_by_email 返回 None 当用户不存在。"""
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = None
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        creds = await dao.get_credentials_by_email("notfound@example.com")
         assert creds is None
