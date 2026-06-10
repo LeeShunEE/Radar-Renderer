@@ -1,16 +1,16 @@
-import { loadFont as loadNotoSansSC, fontFamily as _noto } from "@remotion/google-fonts/NotoSansSC";
-import { loadFont as loadNotoSerifSC, fontFamily as _notoS } from "@remotion/google-fonts/NotoSerifSC";
-import { loadFont as loadZCOOLQKH, fontFamily as _zqh } from "@remotion/google-fonts/ZCOOLQingKeHuangYou";
-import { loadFont as loadZCOOLKL, fontFamily as _zkl } from "@remotion/google-fonts/ZCOOLKuaiLe";
-import { loadFont as loadMaShanZheng, fontFamily as _msz } from "@remotion/google-fonts/MaShanZheng";
-import { loadFont as loadOrbitron, fontFamily as _orbitron } from "@remotion/google-fonts/Orbitron";
-import { loadFont as loadRajdhani, fontFamily as _rajdhani } from "@remotion/google-fonts/Rajdhani";
-import { loadFont as loadRussoOne, fontFamily as _russo } from "@remotion/google-fonts/RussoOne";
-import { loadFont as loadBebasNeue, fontFamily as _bebas } from "@remotion/google-fonts/BebasNeue";
-import { loadFont as loadExo2, fontFamily as _exo2 } from "@remotion/google-fonts/Exo2";
-import { loadFont as loadAudiowide, fontFamily as _audio } from "@remotion/google-fonts/Audiowide";
-import { loadFont as loadPressStart2P, fontFamily as _press } from "@remotion/google-fonts/PressStart2P";
-import { loadFont as loadBlackOpsOne, fontFamily as _black } from "@remotion/google-fonts/BlackOpsOne";
+import { loadFont as loadNotoSansSC } from "@remotion/google-fonts/NotoSansSC";
+import { loadFont as loadNotoSerifSC } from "@remotion/google-fonts/NotoSerifSC";
+import { loadFont as loadZCOOLQKH } from "@remotion/google-fonts/ZCOOLQingKeHuangYou";
+import { loadFont as loadZCOOLKL } from "@remotion/google-fonts/ZCOOLKuaiLe";
+import { loadFont as loadMaShanZheng } from "@remotion/google-fonts/MaShanZheng";
+import { loadFont as loadOrbitron } from "@remotion/google-fonts/Orbitron";
+import { loadFont as loadRajdhani } from "@remotion/google-fonts/Rajdhani";
+import { loadFont as loadRussoOne } from "@remotion/google-fonts/RussoOne";
+import { loadFont as loadBebasNeue } from "@remotion/google-fonts/BebasNeue";
+import { loadFont as loadExo2 } from "@remotion/google-fonts/Exo2";
+import { loadFont as loadAudiowide } from "@remotion/google-fonts/Audiowide";
+import { loadFont as loadPressStart2P } from "@remotion/google-fonts/PressStart2P";
+import { loadFont as loadBlackOpsOne } from "@remotion/google-fonts/BlackOpsOne";
 
 export const CURATED_FONTS = [
   { name: "sans-serif", label: "默认 (sans-serif)", supportsChinese: true },

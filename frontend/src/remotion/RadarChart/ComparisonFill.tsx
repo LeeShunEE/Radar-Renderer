@@ -5,7 +5,7 @@ import {
   useCurrentFrame,
 } from "remotion";
 import { getRadarPolygonPoints } from "../../lib/math";
-import type { AnimationConfig, RadarAttribute, RadarTheme } from "../../types/radar";
+import type { RadarAttribute, RadarTheme } from "../../types/radar";
 import { RADAR_MAX_RADIUS } from "../../types/constants";
 
 type ComparisonFillProps = {
@@ -14,7 +14,6 @@ type ComparisonFillProps = {
   leftAttributes: RadarAttribute[];
   rightAttributes: RadarAttribute[];
   theme: RadarTheme;
-  animation: AnimationConfig;
   polygonMode: "expand" | "extend";
   fillDuration: number;
   radarScale?: number;
@@ -26,7 +25,6 @@ export const ComparisonFill: React.FC<ComparisonFillProps> = ({
   leftAttributes,
   rightAttributes,
   theme,
-  animation,
   polygonMode,
   fillDuration,
   radarScale = 1,

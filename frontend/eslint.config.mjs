@@ -23,6 +23,21 @@ export default [
       "deploy.mjs",
     ],
   },
+  // Node.js environment for .mjs scripts (config, deploy, server scripts)
+  {
+    files: ["**/*.mjs"],
+    languageOptions: {
+      globals: {
+        process: "readonly",
+        Buffer: "readonly",
+        console: "readonly",
+        __dirname: "readonly",
+        __filename: "readonly",
+        module: "readonly",
+        require: "readonly",
+      },
+    },
+  },
   // Base JS recommended
   js.configs.recommended,
   // TypeScript recommended (non type-checked for speed/simplicity)
