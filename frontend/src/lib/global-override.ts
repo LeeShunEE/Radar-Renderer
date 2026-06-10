@@ -199,13 +199,32 @@ export const ALL_OVERRIDE_FIELDS: OverrideField[] = OVERRIDE_GROUPS.flatMap(
   (g) => g.fields,
 );
 
-export function getByPath(obj: any, path: string): any {
-  return path.split(".").reduce((acc, key) => (acc == null ? acc : acc[key]), obj);
+/**
+ * 从对象中按点分隔路径获取值。
+ * @param obj - 源对象
+ * @param path - 点分隔的属性路径，如 "theme.backgroundColor"
+ * @returns 路径处的值，不存在则返回 undefined
+ */
+export function getByPath<T extends object>(obj: T, path: string): unknown {
+  return path.split(".").reduce<unknown>(
+    (acc, key) =>
+      acc == null ? acc : (acc as Record<string, unknown>)[key],
+    obj,
+  );
 }
 
-export function setByPath<T extends object>(obj: T, path: string, value: any): T {
+/**
+ * 不可变地设置对象中按点分隔路径的值。
+ * @param obj - 源对象
+ * @param path - 点分隔的属性路径
+ * @param value - 要设置的值
+ * @returns 包含更新的对象浅拷贝
+ */
+export function setByPath<T extends object>(obj: T, path: string, value: unknown): T {
   const keys = path.split(".");
-  const clone: any = Array.isArray(obj) ? [...(obj as any)] : { ...obj };
+  // 使用类型断言实现不可变更新；路径访问的运行时安全性由调用方保证
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const clone: any = Array.isArray(obj) ? [...(obj as unknown[])] : { ...obj };
   let cursor = clone;
   for (let i = 0; i < keys.length - 1; i++) {
     const k = keys[i];
