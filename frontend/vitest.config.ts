@@ -33,11 +33,15 @@ export default defineConfig({
   resolve: {
     alias: [
       { find: /^@\/(.*)$/, replacement: path.resolve(__dirname, "./src/$1") },
+      { find: "@testing-library/react", replacement: path.resolve(__dirname, "./node_modules/@testing-library/react") },
     ],
   },
   server: {
     fs: {
       allow: [path.resolve(__dirname), path.resolve(__dirname, "../tests")],
     },
+  },
+  optimizeDeps: {
+    include: ["@testing-library/react"],
   },
 });
