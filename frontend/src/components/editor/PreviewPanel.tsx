@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Player, type PlayerRef } from "@remotion/player";
+import { useUploadObjectUrls } from "@/hooks/useUploadObjectUrls";
 import {
   calculateDuration,
   calculateComparisonDuration,
@@ -443,6 +444,9 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = (panelProps) => {
   const barRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [currentFrame, setCurrentFrame] = useState(0);
+
+  // 用户上传文件的鉴权 objectURL 缓存（替换 Player inputProps 中的 uploads URL）。
+  const { getObjectUrl, cache: uploadObjectUrlCache } = useUploadObjectUrls();
   const [hover, setHover] = useState<HoverState>(null);
   const [viewStart, setViewStart] = useState(0);
   const [viewEnd, setViewEnd] = useState(1);
@@ -488,6 +492,39 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = (panelProps) => {
       segments: buildMultiSegments(panelProps.config),
     };
   }, [panelProps]);
+
+  // 将 inputProps 中用户上传的剪影 URL 替换为鉴权 objectURL。
+  // getObjectUrl 首次调用时触发异步 fetch，cache 更新后 Player 自动重渲染拿到新 URL。
+  const playerInputProps = useMemo(() => {
+    const uploadsUrlPattern = /\/api\/v1\/files\/uploads\/([^/?#]+)$/;
+    function replaceUploads(obj: unknown): unknown {
+      if (Array.isArray(obj)) return obj.map(replaceUploads);
+      if (obj && typeof obj === "object") {
+        const out: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+          if (k === "silhouetteSrc" && typeof v === "string") {
+            const m = uploadsUrlPattern.exec(v);
+            if (m) {
+              const name = decodeURIComponent(m[1]);
+              const cached = uploadObjectUrlCache[name];
+              if (cached) {
+                out[k] = cached;
+              } else {
+                // 触发异步加载（下次 cache 更新时 useMemo 会重算）
+                getObjectUrl(name);
+                out[k] = v; // 暂时保留原值
+              }
+              continue;
+            }
+          }
+          out[k] = replaceUploads(v);
+        }
+        return out;
+      }
+      return obj;
+    }
+    return replaceUploads(inputProps) as Record<string, unknown>;
+  }, [inputProps, uploadObjectUrlCache, getObjectUrl]);
 
   useEffect(() => {
     if (!isPausedRef.current) {
@@ -834,7 +871,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = (panelProps) => {
         <Player
           ref={playerRef}
           component={component}
-          inputProps={inputProps}
+          inputProps={playerInputProps}
           durationInFrames={durationInFrames}
           fps={VIDEO_FPS}
           compositionWidth={VIDEO_WIDTH}

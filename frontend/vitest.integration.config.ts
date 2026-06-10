@@ -1,3 +1,9 @@
+/**
+ * 前端开发环境集成测试 vitest 配置。
+ *
+ * 独立配置（不 merge unit config），include 仅指向 dev-integration 测试树。
+ * 全局 MSW 生命周期通过 setup.integration.ts 管理，集成测试不必各自调用 setupMsw。
+ */
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import path from "path";
@@ -8,8 +14,8 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
-    setupFiles: ["./src/test/setup.ts"],
-    include: ["../tests/unit/frontend/**/*.test.{ts,tsx}"],
+    setupFiles: ["./src/test/setup.ts", "./src/test/setup.integration.ts"],
+    include: ["../tests/dev-integration/frontend/**/*.test.{ts,tsx}"],
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],

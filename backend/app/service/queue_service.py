@@ -18,6 +18,7 @@ from app.core.config import settings
 from app.core.database import async_session_factory
 from app.core.exceptions import RenderFailedError
 from app.dao.render_task_dao import RenderTaskDAO
+from app.service.silhouette_rewrite import cleanup_render_tmp
 
 # 没有历史样本时的单任务耗时兜底估计（秒）。
 _DEFAULT_DURATION_SECONDS = 60.0
@@ -143,6 +144,7 @@ class RenderQueue:
         if task_id in self._pending:
             self._pending.remove(task_id)
         self._running[task_id] = time.monotonic()
+        task = None
         try:
             async with self._session_factory() as session:
                 dao = RenderTaskDAO(session)
@@ -172,6 +174,9 @@ class RenderQueue:
                 )
         finally:
             self._running.pop(task_id, None)
+            # 清理 silhouette rewrite 产生的临时文件（worker 已读完）。
+            if task is not None:
+                cleanup_render_tmp(task.input_props, settings.public_assets_path)
 
 
 # 进程内单例：请求路径与后台消费共享同一队列状态。

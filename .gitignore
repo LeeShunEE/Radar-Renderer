@@ -64,6 +64,9 @@ tests/.coverage
 # Playwright 测试产物（trace / 截图 / 报告）
 frontend/test-results/
 frontend/playwright-report/
+
+# 服务端渲染临时文件（silhouette rewrite 产物，运行时生成）
+frontend/public/_render_tmp/
 test-results/
 playwright-report/
 

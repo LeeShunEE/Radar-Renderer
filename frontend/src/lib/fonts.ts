@@ -46,8 +46,26 @@ const CURATED_LOADERS: Record<string, (...args: any[]) => any> = {
   "Black Ops One": loadBlackOpsOne,
 };
 
+/** CJK 字体需要 chinese-simplified 子集，拉丁字体只需 latin。 */
+const CJK_FONTS = new Set([
+  "Noto Sans SC", "Noto Serif SC",
+  "ZCOOL QingKe HuangYou", "ZCOOL KuaiLe", "Ma Shan Zheng",
+]);
+
+/** 字体加载选项：限制 weights/subsets 避免全字重全子集洪泛（Noto Sans SC 默认 ~909 请求）。 */
+function fontLoadOptions(family: string) {
+  const subsets = CJK_FONTS.has(family)
+    ? ["latin", "chinese-simplified"]
+    : ["latin"];
+  return { weights: ["400", "700"] as string[], subsets };
+}
+
 export async function loadCuratedFonts(): Promise<void> {
-  await Promise.all(Object.values(CURATED_LOADERS).map((loader) => loader()));
+  await Promise.all(
+    Object.entries(CURATED_LOADERS).map(([name, loader]) =>
+      loader("normal", fontLoadOptions(name))
+    )
+  );
 }
 
 const injectedFonts = new Set<string>();
@@ -72,7 +90,7 @@ function injectGoogleFontLink(fontFamily: string): Promise<void> {
 export async function loadFontDynamic(fontFamily: string): Promise<void> {
   if (fontFamily === "sans-serif") return;
   if (CURATED_LOADERS[fontFamily]) {
-    await CURATED_LOADERS[fontFamily]();
+    await CURATED_LOADERS[fontFamily]("normal", fontLoadOptions(fontFamily));
     return;
   }
   await injectGoogleFontLink(fontFamily);

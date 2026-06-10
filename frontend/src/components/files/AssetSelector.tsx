@@ -8,6 +8,7 @@ import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { usePublicAssets } from "@/hooks/usePublicAssets";
 import { useFileManagement } from "@/hooks/useFileManagement";
+import { useUploadObjectUrls } from "@/hooks/useUploadObjectUrls";
 import { RefreshCw, Upload } from "lucide-react";
 
 type AssetCategory = "silhouettes" | "music";
@@ -46,6 +47,9 @@ export function AssetSelector({
     upload,
     getDownloadUrl,
   } = useFileManagement();
+
+  // 用户上传文件的鉴权 objectURL 缓存（裸 http URL 作 <img src> 会 401）。
+  const { getObjectUrl } = useUploadObjectUrls();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -88,7 +92,7 @@ export function AssetSelector({
     }
   };
 
-  const togglePlay = (filePath: string) => {
+  const togglePlay = (filePath: string, isUserUpload?: boolean, fileName?: string) => {
     if (playing && audioRef) {
       audioRef.pause();
       setPlaying(false);
@@ -96,7 +100,15 @@ export function AssetSelector({
       if (audioRef) {
         audioRef.pause();
       }
-      const audio = new Audio(filePath.startsWith("http") ? filePath : `/${filePath}`);
+      // 用户上传文件需鉴权：用 objectURL；公共资源直接用路径。
+      let src: string;
+      if (isUserUpload && fileName) {
+        const cached = getObjectUrl(fileName);
+        src = cached ?? filePath; // fallback（首次加载时可能未就绪）
+      } else {
+        src = filePath.startsWith("http") ? filePath : `/${filePath}`;
+      }
+      const audio = new Audio(src);
       audio.onended = () => setPlaying(false);
       audio.play();
       setAudioRef(audio);
@@ -246,9 +258,10 @@ export function AssetSelector({
                         }`}
                         title={asset.name}
                       >
+                        {/* 用户上传文件需鉴权，走 objectURL（裸 http src 会 401）。 */}
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={asset.path}
+                          src={getObjectUrl(asset.name) ?? asset.path}
                           alt={asset.name}
                           className="mx-auto max-h-12 object-contain"
                           loading="lazy"
@@ -276,7 +289,7 @@ export function AssetSelector({
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            togglePlay(asset.path);
+                            togglePlay(asset.path, true, asset.name);
                           }}
                           className="w-5 h-5 flex items-center justify-center rounded hover:bg-muted text-xs shrink-0"
                         >
