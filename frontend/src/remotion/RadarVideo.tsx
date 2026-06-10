@@ -18,7 +18,7 @@ import { HighValueGlow } from "./Effects/HighValueGlow";
 import { ComparisonFill } from "./RadarChart/ComparisonFill";
 import { DualRatingLabel } from "./Labels/DualRatingLabel";
 import { Legend } from "./Labels/Legend";
-import type { AnimationConfig, ComparisonArrowStyle, ComparisonPairConfig, RadarTheme, RadarVideoProps, ComparisonOverlayConfig } from "../types/radar";
+import type { ComparisonArrowStyle, ComparisonPairConfig, RadarTheme, RadarVideoProps, ComparisonOverlayConfig } from "../types/radar";
 import { RADAR_MAX_RADIUS, calculateDuration, computePhaseStarts } from "../types/constants";
 import { getOctagonPoint } from "../lib/math";
 import { loadSelectedFonts } from "../lib/fonts";
@@ -39,13 +39,12 @@ type ComparisonRadarDotProps = {
   leftValue: number;
   isHighValue: boolean;
   theme: RadarTheme;
-  animation: AnimationConfig;
   polygonMode: "expand" | "extend";
   fillDuration: number;
 };
 
 const ComparisonRadarDot: React.FC<ComparisonRadarDotProps> = ({
-  cx, cy, index, value, leftValue, isHighValue, theme, animation, polygonMode, fillDuration,
+  cx, cy, index, value, leftValue, isHighValue, theme, polygonMode, fillDuration,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -198,7 +197,6 @@ const ComparisonLayer: React.FC<ComparisonLayerProps> = ({ primary, secondary, c
           leftAttributes={primary.attributes}
           rightAttributes={secondary.attributes}
           theme={secondary.theme}
-          animation={secondary.animation}
           polygonMode={config.polygonMode}
           fillDuration={secondary.animation.fillDuration}
           radarScale={primary.layout.radarScale}
@@ -214,7 +212,6 @@ const ComparisonLayer: React.FC<ComparisonLayerProps> = ({ primary, secondary, c
             leftValue={primary.attributes[i].value}
             isHighValue={attr.value >= secondary.animation.highValueThreshold}
             theme={secondary.theme}
-            animation={secondary.animation}
             polygonMode={config.polygonMode}
             fillDuration={secondary.animation.fillDuration}
           />
@@ -279,8 +276,7 @@ export const RadarVideo: React.FC<RadarVideoFullProps> = (props) => {
     loadSelectedFonts(fontDeps)
       .then(() => continueRender(fontHandle))
       .catch((err) => cancelRender(err));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fontDepsKey, fontHandle]);
+    }, [fontDepsKey, fontHandle]);
 
   const cx = layout.radarCX;
   const cy = layout.radarCY;
@@ -384,7 +380,7 @@ export const RadarVideo: React.FC<RadarVideoFullProps> = (props) => {
       {attributes.map(
         (attr, i) =>
           attr.value >= animation.highValueThreshold && (
-            <Sequence key={`glow-${i}`} from={0} layout="none">
+            <Sequence key={`glow-${i}`} layout="none">
               <svg
                 viewBox="0 0 1920 1080"
                 style={{

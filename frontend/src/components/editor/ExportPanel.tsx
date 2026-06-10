@@ -15,10 +15,9 @@ import { applyGlobalOverride } from "../../lib/global-override";
 type ExportPanelProps = {
   props: RadarVideoProps;
   config: MultiPageConfig;
-  mode: "single";
 };
 
-export function ExportPanel({ props, config, mode }: ExportPanelProps) {
+export function ExportPanel({ props, config }: ExportPanelProps) {
   const serverRender = useServerRender();
   const localRender = useLocalRender();
   const [exportMode, setExportMode] = useState<"server" | "local">("server");
@@ -36,10 +35,11 @@ export function ExportPanel({ props, config, mode }: ExportPanelProps) {
         return null;
       case "submitting":
         return "提交任务...";
-      case "queued":
+      case "queued": {
         const pos = serverRender.currentTask?.position ?? 0;
         const eta = serverRender.currentTask?.eta_seconds ?? 0;
         return `排队中（第 ${pos} 位，预计 ${eta} 秒）`;
+      }
       case "rendering":
         return "渲染中...";
       case "downloading":

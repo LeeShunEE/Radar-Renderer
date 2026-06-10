@@ -4,7 +4,7 @@ import React from "react";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { AssetSelector } from "../files/AssetSelector";
-import type { ComparisonPairConfig, MultiPageConfig, RadarVideoProps } from "../../types/radar";
+import type { ComparisonPairConfig, MultiPageConfig } from "../../types/radar";
 import { defaultComparisonConfig } from "../../types/constants";
 import {
   calculateDuration,
@@ -17,7 +17,6 @@ import { applyGlobalOverride } from "../../lib/global-override";
 type GlobalConfigEditorProps = {
   config: MultiPageConfig;
   activePageIndex: number;
-  currentPage: RadarVideoProps;
   onChange: (config: MultiPageConfig) => void;
   onSetActive: (index: number) => void;
   onAddPage: () => void;
@@ -30,7 +29,6 @@ type GlobalConfigEditorProps = {
 export const GlobalConfigEditor: React.FC<GlobalConfigEditorProps> = ({
   config,
   activePageIndex,
-  currentPage,
   onChange,
   onSetActive,
   onAddPage,

@@ -226,7 +226,6 @@ export const RadarEditor: React.FC = () => {
             <GlobalConfigEditor
               config={config}
               activePageIndex={activePageIndex}
-              currentPage={activePage}
               onChange={setConfig}
               onSetActive={setActivePageIndex}
               onAddPage={addPage}
@@ -303,7 +302,6 @@ export const RadarEditor: React.FC = () => {
             <ExportPanel
               props={playerProps}
               config={config}
-              mode="single"
             />
           </TabsContent>
         </Tabs>
