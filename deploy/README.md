@@ -133,8 +133,11 @@ docker compose down -v
 
 ```bash
 cp .env.example .env
-# 编辑 .env 文件，设置所有必需变量
+# 编辑 .env 文件，设置所有必需变量（POSTGRES_PASSWORD / JWT_SECRET_STRING 等）
 ```
+
+> 部署环境变量（compose 用的 `${VAR}`）模板见 `deploy/.env.example`。
+> 后端**本地开发**变量另见 `backend/.env.example`（复制为 `backend/.env`），两者职责不同，互不替代。
 
 ### 2. 构建镜像
 
@@ -224,6 +227,20 @@ docker compose exec backend alembic current
 | 变量 | 说明 |
 |------|------|
 | `NEXT_PUBLIC_API_URL` | API 公开地址 |
+
+### 资源限制（可选，compose 单机语义）
+
+通过 `${VAR:-默认}` 注入容器资源上限，Coolify 面板或 `.env` 覆盖即生效，不填走默认值：
+
+| 变量 | 默认 | 说明 |
+|------|------|------|
+| `BACKEND_MEMORY_LIMIT` | `1g` | 后端容器内存上限 |
+| `BACKEND_CPUS` | `1.0` | 后端容器 CPU 核数 |
+| `RENDER_WORKER_MEMORY_LIMIT` | `2g` | 渲染工作器内存上限（渲染吃内存，默认给大些） |
+| `RENDER_WORKER_CPUS` | `2.0` | 渲染工作器 CPU 核数 |
+| `DB_MEMORY_LIMIT` | `512m` | PostgreSQL 内存上限 |
+
+> 采用 compose v2 顶层 `mem_limit` / `cpus`（单机语义），不使用 `deploy.resources`（Swarm/k8s 语义，Coolify 单机不一定兑现）。
 
 ---
 

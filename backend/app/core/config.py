@@ -1,6 +1,6 @@
 """应用配置。
 
-配置来源优先级：环境变量 > 仓库内 ``config.toml`` > 字段默认值。
+配置来源优先级：环境变量 > ``backend/.env`` > 字段默认值（对齐 12-Factor）。
 testenv 等环境通过环境变量注入连接配置（见 CLAUDE.md §3.3.1），不在仓库硬编码。
 """
 
@@ -11,12 +11,10 @@ from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
     SettingsConfigDict,
-    TomlConfigSettingsSource,
 )
 
 # app/core/config.py -> parents[2] == backend/
 _BACKEND_ROOT = Path(__file__).resolve().parents[2]
-_CONFIG_TOML = _BACKEND_ROOT / "config.toml"
 
 
 class Settings(BaseSettings):
@@ -31,7 +29,7 @@ class Settings(BaseSettings):
 
     # 鉴权
     jwt_secret_string: SecretStr = SecretStr(
-        "dev-only-insecure-secret-change-me-in-config-toml"
+        "dev-only-insecure-secret-change-me-via-env"
     )
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24
@@ -72,7 +70,10 @@ class Settings(BaseSettings):
     # 是否在应用启动时自动拉起队列消费协程（测试中关闭以保证确定性）
     render_queue_autostart: bool = True
 
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = SettingsConfigDict(
+        extra="ignore",
+        env_file=_BACKEND_ROOT / ".env",
+    )
 
     @classmethod
     def settings_customise_sources(
@@ -83,11 +84,12 @@ class Settings(BaseSettings):
         dotenv_settings: PydanticBaseSettingsSource,
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
-        # 环境变量优先于 config.toml，便于 testenv/部署环境覆盖连接配置。
+        # 环境变量优先于 .env，便于 testenv/部署环境覆盖连接配置；
+        # .env 仅用于本地开发，生产应走环境变量注入。
         return (
             init_settings,
             env_settings,
-            TomlConfigSettingsSource(settings_cls, toml_file=_CONFIG_TOML),
+            dotenv_settings,
             file_secret_settings,
         )
 

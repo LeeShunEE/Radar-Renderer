@@ -42,8 +42,8 @@ backend/coverage.xml
 backend/*.db
 backend/data.db
 
-# 真实配置（仅提交 config.example.toml）
-backend/config.toml
+# 真实配置（仅提交 .env.example，实际 .env 不进 git）
+backend/.env
 
 # 用户文件存储
 backend/storage/

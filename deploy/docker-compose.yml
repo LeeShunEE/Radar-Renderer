@@ -27,6 +27,8 @@ services:
       retries: 5
       start_period: 10s
     restart: unless-stopped
+    # 资源限制（Coolify/部署环境覆盖，不填走默认）
+    mem_limit: ${DB_MEMORY_LIMIT:-512m}
     # Coolify handles port exposure automatically
     # Uncomment for local debugging:
     # ports:
@@ -78,6 +80,9 @@ services:
       retries: 3
       start_period: 30s
     restart: unless-stopped
+    # 资源限制（Coolify/部署环境覆盖，不填走默认）
+    mem_limit: ${BACKEND_MEMORY_LIMIT:-1g}
+    cpus: ${BACKEND_CPUS:-1.0}
     # Coolify handles port exposure automatically
     # Uncomment for local debugging:
     # ports:
@@ -124,6 +129,9 @@ services:
       retries: 3
       start_period: 10s
     restart: unless-stopped
+    # 资源限制（渲染吃内存，默认给大些；Coolify/部署环境覆盖，不填走默认）
+    mem_limit: ${RENDER_WORKER_MEMORY_LIMIT:-2g}
+    cpus: ${RENDER_WORKER_CPUS:-2.0}
     # Coolify handles port exposure automatically
     # Uncomment for local debugging:
     # ports:
