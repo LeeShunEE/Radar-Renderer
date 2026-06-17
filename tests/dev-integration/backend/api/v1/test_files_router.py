@@ -1,5 +1,7 @@
 """files_router dev-integration：上传→列举→删除（真实文件系统 + 认证）。"""
 
+from collections.abc import Callable
+
 from fastapi.testclient import TestClient
 
 
@@ -23,21 +25,19 @@ class TestUploadList:
         listing = client.get("/api/v1/files", headers=auth_headers).json()
         assert [f["name"] for f in listing["files"]] == ["chart.png"]
 
-    def test_users_are_isolated(self, client: TestClient, auth_headers: dict[str, str]):
+    def test_users_are_isolated(
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        register_user: Callable[..., dict],
+    ):
         client.post(
             "/api/v1/files",
             headers=auth_headers,
             files={"file": ("a.png", b"x", "image/png")},
         )
         # 第二个用户看不到第一个用户的文件
-        client.post(
-            "/api/v1/auth/register",
-            json={"username": "bob", "email": "bob@example.com", "password": "password123"},
-        )
-        bob = client.post(
-            "/api/v1/auth/login",
-            json={"username": "bob", "password": "password123"},
-        ).json()
+        bob = register_user(email="bob@example.com")
         bob_headers = {"Authorization": f"Bearer {bob['access_token']}"}
         listing = client.get("/api/v1/files", headers=bob_headers).json()
         assert listing["files"] == []
