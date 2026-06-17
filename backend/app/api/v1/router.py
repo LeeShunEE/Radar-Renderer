@@ -12,3 +12,9 @@ api_router.include_router(files_router)
 api_router.include_router(render_router)
 api_router.include_router(tasks_router)
 api_router.include_router(assets_router)
+
+
+@api_router.get("/health")
+async def health_check() -> dict[str, str]:
+    """Health check endpoint for Docker and load balancers."""
+    return {"status": "healthy", "service": "radar-chart-backend"}

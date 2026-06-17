@@ -1,0 +1,148 @@
+# Docker Compose for Coolify/Production deployment
+# radar-chart-rendering project
+#
+# Usage:
+#   Coolify: Directly use this file (no override needed)
+#   Manual: docker compose up -d
+#
+# Environment variables should be configured via Coolify UI or .env file
+
+services:
+  # ============================================
+  # PostgreSQL Database
+  # ============================================
+  db:
+    image: postgres:16-alpine
+    container_name: radar-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-radar}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-radar_chart}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-radar} -d ${POSTGRES_DB:-radar_chart}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    # Coolify handles port exposure automatically
+    # Uncomment for local debugging:
+    # ports:
+    #   - "5432:5432"
+
+  # ============================================
+  # Backend (FastAPI + SQLAlchemy)
+  # ============================================
+  backend:
+    build:
+      context: ../backend
+      dockerfile: ../deploy/backend/Dockerfile
+      target: production
+    container_name: radar-backend
+    environment:
+      # Database connection (asyncpg for async SQLAlchemy)
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-radar}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-radar_chart}
+      # CORS settings
+      CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:3000"]}
+      # JWT configuration (CHANGE IN PRODUCTION!)
+      JWT_SECRET_STRING: ${JWT_SECRET_STRING:?JWT_SECRET_STRING is required}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-1440}
+      JWT_REFRESH_EXPIRE_MINUTES: ${JWT_REFRESH_EXPIRE_MINUTES:-10080}
+      # Storage configuration
+      STORAGE_ROOT: /app/storage
+      # Render worker configuration
+      RENDER_CONCURRENCY: ${RENDER_CONCURRENCY:-2}
+      WORKER_BASE_URL: http://render-worker:3100
+      RENDER_TIMEOUT_SECONDS: ${RENDER_TIMEOUT_SECONDS:-600}
+      # OAuth (optional)
+      OAUTH_GOOGLE_CLIENT_ID: ${OAUTH_GOOGLE_CLIENT_ID:-}
+      OAUTH_GOOGLE_CLIENT_SECRET_SECRET_STRING: ${OAUTH_GOOGLE_CLIENT_SECRET:-}
+      OAUTH_GOOGLE_REDIRECT_URI: ${OAUTH_GOOGLE_REDIRECT_URI:-}
+      OAUTH_GITHUB_CLIENT_ID: ${OAUTH_GITHUB_CLIENT_ID:-}
+      OAUTH_GITHUB_CLIENT_SECRET_SECRET_STRING: ${OAUTH_GITHUB_CLIENT_SECRET:-}
+      OAUTH_GITHUB_REDIRECT_URI: ${OAUTH_GITHUB_REDIRECT_URI:-}
+      # Email (optional)
+      RESEND_API_KEY_SECRET_STRING: ${RESEND_API_KEY:-}
+    volumes:
+      - backend_storage:/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    # Coolify handles port exposure automatically
+    # Uncomment for local debugging:
+    # ports:
+    #   - "8000:8000"
+
+  # ============================================
+  # Frontend (Next.js)
+  # ============================================
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../deploy/frontend/Dockerfile
+      target: production
+    container_name: radar-frontend
+    environment:
+      # Internal API URL (for server-side calls)
+      NEXT_PUBLIC_API_URL: ${API_PUBLIC_URL:-http://localhost:8000}
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    # Coolify handles port exposure automatically
+    # Uncomment for local debugging:
+    # ports:
+    #   - "3000:3000"
+
+  # ============================================
+  # Render Worker (Remotion-based video rendering)
+  # ============================================
+  render-worker:
+    build:
+      context: ../frontend
+      dockerfile: ../deploy/render-worker/Dockerfile
+      target: production
+    container_name: radar-render-worker
+    environment:
+      WORKER_PORT: 3100
+    volumes:
+      - render_outputs:/app/output
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    # Coolify handles port exposure automatically
+    # Uncomment for local debugging:
+    # ports:
+    #   - "3100:3100"
+
+# ============================================
+# Volumes for persistent data
+# ============================================
+volumes:
+  postgres_data:
+    name: radar_postgres_data
+  backend_storage:
+    name: radar_backend_storage
+  render_outputs:
+    name: radar_render_outputs
+
+# ============================================
+# Network (optional, Coolify creates default)
+# ============================================
+networks:
+  default:
+    name: radar-network

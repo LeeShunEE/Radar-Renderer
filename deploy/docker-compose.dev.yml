@@ -1,0 +1,88 @@
+# Docker Compose for local development
+# radar-chart-rendering project
+#
+# Usage:
+#   cd deploy && docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Features:
+#   - SQLite for simpler setup (optional)
+#   - Volume mounts for hot reload
+#   - Exposed ports for direct access
+#   - Development targets for debugging
+
+services:
+  # ============================================
+  # PostgreSQL Database (optional, can use SQLite instead)
+  # ============================================
+  db:
+    ports:
+      - "5432:5432"
+
+  # ============================================
+  # Backend (Development mode)
+  # ============================================
+  backend:
+    build:
+      target: development
+    environment:
+      # Use SQLite for development (uncomment to use PostgreSQL)
+      DATABASE_URL: sqlite+aiosqlite:///./app/storage/dev.db
+      # OR use PostgreSQL (comment out SQLite line above)
+      # DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-radar}:${POSTGRES_PASSWORD:-devpass}@db:5432/${POSTGRES_DB:-radar_chart}
+      # CORS for development
+      CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000"]'
+      # JWT for development (DO NOT USE IN PRODUCTION)
+      JWT_SECRET_STRING: dev-secret-change-in-production-min-32-chars
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRE_MINUTES: 1440
+      JWT_REFRESH_EXPIRE_MINUTES: 10080
+      # Storage
+      STORAGE_ROOT: /app/storage
+      # Render worker
+      RENDER_CONCURRENCY: 2
+      WORKER_BASE_URL: http://render-worker:3100
+      RENDER_TIMEOUT_SECONDS: 600
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount source code for hot reload
+      - ../backend/app:/app/app:ro
+      - ../backend/alembic:/app/alembic:ro
+      - backend_storage:/app/storage
+    # Skip entrypoint for development (manual migration)
+    entrypoint: []
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  # ============================================
+  # Frontend (Development mode)
+  # ============================================
+  frontend:
+    build:
+      target: development
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    volumes:
+      # Mount source code for hot reload
+      - ../frontend/src:/app/src:ro
+      - ../frontend/public:/app/public:ro
+      - ../frontend/package.json:/app/package.json:ro
+    command: ["pnpm", "dev"]
+
+  # ============================================
+  # Render Worker (Development mode)
+  # ============================================
+  render-worker:
+    build:
+      target: development
+    environment:
+      WORKER_PORT: 3100
+    ports:
+      - "3100:3100"
+    volumes:
+      # Mount source code for hot reload
+      - ../frontend/src/remotion:/app/src/remotion:ro
+      - ../frontend/public:/app/public:ro
+      - ../frontend/render-worker:/app/render-worker:ro
+      - render_outputs:/app/output
