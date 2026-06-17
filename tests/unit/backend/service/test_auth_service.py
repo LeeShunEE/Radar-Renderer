@@ -236,6 +236,105 @@ class TestSetPassword:
         assert user.id == 1
 
 
+class TestResetPassword:
+    """reset_password：验证码校验后设新密码。"""
+
+    def _verification_dao(self, orm) -> AsyncMock:
+        from app.dao.orm import VerificationCodeORM
+
+        verification_dao = AsyncMock()
+        if orm is None:
+            verification_dao.get_latest_unused.return_value = None
+        else:
+            mock_orm = MagicMock(spec=VerificationCodeORM)
+            mock_orm.code = orm["code"]
+            mock_orm.expires_at = orm["expires_at"]
+            verification_dao.get_latest_unused.return_value = mock_orm
+        verification_dao.mark_used = AsyncMock()
+        return verification_dao
+
+    async def test_reset_password_success(self):
+        """reset_password 验证码正确后设新密码。"""
+        verification_dao = self._verification_dao(
+            {"code": "123456", "expires_at": datetime.now(tz=UTC) + timedelta(minutes=10)}
+        )
+        dao = AsyncMock()
+        dao.get_by_email.return_value = _user()
+        dao.set_password.return_value = _user()
+        service = _make_service(dao, verification_dao)
+
+        user = await service.reset_password(
+            email="alice@example.com", code="123456", new_password="newpass123"
+        )
+
+        assert user.id == 1
+        verification_dao.mark_used.assert_called_once()
+        # 落库的是哈希
+        args, _ = dao.set_password.call_args
+        assert args[1] != "newpass123"
+
+    async def test_reset_password_invalid_code_raises(self):
+        """reset_password 验证码不存在/已使用时抛异常。"""
+        from app.core.exceptions import VerificationCodeInvalidError
+
+        verification_dao = self._verification_dao(None)
+        dao = AsyncMock()
+        service = _make_service(dao, verification_dao)
+
+        with pytest.raises(VerificationCodeInvalidError):
+            await service.reset_password(
+                email="alice@example.com", code="123456", new_password="newpass123"
+            )
+        dao.set_password.assert_not_called()
+
+    async def test_reset_password_wrong_code_raises(self):
+        """reset_password 验证码错误时抛异常。"""
+        from app.core.exceptions import VerificationCodeInvalidError
+
+        verification_dao = self._verification_dao(
+            {"code": "123456", "expires_at": datetime.now(tz=UTC) + timedelta(minutes=10)}
+        )
+        dao = AsyncMock()
+        service = _make_service(dao, verification_dao)
+
+        with pytest.raises(VerificationCodeInvalidError):
+            await service.reset_password(
+                email="alice@example.com", code="999999", new_password="newpass123"
+            )
+
+    async def test_reset_password_expired_code_raises(self):
+        """reset_password 验证码过期时抛异常。"""
+        from app.core.exceptions import VerificationCodeExpiredError
+
+        verification_dao = self._verification_dao(
+            {"code": "123456", "expires_at": datetime.now(tz=UTC) - timedelta(minutes=1)}
+        )
+        dao = AsyncMock()
+        service = _make_service(dao, verification_dao)
+
+        with pytest.raises(VerificationCodeExpiredError):
+            await service.reset_password(
+                email="alice@example.com", code="123456", new_password="newpass123"
+            )
+
+    async def test_reset_password_user_not_found_raises(self):
+        """reset_password 邮箱未注册时抛 UserNotFoundError。"""
+        from app.core.exceptions import UserNotFoundError
+
+        verification_dao = self._verification_dao(
+            {"code": "123456", "expires_at": datetime.now(tz=UTC) + timedelta(minutes=10)}
+        )
+        dao = AsyncMock()
+        dao.get_by_email.return_value = None
+        service = _make_service(dao, verification_dao)
+
+        with pytest.raises(UserNotFoundError):
+            await service.reset_password(
+                email="ghost@example.com", code="123456", new_password="newpass123"
+            )
+        dao.set_password.assert_not_called()
+
+
 # === 旧测试（兼容） ===
 
 class TestRegister:

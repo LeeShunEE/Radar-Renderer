@@ -141,3 +141,98 @@ class TestRefresh:
             json={"refresh_token": tokens["access_token"]},
         )
         assert resp.status_code == 401
+
+
+class TestResetPassword:
+    """send-code(reset_password) → reset-password 全链路（真实 SQLite）。"""
+
+    def test_reset_password_full_flow(
+        self,
+        client: TestClient,
+        register_user: Callable[..., dict],
+        captured_codes: list[str],
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        # 关闭冷却以便连发不同 purpose 的验证码
+        monkeypatch.setattr(settings, "verification_code_cooldown_seconds", 0)
+        email = "reset@example.com"
+
+        # 1. 邮箱验证码注册一个无密码用户（模拟中断：未设密码）
+        register_user(email)
+
+        # 2. 发送重置密码验证码
+        client.post(
+            "/api/v1/auth/send-code",
+            json={"email": email, "purpose": "reset_password"},
+        )
+        reset_code = captured_codes[-1]
+
+        # 3. 重置密码 → 自动登录返回 token
+        resp = client.post(
+            "/api/v1/auth/reset-password",
+            json={
+                "email": email,
+                "code": reset_code,
+                "new_password": "brandnew1",
+            },
+        )
+        assert resp.status_code == 201
+        tokens = resp.json()
+        assert tokens["token_type"] == "bearer"
+        assert tokens["access_token"]
+
+        # 4. 新密码可登录（中断死锁解除）
+        login = client.post(
+            "/api/v1/auth/login",
+            json={"email": email, "password": "brandnew1"},
+        )
+        assert login.status_code == 200
+
+    def test_reset_password_wrong_code_400(
+        self,
+        client: TestClient,
+        register_user: Callable[..., dict],
+        captured_codes: list[str],
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        monkeypatch.setattr(settings, "verification_code_cooldown_seconds", 0)
+        email = "reset2@example.com"
+        register_user(email)
+        client.post(
+            "/api/v1/auth/send-code",
+            json={"email": email, "purpose": "reset_password"},
+        )
+        resp = client.post(
+            "/api/v1/auth/reset-password",
+            json={
+                "email": email,
+                "code": "000000",
+                "new_password": "brandnew1",
+            },
+        )
+        assert resp.status_code == 400
+        assert resp.json()["code"] == "verification_code_invalid"
+
+    def test_reset_password_unknown_email_404(
+        self,
+        client: TestClient,
+        captured_codes: list[str],
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        monkeypatch.setattr(settings, "verification_code_cooldown_seconds", 0)
+        email = "ghost@example.com"
+        client.post(
+            "/api/v1/auth/send-code",
+            json={"email": email, "purpose": "reset_password"},
+        )
+        code = captured_codes[-1]
+        resp = client.post(
+            "/api/v1/auth/reset-password",
+            json={
+                "email": email,
+                "code": code,
+                "new_password": "brandnew1",
+            },
+        )
+        assert resp.status_code == 404
+        assert resp.json()["code"] == "user_not_found"
