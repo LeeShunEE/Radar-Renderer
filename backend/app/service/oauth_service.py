@@ -1,9 +1,12 @@
 """OAuth 服务：Google/GitHub OAuth 流程处理。
 
 支持：
-- 发起 OAuth 授权（生成授权 URL）
-- 处理 OAuth 回调（换取 access_token、获取用户信息、自动注册/登录）
+- 发起 OAuth 授权（生成随机 state 落库 + 授权 URL）
+- 处理 OAuth 回调（校验 state CSRF nonce、换取 access_token、获取用户信息、自动注册/登录）
 """
+
+import secrets
+from datetime import UTC, datetime, timedelta
 
 from authlib.integrations.base_client import OAuthError
 from authlib.integrations.httpx_client import AsyncOAuth2Client
@@ -13,6 +16,7 @@ from app.core.config import settings
 from app.core.exceptions import OAuthAccountAlreadyBoundError
 from app.core.exceptions import OAuthError as BusinessOAuthError
 from app.dao.oauth_dao import OAuthDAO
+from app.dao.oauth_state_dao import OAuthStateDAO
 from app.dao.user_dao import UserDAO
 from app.models.user import User
 
@@ -23,6 +27,42 @@ class OAuthService:
     def __init__(self, session: AsyncSession) -> None:
         self._oauth_dao = OAuthDAO(session)
         self._user_dao = UserDAO(session)
+        self._oauth_state_dao = OAuthStateDAO(session)
+
+    async def start_authorization(self, provider: str) -> str:
+        """发起 OAuth 授权：生成随机 state 落库并返回授权 URL。
+
+        Args:
+            provider: "google" | "github"
+
+        Returns:
+            授权页面 URL（内嵌随机 state）
+
+        Raises:
+            OAuthError: provider 未配置或不支持
+        """
+        state = secrets.token_urlsafe(32)
+        expires_at = datetime.now(tz=UTC) + timedelta(
+            minutes=settings.oauth_state_expire_minutes
+        )
+        # 先校验 provider 合法/已配置（不合法直接抛，不落库）
+        url = self.get_authorization_url(provider, state)
+        await self._oauth_state_dao.create(
+            state=state, provider=provider, expires_at=expires_at
+        )
+        return url
+
+    async def _verify_state(self, provider: str, state: str) -> None:
+        """校验并消费 OAuth state（CSRF 防护，命中即焚）。
+
+        Raises:
+            OAuthError: state 缺失/不匹配/已过期
+        """
+        ok = await self._oauth_state_dao.consume(
+            state=state, provider=provider, now=datetime.now(tz=UTC)
+        )
+        if not ok:
+            raise BusinessOAuthError("无效或已过期的 OAuth state")
 
     @staticmethod
     def is_provider_configured(provider: str) -> bool:
@@ -44,13 +84,12 @@ class OAuthService:
         return False
 
     @staticmethod
-    def get_authorization_url(provider: str) -> str:
-        """生成 OAuth 授权 URL。
-
-        不依赖数据库会话，可在无 session 的端点（如 ``oauth_start``）直接调用。
+    def get_authorization_url(provider: str, state: str) -> str:
+        """生成内嵌指定 state 的 OAuth 授权 URL。
 
         Args:
             provider: "google" | "github"
+            state: CSRF nonce，回调时需原样带回校验
 
         Returns:
             授权页面 URL
@@ -59,14 +98,14 @@ class OAuthService:
             OAuthError: provider 未配置或不支持
         """
         if provider == "google":
-            return OAuthService._get_google_authorization_url()
+            return OAuthService._get_google_authorization_url(state)
         elif provider == "github":
-            return OAuthService._get_github_authorization_url()
+            return OAuthService._get_github_authorization_url(state)
         else:
             raise BusinessOAuthError(f"不支持的 OAuth provider: {provider}")
 
     @staticmethod
-    def _get_google_authorization_url() -> str:
+    def _get_google_authorization_url(state: str) -> str:
         """生成 Google OAuth 授权 URL。"""
         if not settings.oauth_google_client_id:
             raise BusinessOAuthError("Google OAuth 未配置")
@@ -79,12 +118,12 @@ class OAuthService:
         )
         url, _ = client.create_authorization_url(
             "https://accounts.google.com/o/oauth2/v2/auth",
-            state="google",  # 用于 CSRF 防护
+            state=state,
         )
         return url
 
     @staticmethod
-    def _get_github_authorization_url() -> str:
+    def _get_github_authorization_url(state: str) -> str:
         """生成 GitHub OAuth 授权 URL。"""
         if not settings.oauth_github_client_id:
             raise BusinessOAuthError("GitHub OAuth 未配置")
@@ -97,7 +136,7 @@ class OAuthService:
         )
         url, _ = client.create_authorization_url(
             "https://github.com/login/oauth/authorize",
-            state="github",
+            state=state,
         )
         return url
 
@@ -120,9 +159,12 @@ class OAuthService:
             - is_new_user: 是否首次登录（自动注册）
 
         Raises:
-            OAuthError: OAuth 流程失败
+            OAuthError: state 校验失败或 OAuth 流程失败
             OAuthAccountAlreadyBoundError: OAuth 账户已被其他用户绑定
         """
+        # 先做 CSRF state 校验（命中即焚），再换 token
+        await self._verify_state(provider, state)
+
         if provider == "google":
             return await self._handle_google_callback(code, state)
         elif provider == "github":
@@ -314,6 +356,9 @@ class OAuthService:
         Raises:
             OAuthAccountAlreadyBoundError: OAuth 账户已被其他用户绑定
         """
+        # 先做 CSRF state 校验（命中即焚），再换 token
+        await self._verify_state(provider, state)
+
         # 获取 OAuth 用户信息
         if provider == "google":
             provider_user_id, provider_email, provider_display_name = await self._get_google_userinfo(code)

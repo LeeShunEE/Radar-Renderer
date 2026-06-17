@@ -98,6 +98,28 @@ class TestOAuthProviders:
         assert resp.json() == {"google": True, "github": False}
 
 
+class TestOAuthStateCsrf:
+    def test_start_returns_auth_url_with_state(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ):
+        monkeypatch.setattr(settings, "oauth_google_client_id", "g-id")
+        monkeypatch.setattr(
+            settings, "oauth_google_redirect_uri", "http://localhost:13000/cb"
+        )
+        resp = client.get("/api/v1/auth/oauth/google/start")
+        assert resp.status_code == 200
+        assert "state=" in resp.json()["auth_url"]
+
+    def test_callback_with_unknown_state_rejected(self, client: TestClient):
+        # 未经 start 落库的 state → CSRF 校验失败，在换 token 前即拒绝
+        resp = client.get(
+            "/api/v1/auth/oauth/google/callback",
+            params={"code": "x", "state": "forged-state"},
+        )
+        assert resp.status_code == 400
+        assert resp.json()["code"] == "oauth_error"
+
+
 class TestRefresh:
     def test_refresh_issues_new_access(
         self, client: TestClient, register_user: Callable[..., dict]

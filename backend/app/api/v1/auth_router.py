@@ -159,8 +159,8 @@ async def oauth_providers() -> OAuthProvidersResponse:
 
 
 @router.get("/oauth/{provider}/start", response_model=OAuthStartResponse)
-async def oauth_start(provider: str) -> OAuthStartResponse:
-    """发起 OAuth 流程，返回授权 URL。
+async def oauth_start(provider: str, session: SessionDep) -> OAuthStartResponse:
+    """发起 OAuth 流程：生成并落库随机 state（CSRF），返回授权 URL。
 
     Args:
         provider: "google" | "github"
@@ -168,8 +168,9 @@ async def oauth_start(provider: str) -> OAuthStartResponse:
     Returns:
         OAuth 授权页面 URL，前端应跳转到此 URL
     """
-    # get_authorization_url 是 staticmethod，不依赖 session，可直接调用
-    return OAuthStartResponse(auth_url=OAuthService.get_authorization_url(provider))
+    oauth_service = OAuthService(session)
+    auth_url = await oauth_service.start_authorization(provider)
+    return OAuthStartResponse(auth_url=auth_url)
 
 
 @router.get("/oauth/{provider}/callback", response_model=TokenResponse)

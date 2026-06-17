@@ -31,19 +31,20 @@ class TestIsProviderConfigured:
 class TestGetAuthorizationUrl:
     def test_unsupported_provider_raises(self):
         with pytest.raises(OAuthError):
-            OAuthService.get_authorization_url("wechat")
+            OAuthService.get_authorization_url("wechat", "s")
 
     def test_google_unconfigured_raises(self, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(settings, "oauth_google_client_id", None)
         with pytest.raises(OAuthError):
-            OAuthService.get_authorization_url("google")
+            OAuthService.get_authorization_url("google", "s")
 
-    def test_google_configured_returns_authorize_url(
+    def test_google_configured_embeds_state(
         self, monkeypatch: pytest.MonkeyPatch
     ):
         monkeypatch.setattr(settings, "oauth_google_client_id", "g-id")
         monkeypatch.setattr(settings, "oauth_google_redirect_uri", "http://x/cb")
 
-        url = OAuthService.get_authorization_url("google")
+        url = OAuthService.get_authorization_url("google", "xyz-state")
         assert url.startswith("https://accounts.google.com/o/oauth2/v2/auth")
         assert "client_id=g-id" in url
+        assert "state=xyz-state" in url
