@@ -11,8 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv (fast Python package manager)
-COPY --from=ghcr.io/astralsh/uv:latest /uv /uvx /bin/
+# Install uv (fast Python package manager) via pip with Chinese mirror
+RUN pip install uv -i https://mirrors.aliyun.com/pypi/simple/
 
 # Set working directory
 WORKDIR /app
@@ -26,7 +26,7 @@ FROM base AS development
 COPY pyproject.toml .
 
 # Install all dependencies (including dev/test extras)
-RUN uv pip install --system -e ".[test,dev]"
+RUN uv pip install --system -e ".[test,dev]" --index-url https://mirrors.aliyun.com/pypi/simple/
 
 # Copy source code and alembic
 COPY app ./app
@@ -48,7 +48,7 @@ FROM base AS builder
 COPY pyproject.toml .
 
 # Install production dependencies only
-RUN uv pip install --system -e "."
+RUN uv pip install --system -e "." --index-url https://mirrors.aliyun.com/pypi/simple/
 
 # Copy source code and alembic
 COPY app ./app

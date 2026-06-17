@@ -26,15 +26,16 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    # === 修改 users 表 ===
-    # username 改为 nullable
-    op.alter_column("users", "username", existing_type=sa.String(64), nullable=True)
-    # password_hash 改为 nullable
-    op.alter_column("users", "password_hash", existing_type=sa.String(255), nullable=True)
-    # 新增 is_verified 字段
-    op.add_column("users", sa.Column("is_verified", sa.Boolean(), nullable=False, server_default=sa.text("0")))
-    # 新增 display_name 字段
-    op.add_column("users", sa.Column("display_name", sa.String(255), nullable=True))
+    # === 修改 users 表（SQLite 需要使用 batch operations）===
+    with op.batch_alter_table("users", schema=None) as batch_op:
+        # username 改为 nullable
+        batch_op.alter_column("username", existing_type=sa.String(64), nullable=True)
+        # password_hash 改为 nullable
+        batch_op.alter_column("password_hash", existing_type=sa.String(255), nullable=True)
+        # 新增 is_verified 字段
+        batch_op.add_column(sa.Column("is_verified", sa.Boolean(), nullable=False, server_default=sa.text("0")))
+        # 新增 display_name 字段
+        batch_op.add_column(sa.Column("display_name", sa.String(255), nullable=True))
 
     # === 创建 oauth_accounts 表 ===
     op.create_table(
@@ -86,8 +87,9 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_oauth_accounts_user_id"), table_name="oauth_accounts")
     op.drop_table("oauth_accounts")
 
-    # === 恢复 users 表 ===
-    op.drop_column("users", "display_name")
-    op.drop_column("users", "is_verified")
-    op.alter_column("users", "password_hash", existing_type=sa.String(255), nullable=False)
-    op.alter_column("users", "username", existing_type=sa.String(64), nullable=False)
+    # === 恢复 users 表（SQLite 需要使用 batch operations）===
+    with op.batch_alter_table("users", schema=None) as batch_op:
+        batch_op.drop_column("display_name")
+        batch_op.drop_column("is_verified")
+        batch_op.alter_column("password_hash", existing_type=sa.String(255), nullable=False)
+        batch_op.alter_column("username", existing_type=sa.String(64), nullable=False)

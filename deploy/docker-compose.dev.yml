@@ -16,7 +16,7 @@ services:
   # ============================================
   db:
     ports:
-      - "5432:5432"
+      - "15432:5432"
 
   # ============================================
   # Backend (Development mode)
@@ -26,11 +26,11 @@ services:
       target: development
     environment:
       # Use SQLite for development (uncomment to use PostgreSQL)
-      DATABASE_URL: sqlite+aiosqlite:///./app/storage/dev.db
+      DATABASE_URL: sqlite+aiosqlite:///./storage/dev.db
       # OR use PostgreSQL (comment out SQLite line above)
       # DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-radar}:${POSTGRES_PASSWORD:-devpass}@db:5432/${POSTGRES_DB:-radar_chart}
       # CORS for development
-      CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000"]'
+      CORS_ORIGINS: '["http://localhost:13000","http://127.0.0.1:13000"]'
       # JWT for development (DO NOT USE IN PRODUCTION)
       JWT_SECRET_STRING: dev-secret-change-in-production-min-32-chars
       JWT_ALGORITHM: HS256
@@ -43,15 +43,14 @@ services:
       WORKER_BASE_URL: http://render-worker:3100
       RENDER_TIMEOUT_SECONDS: 600
     ports:
-      - "8000:8000"
+      - "18000:8000"
     volumes:
       # Mount source code for hot reload
       - ../backend/app:/app/app:ro
       - ../backend/alembic:/app/alembic:ro
       - backend_storage:/app/storage
-    # Skip entrypoint for development (manual migration)
-    entrypoint: []
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    # Create storage directory and run migrations before starting
+    entrypoint: ["sh", "-c", "mkdir -p /app/storage && cd /app && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"]
 
   # ============================================
   # Frontend (Development mode)
@@ -60,9 +59,9 @@ services:
     build:
       target: development
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_API_URL: http://localhost:18000
     ports:
-      - "3000:3000"
+      - "13000:3000"
     volumes:
       # Mount source code for hot reload
       - ../frontend/src:/app/src:ro
@@ -79,7 +78,7 @@ services:
     environment:
       WORKER_PORT: 3100
     ports:
-      - "3100:3100"
+      - "13100:3100"
     volumes:
       # Mount source code for hot reload
       - ../frontend/src/remotion:/app/src/remotion:ro

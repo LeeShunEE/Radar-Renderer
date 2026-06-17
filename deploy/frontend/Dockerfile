@@ -6,6 +6,9 @@
 # ============================================
 FROM node:20-alpine AS base
 
+# Configure Alpine mirror for China
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+
 # Install Chromium for Remotion rendering
 # Remotion requires a browser for video rendering
 RUN apk add --no-cache \
@@ -13,8 +16,8 @@ RUN apk add --no-cache \
     chromium-chromedriver \
     ffmpeg \
     fontconfig \
-    fonts-liberation \
-    fonts-noto-cjk \
+    font-noto \
+    font-noto-cjk \
     && rm -rf /var/cache/apk/*
 
 # Set Chromium path for Remotion
@@ -29,16 +32,19 @@ WORKDIR /app
 # ============================================
 FROM base AS development
 
-# Copy package files
-COPY package.json pnpm-lock.yaml ./
+# Configure npm mirror for China
+RUN npm config set registry https://registry.npmmirror.com
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Copy package files and npm config first
+COPY package.json pnpm-lock.yaml .npmrc ./
 
-# Install all dependencies
+# Install pnpm globally
+RUN npm install -g pnpm
+
+# Install dependencies (npmrc configures hoisting)
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
+# Copy source code (exclude node_modules via .dockerignore)
 COPY . .
 
 # Development server runs on port 3000
@@ -52,11 +58,14 @@ CMD ["pnpm", "dev"]
 # ============================================
 FROM base AS builder
 
+# Configure npm mirror for China
+RUN npm config set registry https://registry.npmmirror.com
+
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm globally (more reliable than corepack on Alpine)
+RUN npm install -g pnpm
 
 # Install dependencies for build
 RUN pnpm install --frozen-lockfile
@@ -72,14 +81,20 @@ RUN pnpm build
 # ============================================
 FROM node:20-alpine AS production
 
+# Configure Alpine mirror for China
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+
 # Install minimal runtime dependencies for Remotion
 RUN apk add --no-cache \
     chromium \
     ffmpeg \
     fontconfig \
-    fonts-liberation \
-    fonts-noto-cjk \
+    font-noto \
+    font-noto-cjk \
     && rm -rf /var/cache/apk/*
+
+# Configure npm mirror for China
+RUN npm config set registry https://registry.npmmirror.com
 
 # Set Chromium path for Remotion
 ENV CHROMIUM_PATH=/usr/bin/chromium-browser
@@ -96,8 +111,8 @@ WORKDIR /app
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm globally (more reliable than corepack on Alpine)
+RUN npm install -g pnpm
 
 # Install only production dependencies
 RUN pnpm install --frozen-lockfile --prod
