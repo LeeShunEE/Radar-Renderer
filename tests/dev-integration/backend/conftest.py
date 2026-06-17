@@ -5,7 +5,7 @@
 """
 
 import asyncio
-from collections.abc import AsyncGenerator, Iterator
+from collections.abc import AsyncGenerator, Callable, Iterator
 from pathlib import Path
 
 import pytest
@@ -16,6 +16,7 @@ from app.api.deps import get_session
 from app.core.config import settings
 from app.dao.orm import Base
 from app.main import app
+from app.service.email_service import EmailService
 
 
 @pytest.fixture
@@ -59,12 +60,52 @@ def _isolate_queue(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture
-def auth_headers(client: TestClient) -> dict[str, str]:
-    """注册并登录一个用户，返回带 access token 的请求头。"""
-    reg = {"username": "alice", "email": "alice@example.com", "password": "password123"}
-    client.post("/api/v1/auth/register", json=reg)
-    tokens = client.post(
-        "/api/v1/auth/login",
-        json={"username": "alice", "password": "password123"},
-    ).json()
+def captured_codes(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """绕开 Resend，捕获 send-code 实际生成的验证码。
+
+    EmailService 在无 Resend key 时 __init__ 会抛错；这里把它替换为无害实现，
+    并记录每次 send_verification_code 的 code 实参，使测试能走通真实的
+    send-code → register（邮箱+验证码）链路。
+    """
+    codes: list[str] = []
+
+    def _noop_init(self: EmailService) -> None:
+        pass
+
+    async def _capture_send(
+        self: EmailService, email: str, code: str, purpose: str
+    ) -> None:
+        codes.append(code)
+
+    monkeypatch.setattr(EmailService, "__init__", _noop_init)
+    monkeypatch.setattr(EmailService, "send_verification_code", _capture_send)
+    return codes
+
+
+@pytest.fixture
+def register_user(
+    client: TestClient, captured_codes: list[str]
+) -> Callable[..., dict]:
+    """返回一个「邮箱验证码注册并自动登录」的辅助函数，产出 TokenResponse。
+
+    邮箱验证码注册的用户无密码、无用户名，token 直接来自 register 响应（自动登录）。
+    """
+
+    def _register(email: str = "alice@example.com") -> dict:
+        client.post(
+            "/api/v1/auth/send-code", json={"email": email, "purpose": "register"}
+        )
+        code = captured_codes[-1]
+        resp = client.post(
+            "/api/v1/auth/register", json={"email": email, "code": code}
+        )
+        return resp.json()
+
+    return _register
+
+
+@pytest.fixture
+def auth_headers(register_user: Callable[..., dict]) -> dict[str, str]:
+    """注册一个用户并返回带 access token 的请求头。"""
+    tokens = register_user()
     return {"Authorization": f"Bearer {tokens['access_token']}"}

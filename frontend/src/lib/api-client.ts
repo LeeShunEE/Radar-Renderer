@@ -175,6 +175,11 @@ export const auth = {
       "/api/v1/auth/set-password",
       { method: "POST", body: JSON.stringify({ password }) },
     ),
+  /** 探测已启用的 OAuth provider（决定是否渲染登录按钮） */
+  oauthProviders: () =>
+    authFetch<{ google: boolean; github: boolean }>(
+      "/api/v1/auth/oauth/providers",
+    ),
   /** 发起 OAuth 登录 */
   oauthStart: (provider: string) =>
     authFetch<{ auth_url: string }>(

@@ -16,6 +16,7 @@ from app.core.exceptions import (
     VerificationCodeInvalidError,
 )
 from app.dao.verification_dao import VerificationCodeDAO
+from app.utils.datetime import ensure_utc
 
 
 class VerificationService:
@@ -40,7 +41,7 @@ class VerificationService:
         # 检查冷却时间
         latest = await self._dao.get_latest_for_cooldown_check(email, purpose)
         if latest is not None:
-            cooldown_end = latest.created_at + timedelta(
+            cooldown_end = ensure_utc(latest.created_at) + timedelta(
                 seconds=settings.verification_code_cooldown_seconds
             )
             if datetime.now(tz=UTC) < cooldown_end:
@@ -83,7 +84,7 @@ class VerificationService:
         if orm.code != code:
             raise VerificationCodeInvalidError("验证码错误")
 
-        if orm.expires_at < datetime.now(tz=UTC):
+        if ensure_utc(orm.expires_at) < datetime.now(tz=UTC):
             raise VerificationCodeExpiredError("验证码已过期，请重新获取")
 
         # 标记已使用

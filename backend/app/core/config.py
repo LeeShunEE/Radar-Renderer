@@ -55,6 +55,9 @@ class Settings(BaseSettings):
     oauth_github_client_secret_secret_string: SecretStr | None = None
     oauth_github_redirect_uri: str | None = None
 
+    # OAuth state（CSRF nonce）有效期（分钟）
+    oauth_state_expire_minutes: int = 10
+
     # 文件存储
     storage_root: Path = _BACKEND_ROOT / "storage"
     max_user_storage_bytes: int = 200 * 1024 * 1024

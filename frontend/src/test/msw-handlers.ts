@@ -47,6 +47,13 @@ export const handlers = [
     return HttpResponse.json({ id: user.id, username: user.username, email: user.email, created_at: new Date().toISOString() }, { status: 201 });
   }),
 
+  http.post(`${API_BASE}/api/v1/auth/register-with-password`, async ({ request }) => {
+    const body = (await request.json()) as { username: string; email: string; password: string };
+    const user = { id: _nextUserId++, username: body.username, email: body.email, password: body.password };
+    _users.push(user);
+    return HttpResponse.json({ id: user.id, username: user.username, email: user.email, created_at: new Date().toISOString() }, { status: 201 });
+  }),
+
   http.post(`${API_BASE}/api/v1/auth/login`, async ({ request }) => {
     const body = (await request.json()) as { username: string; password: string };
     const user = _users.find((u) => u.username === body.username && u.password === body.password);

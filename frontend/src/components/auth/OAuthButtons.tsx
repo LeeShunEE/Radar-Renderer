@@ -5,7 +5,10 @@
  */
 "use client";
 
+import { useEffect, useState } from "react";
+
 import { Button } from "@/components/ui/button";
+import { auth } from "@/lib/api-client";
 import { startOAuthLogin } from "@/lib/auth-store";
 
 interface OAuthButtonsProps {
@@ -15,14 +18,46 @@ interface OAuthButtonsProps {
   variant?: "default" | "outline" | "ghost";
 }
 
+type Providers = { google: boolean; github: boolean };
+
 export function OAuthButtons({ showSeparator = true, variant = "outline" }: OAuthButtonsProps) {
-  const handleGoogleLogin = () => {
-    startOAuthLogin("google");
+  const [providers, setProviders] = useState<Providers | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  // 挂载时探测后端已启用的 provider；查询失败则视为均未启用（隐藏按钮）。
+  useEffect(() => {
+    let cancelled = false;
+    auth
+      .oauthProviders()
+      .then((p) => {
+        if (!cancelled) setProviders(p);
+      })
+      .catch(() => {
+        if (!cancelled) setProviders({ google: false, github: false });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleLogin = async (provider: "google" | "github") => {
+    setError(null);
+    setPending(true);
+    try {
+      await startOAuthLogin(provider);
+      // 成功时 startOAuthLogin 会触发整页跳转，无需手动复位 pending
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "OAuth 登录失败";
+      setError(message);
+      setPending(false);
+    }
   };
 
-  const handleGitHubLogin = () => {
-    startOAuthLogin("github");
-  };
+  // provider 信息未就绪，或两者皆未配置 → 不渲染（含分隔线），登录页只剩邮箱/密码。
+  if (!providers || (!providers.google && !providers.github)) {
+    return null;
+  }
 
   return (
     <>
@@ -35,11 +70,13 @@ export function OAuthButtons({ showSeparator = true, variant = "outline" }: OAut
       )}
 
       <div className="flex flex-col gap-2">
+        {providers.google && (
         <Button
           type="button"
           variant={variant}
           className="w-full"
-          onClick={handleGoogleLogin}
+          disabled={pending}
+          onClick={() => handleLogin("google")}
         >
           <svg
             className="mr-2 h-4 w-4"
@@ -65,12 +102,15 @@ export function OAuthButtons({ showSeparator = true, variant = "outline" }: OAut
           </svg>
           使用 Google 登录
         </Button>
+        )}
 
+        {providers.github && (
         <Button
           type="button"
           variant={variant}
           className="w-full"
-          onClick={handleGitHubLogin}
+          disabled={pending}
+          onClick={() => handleLogin("github")}
         >
           <svg
             className="mr-2 h-4 w-4"
@@ -83,7 +123,10 @@ export function OAuthButtons({ showSeparator = true, variant = "outline" }: OAut
           </svg>
           使用 GitHub 登录
         </Button>
+        )}
       </div>
+
+      {error && <p className="text-sm text-red-500">{error}</p>}
     </>
   );
 }

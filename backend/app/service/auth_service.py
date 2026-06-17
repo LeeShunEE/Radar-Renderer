@@ -3,13 +3,21 @@
 入站时在 service 内显式构造领域模型；token 签发由调用方（路由）用 core.security 完成。
 """
 
+from datetime import UTC, datetime
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import AuthError, UserExistsError
+from app.core.exceptions import (
+    AuthError,
+    UserExistsError,
+    VerificationCodeExpiredError,
+    VerificationCodeInvalidError,
+)
 from app.core.security import hash_password, verify_password
 from app.dao.user_dao import UserDAO
 from app.dao.verification_dao import VerificationCodeDAO
 from app.models.user import User
+from app.utils.datetime import ensure_utc
 
 
 class AuthService:
@@ -47,19 +55,13 @@ class AuthService:
             VerificationCodeExpiredError: 验证码过期
             UserExistsError: 邮箱已注册
         """
-        from app.core.exceptions import (
-            VerificationCodeExpiredError,
-            VerificationCodeInvalidError,
-        )
-        from datetime import UTC, datetime
-
         # 校验验证码
         orm = await self._verification_dao.get_latest_unused(email, "register")
         if orm is None:
             raise VerificationCodeInvalidError("验证码无效或已使用")
         if orm.code != code:
             raise VerificationCodeInvalidError("验证码错误")
-        if orm.expires_at < datetime.now(tz=UTC):
+        if ensure_utc(orm.expires_at) < datetime.now(tz=UTC):
             raise VerificationCodeExpiredError("验证码已过期，请重新获取")
 
         # 标记验证码已使用

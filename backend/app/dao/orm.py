@@ -66,6 +66,24 @@ class OAuthAccountORM(Base):
     )
 
 
+class OAuthStateORM(Base):
+    """OAuth state（CSRF nonce）一次性凭据表。
+
+    发起授权时生成随机 state 并落库，回调时校验命中且未过期后即焚，
+    用 DB 而非进程内内存以兼容多 worker 部署。
+    """
+
+    __tablename__ = "oauth_states"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    state: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    provider: Mapped[str] = mapped_column(String(16))  # "google" | "github"
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, server_default=func.now()
+    )
+
+
 class VerificationCodeORM(Base):
     """邮箱验证码表。
 

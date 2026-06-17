@@ -1,5 +1,7 @@
 """tasks_router dev-integration：任务列表、详情、删除（mock worker，队列隔离）。"""
 
+from collections.abc import Callable
+
 from fastapi.testclient import TestClient
 
 
@@ -46,22 +48,14 @@ class TestGetTask:
         assert resp.json()["id"] == task["id"]
 
     def test_get_other_users_task_404(
-        self, client: TestClient, auth_headers: dict[str, str]
+        self,
+        client: TestClient,
+        auth_headers: dict[str, str],
+        register_user: Callable[..., dict],
     ):
         task = _submit(client, auth_headers)
         # 注册第二个用户
-        client.post(
-            "/api/v1/auth/register",
-            json={
-                "username": "bob",
-                "email": "bob@example.com",
-                "password": "password123",
-            },
-        )
-        bob = client.post(
-            "/api/v1/auth/login",
-            json={"username": "bob", "password": "password123"},
-        ).json()
+        bob = register_user(email="bob@example.com")
         bob_headers = {"Authorization": f"Bearer {bob['access_token']}"}
         resp = client.get(f"/api/v1/tasks/{task['id']}", headers=bob_headers)
         assert resp.status_code == 404
