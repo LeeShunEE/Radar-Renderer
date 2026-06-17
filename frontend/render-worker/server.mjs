@@ -12,6 +12,9 @@ import http from "node:http";
 import path from "node:path";
 import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
+// 复用 frontend/src/remotion 的 webpack 覆盖（启用 Tailwind v4），
+// 否则 src/remotion/index.ts 里的 `@import "tailwindcss"` 无法被处理。
+import { webpackOverride } from "../src/remotion/webpack-override.mjs";
 
 // 与 frontend/src/types/constants.ts 的 COMP_NAME / MULTI_COMP_NAME 保持一致。
 // 此处内联以让 worker 在纯 node 下运行（无需 TS loader）；Remotion bundler 自行处理组件 TS 树。
@@ -21,6 +24,10 @@ const MULTI_COMP_NAME = "MultiPageRadarVideo";
 const PORT = Number(process.env.WORKER_PORT ?? 3100);
 const ENTRY = path.resolve(process.cwd(), "src", "remotion", "index.ts");
 const PUBLIC_DIR = path.resolve(process.cwd(), "public");
+// 容器内已装系统 Chromium（见 Dockerfile 的 CHROMIUM_PATH）；显式指定可执行文件，
+// 否则 Remotion 会尝试把无头浏览器下载到只读的 node_modules/.remotion（EACCES）。
+const BROWSER_EXECUTABLE =
+  process.env.REMOTION_BROWSER_EXECUTABLE ?? process.env.CHROMIUM_PATH ?? null;
 
 // bundle 较慢，进程内缓存复用。
 let bundlePromise = null;
@@ -29,7 +36,7 @@ function getBundle() {
     bundlePromise = bundle({
       entryPoint: ENTRY,
       publicDir: PUBLIC_DIR,
-      webpackOverride: (config) => config,
+      webpackOverride,
     });
   }
   return bundlePromise;
@@ -55,6 +62,7 @@ async function handleRender(body) {
     id: compositionId,
     inputProps,
     chromiumOptions,
+    browserExecutable: BROWSER_EXECUTABLE,
   });
 
   const startedAt = Date.now();
@@ -67,6 +75,7 @@ async function handleRender(body) {
     concurrency: null,
     hardwareAcceleration: "if-possible",
     chromiumOptions,
+    browserExecutable: BROWSER_EXECUTABLE,
     onProgress: () => {},
   });
 

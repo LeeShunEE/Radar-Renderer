@@ -61,8 +61,8 @@ FROM base AS builder
 # Configure npm mirror for China
 RUN npm config set registry https://registry.npmmirror.com
 
-# Copy package files
-COPY package.json pnpm-lock.yaml ./
+# Copy package files (.npmrc configures hoisting for self-contained node_modules)
+COPY package.json pnpm-lock.yaml .npmrc ./
 
 # Install pnpm globally (more reliable than corepack on Alpine)
 RUN npm install -g pnpm
@@ -102,14 +102,15 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV NODE_ENV=production
 
 # Create non-root user for security
-RUN addgroup --gid 1000 --system appgroup \
-    && adduser --uid 1000 --system --ingroup appgroup --shell /bin/sh appuser
+# Let Alpine pick free IDs: node:20-alpine already ships a user at uid/gid 1000.
+RUN addgroup --system appgroup \
+    && adduser --system --ingroup appgroup --shell /bin/sh appuser
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package.json pnpm-lock.yaml ./
+# Copy package files (.npmrc configures hoisting for self-contained node_modules)
+COPY package.json pnpm-lock.yaml .npmrc ./
 
 # Install pnpm globally (more reliable than corepack on Alpine)
 RUN npm install -g pnpm
