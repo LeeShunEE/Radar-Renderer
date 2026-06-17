@@ -135,6 +135,12 @@ export const auth = {
       "/api/v1/auth/register",
       { method: "POST", body: JSON.stringify({ email, code }) },
     ),
+  /** 验证码重置密码（校验后设新密码并自动登录） */
+  resetPassword: (email: string, code: string, newPassword: string) =>
+    authFetch<{ access_token: string; refresh_token: string; token_type: string }>(
+      "/api/v1/auth/reset-password",
+      { method: "POST", body: JSON.stringify({ email, code, new_password: newPassword }) },
+    ),
   /** 用户名密码注册（已废弃） */
   registerWithPassword: (username: string, email: string, password: string) =>
     authFetch<{ id: number; username: string; email: string; created_at: string }>(

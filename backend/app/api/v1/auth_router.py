@@ -17,6 +17,7 @@ from app.schemas.auth import (
     RefreshRequest,
     RegisterRequest,
     RegisterWithPasswordRequest,
+    ResetPasswordRequest,
     SendCodeRequest,
     SetPasswordRequest,
     SetUsernameRequest,
@@ -88,6 +89,27 @@ async def register_with_password(
         password=payload.password,
     )
     return UserResponse.from_domain(user)
+
+
+@router.post(
+    "/reset-password",
+    response_model=TokenResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def reset_password(
+    payload: ResetPasswordRequest, session: SessionDep
+) -> TokenResponse:
+    """验证码校验后重置密码并自动登录。
+
+    邮箱注册用户中断（无密码）走此端点恢复：校验重置验证码 → 设新密码 → 颁发 token。
+    前端据返回 token 拉取 user 后，按 username 是否为空决定跳 /welcome 还是 /app。
+    """
+    user = await AuthService(session).reset_password(
+        email=payload.email,
+        code=payload.code,
+        new_password=payload.new_password,
+    )
+    return _issue_tokens(user.id)
 
 
 @router.post("/login", response_model=TokenResponse)

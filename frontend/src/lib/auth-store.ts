@@ -232,7 +232,12 @@ export async function setPassword(password: string): Promise<void> {
   notify();
 }
 
-/** 用户名密码注册（已废弃，保留用于兼容）。 */
+/**
+ * 用户名密码注册（已废弃，保留用于兼容）。
+ *
+ * @deprecated 统一 onboarding 后注册走验证码两步流程（registerWithCode），
+ *   新代码勿调用；仅旧测试与兼容链路依赖。后续随测试迁移后移除。
+ */
 export async function register(username: string, email: string, password: string): Promise<void> {
   _state = { ..._state, loading: true, error: null };
   notify();
@@ -257,6 +262,40 @@ export async function register(username: string, email: string, password: string
     };
   } catch (e: unknown) {
     _state = { ..._state, loading: false, error: e instanceof Error ? e.message : "注册失败" };
+    notify();
+    throw e;
+  }
+  notify();
+}
+
+/** 验证码重置密码并自动登录（解决邮箱注册用户中断死锁）。 */
+export async function resetPassword(
+  email: string,
+  code: string,
+  newPassword: string,
+): Promise<void> {
+  _state = { ..._state, loading: true, error: null };
+  notify();
+  try {
+    const tokens = await auth.resetPassword(email, code, newPassword);
+    setTokens(tokens.access_token, tokens.refresh_token);
+    const user = await auth.me();
+    _state = {
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        isVerified: user.is_verified,
+        displayName: user.display_name,
+        createdAt: user.created_at,
+      },
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      loading: false,
+      error: null,
+    };
+  } catch (e: unknown) {
+    _state = { ..._state, loading: false, error: e instanceof Error ? e.message : "重置密码失败" };
     notify();
     throw e;
   }

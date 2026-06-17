@@ -1,18 +1,15 @@
 /**
- * 注册页面：邮箱验证码两步注册。
+ * 忘记密码 / 重置密码页面。
  *
- * 步骤 1 输入邮箱并发送验证码；步骤 2 输入验证码完成注册。
- * 注册成功后跳转 /welcome 设置用户名（+ 密码）完成 onboarding。
+ * 两步：邮箱 + 验证码（reset_password purpose）→ 新密码（8 位）+ 确认。
+ * 重置成功后自动登录，按 username 是否为空跳 /welcome 或 /app。
  */
 "use client";
 
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  registerWithCode,
-  sendVerificationCode,
-} from "@/lib/auth-store";
+import { getAuthState, resetPassword, sendVerificationCode } from "@/lib/auth-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,11 +17,13 @@ import { Card } from "@/components/ui/card";
 
 const RESEND_COUNTDOWN = 60;
 
-export default function RegisterPage() {
+export default function ForgotPasswordPage() {
   const router = useRouter();
-  const [step, setStep] = useState<"email" | "code">("email");
+  const [step, setStep] = useState<"email" | "reset">("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
@@ -47,9 +46,9 @@ export default function RegisterPage() {
     setError(null);
     setLoading(true);
     try {
-      await sendVerificationCode(email, "register");
+      await sendVerificationCode(email, "reset_password");
       startCountdown();
-      setStep("code");
+      setStep("reset");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "验证码发送失败");
     } finally {
@@ -62,7 +61,7 @@ export default function RegisterPage() {
     setError(null);
     setLoading(true);
     try {
-      await sendVerificationCode(email, "register");
+      await sendVerificationCode(email, "reset_password");
       startCountdown();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "验证码发送失败");
@@ -71,16 +70,27 @@ export default function RegisterPage() {
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (newPassword.length < 8) {
+      setError("密码长度应至少 8 位");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("两次输入的密码不一致");
+      return;
+    }
+
     setLoading(true);
     try {
-      await registerWithCode(email, code);
-      // 邮箱注册用户 username 必空，统一进入 onboarding
-      router.push("/welcome");
+      await resetPassword(email, code, newPassword);
+      // 重置成功自动登录；按 username 决定是否还需 onboarding
+      const username = getAuthState().user?.username;
+      router.push(username ? "/app" : "/welcome");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "注册失败");
+      setError(err instanceof Error ? err.message : "重置密码失败");
     } finally {
       setLoading(false);
     }
@@ -89,10 +99,10 @@ export default function RegisterPage() {
   return (
     <Card className="p-6 space-y-4">
       <div className="text-center">
-        <h1 className="text-xl font-semibold">注册</h1>
+        <h1 className="text-xl font-semibold">重置密码</h1>
         <p className="text-sm text-muted-foreground mt-1">
           {step === "email"
-            ? "输入邮箱以接收验证码"
+            ? "输入注册邮箱以接收验证码"
             : `验证码已发送至 ${email}`}
         </p>
       </div>
@@ -106,7 +116,7 @@ export default function RegisterPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="输入邮箱"
+              placeholder="输入注册邮箱"
               required
               autoComplete="email"
             />
@@ -119,7 +129,7 @@ export default function RegisterPage() {
           </Button>
         </form>
       ) : (
-        <form onSubmit={handleRegister} className="space-y-4">
+        <form onSubmit={handleReset} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="code">验证码</Label>
             <Input
@@ -135,10 +145,38 @@ export default function RegisterPage() {
             />
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="newPassword">新密码</Label>
+            <Input
+              id="newPassword"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="输入新密码（至少 8 位）"
+              required
+              minLength={8}
+              autoComplete="new-password"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">确认新密码</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="再次输入新密码"
+              required
+              minLength={8}
+              autoComplete="new-password"
+            />
+          </div>
+
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "注册中…" : "注册"}
+            {loading ? "重置中…" : "重置密码"}
           </Button>
 
           <div className="flex justify-between text-sm">
@@ -167,9 +205,9 @@ export default function RegisterPage() {
       )}
 
       <div className="text-center text-sm text-muted-foreground">
-        已有账户？{" "}
+        想起密码了？{" "}
         <Link href="/login" className="text-primary hover:underline">
-          登录
+          返回登录
         </Link>
       </div>
     </Card>

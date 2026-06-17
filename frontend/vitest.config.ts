@@ -33,6 +33,9 @@ export default defineConfig({
   resolve: {
     alias: [
       { find: /^@\/(.*)$/, replacement: path.resolve(__dirname, "./src/$1") },
+      // next/navigation 与 next/link 的测试替身（单元测试不挂载 Next App Router）
+      { find: /^next\/navigation$/, replacement: path.resolve(__dirname, "./src/test/__mocks__/next-navigation.ts") },
+      { find: /^next\/link$/, replacement: path.resolve(__dirname, "./src/test/__mocks__/next-link.tsx") },
       { find: "@testing-library/react", replacement: path.resolve(__dirname, "./node_modules/@testing-library/react") },
       // 测试文件位于 frontend/ 之外（tests/unit/frontend/），TSX 的 JSX runtime
       // 无法从该目录解析 react，显式指向 frontend 的 node_modules。
