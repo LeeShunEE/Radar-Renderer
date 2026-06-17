@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.exceptions import (
     AuthError,
     UserExistsError,
+    UserNotFoundError,
     VerificationCodeExpiredError,
     VerificationCodeInvalidError,
 )
@@ -124,3 +125,42 @@ class AuthService:
     async def set_password(self, user_id: int, password: str) -> User:
         """设置密码（OAuth 用户后续设置密码）。"""
         return await self._dao.set_password(user_id, hash_password(password))
+
+    async def reset_password(
+        self, *, email: str, code: str, new_password: str
+    ) -> User:
+        """重置密码：验证码校验后设新密码。
+
+        复用 register 的验证码校验逻辑（reset_password purpose），校验通过后
+        写入新密码哈希。解决邮箱注册用户无密码时无法用密码登录的中断死锁。
+
+        Args:
+            email: 用户邮箱
+            code: 用户输入的重置验证码
+            new_password: 新密码明文
+
+        Returns:
+            重置密码后的用户
+
+        Raises:
+            VerificationCodeInvalidError: 验证码无效或已使用
+            VerificationCodeExpiredError: 验证码过期
+            UserNotFoundError: 邮箱未注册
+        """
+        # 校验验证码（与 verify_and_register 一致的判定顺序：先校验再标记已用）
+        orm = await self._verification_dao.get_latest_unused(email, "reset_password")
+        if orm is None:
+            raise VerificationCodeInvalidError("验证码无效或已使用")
+        if orm.code != code:
+            raise VerificationCodeInvalidError("验证码错误")
+        if ensure_utc(orm.expires_at) < datetime.now(tz=UTC):
+            raise VerificationCodeExpiredError("验证码已过期，请重新获取")
+
+        await self._verification_dao.mark_used(orm)
+
+        # 定位用户，不存在则抛业务异常（空有业务含义，源头拦截）
+        user = await self._dao.get_by_email(email)
+        if user is None:
+            raise UserNotFoundError("用户不存在")
+
+        return await self._dao.set_password(user.id, hash_password(new_password))

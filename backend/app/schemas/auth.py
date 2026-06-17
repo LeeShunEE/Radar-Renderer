@@ -21,6 +21,14 @@ class RegisterRequest(BaseModel):
     code: str = Field(min_length=6, max_length=6, pattern="^[0-9]{6}$")
 
 
+class ResetPasswordRequest(BaseModel):
+    """重置密码请求（验证码校验后设新密码，解决邮箱注册用户中断死锁）。"""
+
+    email: EmailStr
+    code: str = Field(min_length=6, max_length=6, pattern="^[0-9]{6}$")
+    new_password: str = Field(min_length=8, max_length=128)
+
+
 class RegisterWithPasswordRequest(BaseModel):
     """用户名密码注册请求（保留用于兼容）。"""
 
