@@ -90,8 +90,8 @@ USER appuser
 # Production server runs on port 8000
 EXPOSE 8000
 
-# Copy entrypoint script
-COPY --chown=appuser:appgroup deploy/backend/entrypoint.sh /app/entrypoint.sh
+# Copy entrypoint script（位于 backend 构建上下文内，见 compose `context: ../backend`）
+COPY --chown=appuser:appgroup entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
 # Run entrypoint script (handles migrations before startup)

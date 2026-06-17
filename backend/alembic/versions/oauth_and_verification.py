@@ -33,7 +33,7 @@ def upgrade() -> None:
         # password_hash 改为 nullable
         batch_op.alter_column("password_hash", existing_type=sa.String(255), nullable=True)
         # 新增 is_verified 字段
-        batch_op.add_column(sa.Column("is_verified", sa.Boolean(), nullable=False, server_default=sa.text("0")))
+        batch_op.add_column(sa.Column("is_verified", sa.Boolean(), nullable=False, server_default=sa.false()))
         # 新增 display_name 字段
         batch_op.add_column(sa.Column("display_name", sa.String(255), nullable=True))
 
@@ -66,7 +66,7 @@ def upgrade() -> None:
         sa.Column("code", sa.String(6), nullable=False),
         sa.Column("purpose", sa.String(16), nullable=False),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
-        sa.Column("used", sa.Boolean(), nullable=False, server_default=sa.text("0")),
+        sa.Column("used", sa.Boolean(), nullable=False, server_default=sa.false()),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
