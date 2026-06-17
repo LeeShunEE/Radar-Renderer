@@ -34,6 +34,12 @@ export default defineConfig({
     alias: [
       { find: /^@\/(.*)$/, replacement: path.resolve(__dirname, "./src/$1") },
       { find: "@testing-library/react", replacement: path.resolve(__dirname, "./node_modules/@testing-library/react") },
+      // 测试文件位于 frontend/ 之外（tests/unit/frontend/），TSX 的 JSX runtime
+      // 无法从该目录解析 react，显式指向 frontend 的 node_modules。
+      { find: /^react\/jsx-dev-runtime$/, replacement: path.resolve(__dirname, "./node_modules/react/jsx-dev-runtime.js") },
+      { find: /^react\/jsx-runtime$/, replacement: path.resolve(__dirname, "./node_modules/react/jsx-runtime.js") },
+      { find: /^react$/, replacement: path.resolve(__dirname, "./node_modules/react") },
+      { find: /^react-dom$/, replacement: path.resolve(__dirname, "./node_modules/react-dom") },
     ],
   },
   server: {

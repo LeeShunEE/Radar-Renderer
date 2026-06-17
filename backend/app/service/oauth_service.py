@@ -10,7 +10,8 @@ from authlib.integrations.httpx_client import AsyncOAuth2Client
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.exceptions import OAuthError as BusinessOAuthError, OAuthAccountAlreadyBoundError
+from app.core.exceptions import OAuthAccountAlreadyBoundError
+from app.core.exceptions import OAuthError as BusinessOAuthError
 from app.dao.oauth_dao import OAuthDAO
 from app.dao.user_dao import UserDAO
 from app.models.user import User
@@ -23,8 +24,30 @@ class OAuthService:
         self._oauth_dao = OAuthDAO(session)
         self._user_dao = UserDAO(session)
 
-    def get_authorization_url(self, provider: str) -> str:
+    @staticmethod
+    def is_provider_configured(provider: str) -> bool:
+        """判断指定 OAuth provider 是否已配置（client_id 非空）。
+
+        仅依据 client_id 真值判断，不暴露任何 secret，供前端探测「该登录方式
+        是否可用」以决定是否渲染对应按钮。
+
+        Args:
+            provider: "google" | "github"
+
+        Returns:
+            是否已配置
+        """
+        if provider == "google":
+            return bool(settings.oauth_google_client_id)
+        if provider == "github":
+            return bool(settings.oauth_github_client_id)
+        return False
+
+    @staticmethod
+    def get_authorization_url(provider: str) -> str:
         """生成 OAuth 授权 URL。
+
+        不依赖数据库会话，可在无 session 的端点（如 ``oauth_start``）直接调用。
 
         Args:
             provider: "google" | "github"
@@ -36,13 +59,14 @@ class OAuthService:
             OAuthError: provider 未配置或不支持
         """
         if provider == "google":
-            return self._get_google_authorization_url()
+            return OAuthService._get_google_authorization_url()
         elif provider == "github":
-            return self._get_github_authorization_url()
+            return OAuthService._get_github_authorization_url()
         else:
             raise BusinessOAuthError(f"不支持的 OAuth provider: {provider}")
 
-    def _get_google_authorization_url(self) -> str:
+    @staticmethod
+    def _get_google_authorization_url() -> str:
         """生成 Google OAuth 授权 URL。"""
         if not settings.oauth_google_client_id:
             raise BusinessOAuthError("Google OAuth 未配置")
@@ -59,7 +83,8 @@ class OAuthService:
         )
         return url
 
-    def _get_github_authorization_url(self) -> str:
+    @staticmethod
+    def _get_github_authorization_url() -> str:
         """生成 GitHub OAuth 授权 URL。"""
         if not settings.oauth_github_client_id:
             raise BusinessOAuthError("GitHub OAuth 未配置")

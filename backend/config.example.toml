@@ -25,3 +25,18 @@ max_user_storage_bytes = 209715200 # 单用户配额上限（字节），默认 
 render_concurrency = 2                  # 服务端渲染固定并发数
 worker_base_url = "http://localhost:3100"
 render_timeout_seconds = 600
+
+# === OAuth（可选；任一 provider 不配置 client_id，前端将自动隐藏其登录按钮）===
+# redirect_uri 必须指向【前端回调路由】 /auth/callback/{provider}，
+# 且与 provider 后台（Google Cloud Console / GitHub Developer Settings）填写的
+# 「授权回调地址」完全一致。下例为本地 deploy（前端 13000 端口）。
+#
+# Google：Google Cloud Console → API 和服务 → 凭据 → 创建 OAuth 2.0 客户端 ID
+# oauth_google_client_id = ""
+# oauth_google_client_secret_secret_string = ""
+# oauth_google_redirect_uri = "http://localhost:13000/auth/callback/google"
+#
+# GitHub：GitHub → Settings → Developer settings → OAuth Apps → New OAuth App
+# oauth_github_client_id = ""
+# oauth_github_client_secret_secret_string = ""
+# oauth_github_redirect_uri = "http://localhost:13000/auth/callback/github"

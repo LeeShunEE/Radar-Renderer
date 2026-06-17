@@ -58,6 +58,13 @@ class OAuthStartResponse(BaseModel):
     auth_url: str
 
 
+class OAuthProvidersResponse(BaseModel):
+    """已启用的 OAuth provider 探测响应（仅布尔，不含任何 secret）。"""
+
+    google: bool = False
+    github: bool = False
+
+
 class UserResponse(BaseModel):
     id: int
     username: str | None = None

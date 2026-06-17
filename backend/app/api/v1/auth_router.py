@@ -12,6 +12,7 @@ from app.core.security import (
 from app.schemas.auth import (
     LoginRequest,
     OAuthAccountResponse,
+    OAuthProvidersResponse,
     OAuthStartResponse,
     RefreshRequest,
     RegisterRequest,
@@ -25,8 +26,8 @@ from app.schemas.auth import (
 from app.service.auth_service import AuthService
 from app.service.email_service import EmailService
 from app.service.oauth_service import OAuthService
-from app.service.verification_service import VerificationService
 from app.service.user_service import UserService
+from app.service.verification_service import VerificationService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -142,6 +143,21 @@ async def set_password(
 # === OAuth 端点 ===
 
 
+@router.get("/oauth/providers", response_model=OAuthProvidersResponse)
+async def oauth_providers() -> OAuthProvidersResponse:
+    """探测已启用的 OAuth provider。
+
+    前端据此决定是否渲染对应登录按钮，避免对未配置的 provider 发起请求。
+
+    Returns:
+        各 provider 是否已配置（仅布尔，不含 secret）
+    """
+    return OAuthProvidersResponse(
+        google=OAuthService.is_provider_configured("google"),
+        github=OAuthService.is_provider_configured("github"),
+    )
+
+
 @router.get("/oauth/{provider}/start", response_model=OAuthStartResponse)
 async def oauth_start(provider: str) -> OAuthStartResponse:
     """发起 OAuth 流程，返回授权 URL。
@@ -152,13 +168,8 @@ async def oauth_start(provider: str) -> OAuthStartResponse:
     Returns:
         OAuth 授权页面 URL，前端应跳转到此 URL
     """
-    # 注意：OAuthService 不需要 session 来生成 URL
-    from app.service.oauth_service import OAuthService as OAuthServiceClass
-    oauth_service = OAuthServiceClass.__new__(OAuthServiceClass)
-    oauth_service._oauth_dao = None
-    oauth_service._user_dao = None
-    auth_url = oauth_service.get_authorization_url(provider)
-    return OAuthStartResponse(auth_url=auth_url)
+    # get_authorization_url 是 staticmethod，不依赖 session，可直接调用
+    return OAuthStartResponse(auth_url=OAuthService.get_authorization_url(provider))
 
 
 @router.get("/oauth/{provider}/callback", response_model=TokenResponse)

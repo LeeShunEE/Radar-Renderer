@@ -1,6 +1,9 @@
 """auth_router dev-integration：注册→登录→me→refresh 全链路（真实 SQLite）。"""
 
+import pytest
 from fastapi.testclient import TestClient
+
+from app.core.config import settings
 
 _REG = {
     "username": "alice",
@@ -53,6 +56,23 @@ class TestLoginAndMe:
     def test_me_without_token_unauthorized(self, client: TestClient):
         resp = client.get("/api/v1/auth/me")
         assert resp.status_code == 401
+
+
+class TestOAuthProviders:
+    def test_providers_all_disabled_by_default(self, client: TestClient):
+        resp = client.get("/api/v1/auth/oauth/providers")
+        assert resp.status_code == 200
+        assert resp.json() == {"google": False, "github": False}
+
+    def test_providers_reflect_configured_client_ids(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ):
+        monkeypatch.setattr(settings, "oauth_google_client_id", "g-client-id")
+        monkeypatch.setattr(settings, "oauth_github_client_id", None)
+
+        resp = client.get("/api/v1/auth/oauth/providers")
+        assert resp.status_code == 200
+        assert resp.json() == {"google": True, "github": False}
 
 
 class TestRefresh:

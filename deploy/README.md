@@ -208,14 +208,16 @@ docker compose exec backend alembic current
 
 ### OAuth 配置（可选）
 
+> 任一 provider 未配置 `CLIENT_ID` 时，前端会**自动隐藏**对应登录按钮，不会报错。
+
 | 变量 | 说明 |
 |------|------|
 | `OAUTH_GOOGLE_CLIENT_ID` | Google OAuth 客户端 ID |
 | `OAUTH_GOOGLE_CLIENT_SECRET` | Google OAuth 密钥 |
-| `OAUTH_GOOGLE_REDIRECT_URI` | 回调地址 |
+| `OAUTH_GOOGLE_REDIRECT_URI` | 回调地址，填**前端**路由 `https://<前端域名>/auth/callback/google`（须与 Google 后台「授权回调地址」完全一致） |
 | `OAUTH_GITHUB_CLIENT_ID` | GitHub OAuth 客户端 ID |
 | `OAUTH_GITHUB_CLIENT_SECRET` | GitHub OAuth 密钥 |
-| `OAUTH_GITHUB_REDIRECT_URI` | 回调地址 |
+| `OAUTH_GITHUB_REDIRECT_URI` | 回调地址，填**前端**路由 `https://<前端域名>/auth/callback/github`（须与 GitHub 后台 Authorization callback URL 完全一致） |
 
 ### 前端环境变量
 
