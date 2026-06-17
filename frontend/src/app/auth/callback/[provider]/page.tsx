@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { handleOAuthCallback } from "@/lib/auth-store";
+import { getAuthState, handleOAuthCallback } from "@/lib/auth-store";
 import { Card } from "@/components/ui/card";
 
 export default function OAuthCallbackPage() {
@@ -31,14 +31,11 @@ export default function OAuthCallbackPage() {
       }
 
       try {
-        const isNewUser = await handleOAuthCallback(provider, code, state);
-        if (isNewUser) {
-          // 新用户，跳转到欢迎页面设置用户名
-          router.push("/welcome");
-        } else {
-          // 已有用户，跳转到主页
-          router.push("/app");
-        }
+        await handleOAuthCallback(provider, code, state);
+        // 统一基于 username 判断 onboarding 是否完成（不依赖 is_new_user：
+        // 中断的 OAuth 用户重登时 is_new_user=False 但 username 仍空）
+        const username = getAuthState().user?.username;
+        router.push(username ? "/app" : "/welcome");
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "OAuth 登录失败";
         setError(message);

@@ -7,6 +7,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { getAuthState } from "@/lib/auth-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +26,9 @@ export default function LoginPage() {
     setLocalError(null);
     try {
       await login(identifier, password);
-      router.push("/app");
+      // 统一基于 username 判断：未完成 onboarding（username 空）→ /welcome
+      const username = getAuthState().user?.username;
+      router.push(username ? "/app" : "/welcome");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "登录失败";
       setLocalError(message);
@@ -67,6 +70,14 @@ export default function LoginPage() {
             required
             autoComplete="current-password"
           />
+          <div className="text-right">
+            <Link
+              href="/forgot-password"
+              className="text-xs text-primary hover:underline"
+            >
+              忘记密码？
+            </Link>
+          </div>
         </div>
 
         {displayError && (
