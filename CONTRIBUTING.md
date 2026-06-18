@@ -1,0 +1,241 @@
+# Contributing to Motion-Compare-Radar
+
+> [English](#english) · [简体中文](#简体中文)
+>
+> This is a human-readable distillation of the project conventions. The full,
+> authoritative spec lives in [`CLAUDE.md`](./CLAUDE.md) (it also guides the
+> AI coding agent used on this repo). When in doubt, `CLAUDE.md` wins.
+
+---
+
+## English
+
+Thanks for contributing! Please read this before opening a PR.
+
+### 1. Getting started
+
+```bash
+# Backend (Python 3.11+, uv)
+cd backend && uv pip install -e ".[test,dev]"
+
+# Frontend (Node 20+, pnpm 9)
+cd frontend && pnpm install
+```
+
+Install the git hooks so the same checks run locally as in CI:
+
+```bash
+# links scripts/git-hooks/* into .git/hooks/
+bash scripts/init_env.sh   # or follow scripts/git-hooks/ manually
+```
+
+### 2. Developer Certificate of Origin (DCO) — required
+
+Every commit must be **signed off**. This certifies you wrote the code or have
+the right to submit it under the project license.
+
+```bash
+git commit -s -m "feat(api): ..."
+```
+
+This appends a `Signed-off-by: Your Name <you@example.com>` trailer. The
+`DCO` CI check rejects PRs whose commits lack a sign-off matching the author.
+Fix a missing sign-off with `git commit --amend -s` or
+`git rebase --signoff <base>`.
+
+### 3. Branching & PRs
+
+- Branch off `main`; never push WIP directly to `main`.
+- Keep PRs focused; link issues with `Closes #123`.
+- Fill in the PR template checklist.
+- CI (lint + unit + dev-integration + coverage) must be green before merge.
+
+### 4. Commit message convention
+
+Format: `<type>(<scope>): <subject>`
+
+- **type**: `feat` / `fix` / `docs` / `style` / `refactor` / `test` / `chore`
+- **scope**: module-level (`api`, `service`, `dao`, `models`, `core`, …) or
+  comma-separated for cross-module changes.
+- **subject**: concise, no trailing period. Chinese or English both accepted;
+  this repo's history is primarily Chinese.
+
+### 5. Testing — the three-tier system
+
+Tests are isolated by runtime environment. Paths are **strictly** structured:
+
+| Tier | Path root | External deps |
+| - | - | - |
+| Unit | `tests/unit/<pkg>/` | none |
+| Dev-integration | `tests/dev-integration/<pkg>/` | none (Mock / MSW) |
+| Testenv-integration | `tests/testenv-integration/<pkg>/` | real backend + real DB |
+
+Key rules:
+
+- The module layer under `tests/<tier>/<pkg>/` mirrors the package source tree
+  **1:1** (the source root `app/` or `src/` is folded away). The frontend
+  Playwright e2e under `testenv-integration/` is **exempt** (organized by user
+  journey, `*.spec.ts`).
+- Python test files: `test_<full_source_filename>.py` (keep `_router`/`_service`
+  /`_dao` suffixes). TS/TSX: `<OriginalName>.test.ts(x)`.
+- **Network boundary**: in-process anything goes; out-of-process I/O (real DB,
+  real HTTP, non-localhost DNS) is **forbidden** in unit & dev-integration, and
+  only allowed in testenv-integration. Disk/SQLite-file/temp-dir count as
+  in-process and are always fine.
+
+Run before pushing:
+
+```bash
+cd backend && uv run pytest ../tests/unit/backend/ ../tests/dev-integration/backend/ -v
+cd frontend && pnpm test:unit && pnpm test:integration
+```
+
+### 6. Coverage thresholds
+
+| Scope | Total | Per-file floor |
+| - | - | - |
+| Backend | ≥ 80% | ≥ 50% |
+| Frontend | ≥ 60% | ≥ 50% |
+
+Only `unit/` + `dev-integration/` count toward coverage; `testenv-integration/`
+(e2e) does not.
+
+### 7. Dependencies — declared, then locked (do not hand-edit lockfiles)
+
+- **Backend**: edit `backend/pyproject.toml`, then regenerate derived files:
+  ```bash
+  cd backend
+  uv pip compile pyproject.toml -o requirements.txt
+  uv pip compile pyproject.toml --extra test --extra dev -o requirements-test.txt
+  uv lock
+  ```
+  Commit `pyproject.toml` + both `requirements*.txt` + `uv.lock` together.
+- **Frontend**: edit `frontend/package.json`, run `pnpm install`, commit
+  `pnpm-lock.yaml`.
+
+Never hand-edit `requirements*.txt`, `uv.lock`, or `pnpm-lock.yaml`.
+
+### 8. Code style
+
+- **Python**: static rules (format, imports, naming, complexity) are enforced by
+  **Ruff** — run `uv run ruff check app/`. Semantic conventions (pydantic-first
+  models, three-layer model/transform discipline, typed secrets via `SecretStr`,
+  business-exception error handling) are detailed in `CLAUDE.md` §12.
+- **TS/Frontend**: `pnpm lint` (ESLint) + Prettier.
+
+### 9. Secrets & config
+
+Never commit real connection strings, tokens, or credentials. Use the
+`.env.example` templates; real `.env` files are git-ignored. Testenv connection
+config is injected by the test system, never hard-coded (see `CLAUDE.md` §3.3.1).
+
+---
+
+## 简体中文
+
+感谢贡献！开 PR 前请先阅读本文。
+
+### 1. 环境初始化
+
+```bash
+# 后端（Python 3.11+，uv）
+cd backend && uv pip install -e ".[test,dev]"
+
+# 前端（Node 20+，pnpm 9）
+cd frontend && pnpm install
+```
+
+安装 git hook，让本地跑与 CI 相同的检查：
+
+```bash
+bash scripts/init_env.sh   # 或手动参照 scripts/git-hooks/
+```
+
+### 2. DCO 开发者来源证明（必填）
+
+每个 commit 必须**带签名**，以证明代码由你编写或你有权按本项目许可证提交：
+
+```bash
+git commit -s -m "feat(api): ..."
+```
+
+这会追加 `Signed-off-by: 你的名字 <you@example.com>` 尾注。`DCO` CI 会拒绝
+缺少匹配作者签名的 PR。补签：`git commit --amend -s` 或 `git rebase --signoff <base>`。
+
+### 3. 分支与 PR
+
+- 从 `main` 切分支，**禁止**把 WIP 直接推到 `main`。
+- PR 聚焦单一主题；用 `Closes #123` 关联 issue。
+- 填写 PR 模板检查清单。
+- 合并前 CI（lint + 单元 + dev-integration + 覆盖率）必须全绿。
+
+### 4. Commit message 规范
+
+格式：`<type>(<scope>): <subject>`
+
+- **type**：`feat` / `fix` / `docs` / `style` / `refactor` / `test` / `chore`
+- **scope**：模块级（`api`、`service`、`dao`、`models`、`core` 等）；跨模块用逗号。
+- **subject**：简洁、结尾不加句号。中英皆可，本仓库历史以中文为主。
+
+### 5. 三阶测试体系
+
+测试按运行环境隔离，路径**强制**分层：
+
+| 阶段 | 路径根 | 外部依赖 |
+| - | - | - |
+| 单元 | `tests/unit/<包>/` | 无 |
+| 开发集成 | `tests/dev-integration/<包>/` | 无（Mock / MSW） |
+| 测试环境集成 | `tests/testenv-integration/<包>/` | 真实后端 + 真实库 |
+
+关键规则：
+
+- `tests/<阶段>/<包>/` 下的模块层与包源码树 **1:1 对齐**（源码根 `app/` 或 `src/`
+  折叠掉）。`testenv-integration/` 下的前端 Playwright e2e **豁免**此规则（按用户
+  旅程组织，`*.spec.ts`）。
+- Python 测试名：`test_<完整源文件名>.py`（保留 `_router`/`_service`/`_dao` 后缀）；
+  TS/TSX：`<原始大小写名>.test.ts(x)`。
+- **网络边界**：进程内随便用；进程外 I/O（真实库、真实 HTTP、非 localhost DNS）在
+  单元与开发集成中**禁止**，仅 testenv 允许。磁盘 / SQLite 文件 / 临时目录算进程内，
+  始终允许。
+
+推送前运行：
+
+```bash
+cd backend && uv run pytest ../tests/unit/backend/ ../tests/dev-integration/backend/ -v
+cd frontend && pnpm test:unit && pnpm test:integration
+```
+
+### 6. 覆盖率门槛
+
+| 范围 | 总覆盖率 | 每文件兜底 |
+| - | - | - |
+| 后端 | ≥ 80% | ≥ 50% |
+| 前端 | ≥ 60% | ≥ 50% |
+
+仅 `unit/` + `dev-integration/` 计入覆盖率；`testenv-integration/`（e2e）不计入。
+
+### 7. 依赖：声明后锁定（禁止手改锁文件）
+
+- **后端**：改 `backend/pyproject.toml`，再重生派生文件：
+  ```bash
+  cd backend
+  uv pip compile pyproject.toml -o requirements.txt
+  uv pip compile pyproject.toml --extra test --extra dev -o requirements-test.txt
+  uv lock
+  ```
+  将 `pyproject.toml` + 两份 `requirements*.txt` + `uv.lock` 一并提交。
+- **前端**：改 `frontend/package.json`，跑 `pnpm install`，提交 `pnpm-lock.yaml`。
+
+禁止手改 `requirements*.txt`、`uv.lock`、`pnpm-lock.yaml`。
+
+### 8. 代码风格
+
+- **Python**：静态规则（格式、import、命名、复杂度）交给 **Ruff**——
+  `uv run ruff check app/`。语义约束（pydantic-first、三层 model/转换纪律、
+  `SecretStr` 类型化密钥、业务异常错误处理）详见 `CLAUDE.md` §12。
+- **TS / 前端**：`pnpm lint`（ESLint）+ Prettier。
+
+### 9. 密钥与配置
+
+切勿提交真实连接串、token 或凭据。使用 `.env.example` 模板；真实 `.env` 已被 git
+忽略。testenv 连接配置由测试系统注入，**不得硬编码**（见 `CLAUDE.md` §3.3.1）。

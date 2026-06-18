@@ -1,21 +1,43 @@
-# Radar Chart Rendering
+# Motion-Compare-Radar
 
-视频雷达图渲染工具，支持多模型对比可视化。
+[![CI](https://github.com/LeeShunEE/Motion-Compare-Radar/actions/workflows/ci.yml/badge.svg)](https://github.com/LeeShunEE/Motion-Compare-Radar/actions/workflows/ci.yml)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3-blue.svg)](./LICENSE)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
+
+> **English** · [简体中文](./README.zh-CN.md)
+
+A tool for rendering **animated radar charts as video**, built for side-by-side
+comparison of multiple models/subjects. The frontend is a Next.js + Remotion app;
+the backend is a FastAPI service (under development).
 
 <p align="center">
-  <img src="assets/panel-demo.gif" alt="全员面板渲染预览" width="720">
+  <img src="assets/panel-demo.gif" alt="Multi-subject panel render preview" width="720">
 </p>
 
-## 目录结构
+## Features
 
-- `frontend/` - Next.js + Remotion 前端
-- `backend/` - FastAPI 后端（开发中）
-- `tests/` - 统一测试目录
-- `scripts/` - 工具脚本
+- 🎬 **Video-first radar charts** — radar visualizations rendered as video via Remotion.
+- 🆚 **Multi-model comparison** — overlay and compare several subjects on one panel.
+- 🧩 **Composable frontend** — Next.js 16 + React 19 + Remotion player & renderer.
+- ⚙️ **API backend** — FastAPI service for auth, storage, and server-side rendering (WIP).
+- ✅ **Tested by design** — three-tier test system (unit / dev-integration / testenv-integration) with coverage gates.
 
-## 快速开始
+## Tech stack
 
-### 前端
+| Layer | Stack |
+| - | - |
+| Frontend | Next.js 16, React 19, Remotion 4, Tailwind CSS 4, Zod |
+| Backend | FastAPI, Uvicorn, Python 3.11+ (managed with `uv`) |
+| Tooling | pnpm (frontend), uv (backend), Vitest, Pytest, Playwright, Ruff, ESLint |
+
+## Quick start
+
+### Prerequisites
+
+- Node.js 20+ and [pnpm](https://pnpm.io/) 9
+- Python 3.11+ and [uv](https://docs.astral.sh/uv/)
+
+### Frontend
 
 ```bash
 cd frontend
@@ -23,7 +45,7 @@ pnpm install
 pnpm dev
 ```
 
-### 后端
+### Backend
 
 ```bash
 cd backend
@@ -31,17 +53,59 @@ uv pip install -e ".[test,dev]"
 uv run uvicorn app.main:app --reload
 ```
 
-## 测试
+### Environment variables
+
+Copy the templates and fill in real values (the actual `.env` files are
+git-ignored — never commit secrets):
 
 ```bash
-# 后端测试
-cd backend && uv run pytest ../tests/unit/backend/ -v
-
-# 前端测试
-cd frontend && pnpm test:unit
+cp backend/.env.example  backend/.env
+cp frontend/.env.example frontend/.env
+cp deploy/.env.example   deploy/.env   # only for containerized deploy
 ```
 
-## 资源文件
+## Repository layout
 
-`frontend/public/silhouettes/` 和 `frontend/public/music/` 目录中的资源文件不 commit 到仓库。
-请手动添加所需资源文件到对应目录。
+- `frontend/` — Next.js + Remotion app
+- `backend/` — FastAPI service (under development)
+- `tests/` — unified three-tier test tree (`unit/`, `dev-integration/`, `testenv-integration/`)
+- `scripts/` — tooling & git-hook mirrors
+- `deploy/` — container/compose deployment
+- `docs/` — design notes, audits, and plans
+
+## Testing
+
+```bash
+# Backend (unit + dev-integration)
+cd backend && uv run pytest ../tests/unit/backend/ ../tests/dev-integration/backend/ -v
+
+# Frontend
+cd frontend && pnpm test:unit && pnpm test:integration
+```
+
+The full conventions (test layering, naming rules, coverage thresholds, commit
+format) live in [`CLAUDE.md`](./CLAUDE.md) and are distilled for humans in
+[`CONTRIBUTING.md`](./CONTRIBUTING.md).
+
+## Assets
+
+Resource files under `frontend/public/silhouettes/` and `frontend/public/music/`
+are **not** committed. Add your own assets to those directories locally.
+
+## Contributing
+
+Contributions are welcome! Please read [`CONTRIBUTING.md`](./CONTRIBUTING.md)
+first — note that all commits must be **signed off** (DCO, `git commit -s`).
+
+## License
+
+This project is licensed under the **GNU General Public License v3.0** —
+see [`LICENSE`](./LICENSE).
+
+> ⚠️ **Third-party notice — Remotion.** The frontend depends on
+> [Remotion](https://www.remotion.dev/), which ships under its **own license**
+> (source-available; free for individuals and small companies, larger companies
+> require a paid company license). Remotion is **not** OSI open source and is
+> **separate** from this project's GPL-3.0 grant. When you use or build this
+> project you must independently comply with Remotion's license. See
+> [`NOTICE`](./NOTICE) and https://www.remotion.dev/license.

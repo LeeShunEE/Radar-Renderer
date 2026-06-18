@@ -1,0 +1,33 @@
+Motion-Compare-Radar
+Copyright (C) 2026 LeeShunEE and contributors
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License v3.0 as published by the Free
+Software Foundation. See the LICENSE file for the full text.
+
+================================================================================
+Third-party components with separate licensing
+================================================================================
+
+Remotion (https://www.remotion.dev/)
+------------------------------------
+The frontend depends on Remotion and its packages (`remotion`, `@remotion/*`).
+Remotion is distributed under the Remotion License, which is source-available
+but NOT OSI-approved open source:
+
+  - Free for individuals and for companies below the size threshold defined by
+    the Remotion License.
+  - Companies above that threshold require a paid company license.
+
+Remotion's license is independent of, and not superseded by, this project's
+GPL-3.0 grant. Any party using, building, or distributing this project must
+independently comply with the Remotion License. Full terms:
+
+  https://www.remotion.dev/license
+  https://github.com/remotion-dev/remotion/blob/main/LICENSE.md
+
+Other dependencies
+------------------
+All other backend and frontend dependencies are distributed under permissive
+licenses (MIT / BSD / ISC / Apache-2.0). Refer to each package's own license
+for details.
