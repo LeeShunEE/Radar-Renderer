@@ -134,7 +134,7 @@ resend==2.30.1
     # via radar-chart-backend
 ruff==0.15.15
     # via radar-chart-backend
-sqlalchemy==2.0.50
+sqlalchemy==2.0.51
     # via
     #   alembic
     #   radar-chart-backend
