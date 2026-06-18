@@ -1,0 +1,68 @@
+name: Dependabot lockfile sync
+
+# 背景：CLAUDE.md §5 规定后端依赖唯一手改入口是 backend/pyproject.toml，
+# uv.lock / requirements.txt / requirements-test.txt 均为「命令生成的派生锁文件」，
+# 且必须一并 commit（§5.2）。Dependabot 的 pip 生态虽已支持更新 pyproject.toml 与
+# uv.lock，但不会按 §5.3 的命令重生 requirements*.txt（它们由 uv pip compile 产出），
+# 会造成派生文件与声明源漂移。
+#
+# 本 workflow 在 Dependabot 发起的后端依赖 PR 上，按 §5.3 重新派生全部三份锁文件
+# 并回推到 PR 分支，闭合「声明源改动 → 派生文件同步」的流程。
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - backend/pyproject.toml
+      - backend/uv.lock
+      - backend/requirements.txt
+      - backend/requirements-test.txt
+
+# 回推 commit 需要写权限。Dependabot 触发的 run 默认 GITHUB_TOKEN 为只读，
+# 这里显式提升 contents: write。
+permissions:
+  contents: write
+
+jobs:
+  sync-lockfiles:
+    name: Regenerate uv.lock + requirements*.txt
+    # 仅处理 Dependabot 发起的 PR
+    if: ${{ github.actor == 'dependabot[bot]' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 检出 PR 分支本身（而非 merge ref），以便把重生结果回推
+          ref: ${{ github.head_ref }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      # 严格对齐 CLAUDE.md §5.3 的命令序列。uv lock 为最小变更解析，
+      # 会保留 Dependabot 已写入的版本，不会回退。
+      - name: Regenerate derived lockfiles (CLAUDE.md §5.3)
+        run: |
+          uv lock
+          uv pip compile pyproject.toml -o requirements.txt
+          uv pip compile pyproject.toml --extra test --extra dev -o requirements-test.txt
+
+      - name: Commit & push if changed
+        run: |
+          if git diff --quiet -- uv.lock requirements.txt requirements-test.txt; then
+            echo "派生锁文件已同步，无需回推。"
+            exit 0
+          fi
+          # 带 -s 追加 Signed-off-by，满足仓库 DCO 校验
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add uv.lock requirements.txt requirements-test.txt
+          git commit -s -m "chore(deps): 按 §5.3 同步 uv.lock 与 requirements*.txt 派生锁文件"
+          git push
