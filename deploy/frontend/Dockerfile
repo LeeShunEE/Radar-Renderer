@@ -127,9 +127,9 @@ RUN npm install -g pnpm
 RUN pnpm install --frozen-lockfile --prod
 
 # Copy built artifacts from builder
-COPY --from=builder --chown=appuser:appgroup /app/.next ./app/.next
-COPY --from=builder --chown=appuser:appgroup /app/public ./app/public
-COPY --from=builder --chown=appuser:appgroup /app/src/remotion ./app/src/remotion
+COPY --from=builder --chown=appuser:appgroup /app/.next ./.next
+COPY --from=builder --chown=appuser:appgroup /app/public ./public
+COPY --from=builder --chown=appuser:appgroup /app/src/remotion ./src/remotion
 
 # Create output directory for renders
 RUN mkdir -p /app/output && chown -R appuser:appgroup /app/output
