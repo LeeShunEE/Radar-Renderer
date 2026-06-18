@@ -108,7 +108,7 @@ pygments==2.20.0
     # via pytest
 pyjwt==2.13.0
     # via radar-chart-backend
-pytest==9.0.3
+pytest==9.1.0
     # via
     #   pytest-asyncio
     #   pytest-cov
