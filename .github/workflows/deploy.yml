@@ -1,0 +1,37 @@
+name: Deploy
+
+# 发版触发：发布 GitHub Release（见 CONTRIBUTING.md §10：gh release create v0.x.0）。
+# Coolify 收到 webhook 后，自行 pull main 最新 HEAD + build + deploy，
+# 沿用现有 deploy/docker-compose.yml，无需构建镜像、无需改 compose。
+on:
+  release:
+    types: [published]
+  workflow_dispatch: # 手动兜底：Actions 页面点按钮即可触发部署
+
+# 部署不中途取消（与 ci.yml 的 cancel-in-progress 风格区分：部署应跑完）
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Trigger Coolify redeploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: 触发 Coolify 部署 webhook
+        # Coolify 官方推荐的外部 CI 触发方式
+        # （https://coolify.io/docs/applications/ci-cd/other-providers）：
+        # GET 应用级 Deploy Webhook URL，带 Bearer token 认证。
+        #
+        # 两个 secret 均存 GitHub 加密存储，明文不落盘、不进 git：
+        #   COOLIFY_WEBHOOK = 应用 → Webhooks 页面的 "Deploy webhook" 完整 URL
+        #   COOLIFY_TOKEN   = Settings → API Tokens 创建的 deploy 权限 token（Bearer 值）
+        # 泄露任一等同泄露部署触发权，禁止 echo、禁止提交仓库。
+        #
+        # --fail: webhook 返回非 2xx 时令 step 失败；超时参数防止挂死。
+        # 注意：此 webhook 部署的是 main 最新 HEAD，不是 Release tag 指向的 commit。
+        run: |
+          curl --fail --location \
+            --connect-timeout 30 --max-time 60 \
+            --request GET "${{ secrets.COOLIFY_WEBHOOK }}" \
+            --header "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}"

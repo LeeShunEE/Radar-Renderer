@@ -310,7 +310,13 @@ docker compose exec render-worker ls -la src/remotion/
 
 ### Coolify 环境
 
-在 Coolify UI 中点击 "Redeploy"，会自动拉取最新代码并重建。
+**自动部署（默认）**：发布 GitHub Release（见 [`CONTRIBUTING.md`](../CONTRIBUTING.md) §10：`gh release create v0.x.0`）或手动运行 [`Deploy` workflow](../.github/workflows/deploy.yml) 时，GitHub Actions 调用 Coolify Deploy Webhook，Coolify 随即拉取 `main` 最新 HEAD 并重建。
+
+> 前提：仓库已配置 `COOLIFY_WEBHOOK` 与 `COOLIFY_TOKEN` 两个 Actions secret（见 workflow 注释）。Webhook URL 与 token 等同部署触发密钥，仅存 GitHub 加密 secret，不入库。
+>
+> 注意：Coolify 部署的是 `main` 的最新 HEAD，**不是** Release tag 指向的 commit。发版须遵循「先合并到 main → 在 main HEAD 上打 tag」的顺序。
+
+**手动部署（兜底）**：自动触发失效时，可在 Coolify UI 点击 "Redeploy"，同样拉取最新代码并重建。
 
 ### 手动环境
 
