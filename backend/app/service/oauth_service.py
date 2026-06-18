@@ -132,7 +132,7 @@ class OAuthService:
             client_id=settings.oauth_github_client_id,
             client_secret=settings.oauth_github_client_secret_secret_string.get_secret_value() if settings.oauth_github_client_secret_secret_string else None,
             redirect_uri=settings.oauth_github_redirect_uri,
-            scope="user:email",
+            scope="user",
         )
         url, _ = client.create_authorization_url(
             "https://github.com/login/oauth/authorize",
@@ -228,7 +228,7 @@ class OAuthService:
             client_id=settings.oauth_github_client_id,
             client_secret=settings.oauth_github_client_secret_secret_string.get_secret_value() if settings.oauth_github_client_secret_secret_string else None,
             redirect_uri=settings.oauth_github_redirect_uri,
-            scope="user:email",
+            scope="user",
         )
 
         # 换取 access_token
@@ -438,7 +438,7 @@ class OAuthService:
             client_id=settings.oauth_github_client_id,
             client_secret=settings.oauth_github_client_secret_secret_string.get_secret_value() if settings.oauth_github_client_secret_secret_string else None,
             redirect_uri=settings.oauth_github_redirect_uri,
-            scope="user:email",
+            scope="user",
         )
 
         token = await client.fetch_token("https://github.com/login/oauth/access_token", code=code)
