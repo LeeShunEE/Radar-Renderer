@@ -42,17 +42,20 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          # 与 ci.yml 漂移守卫保持同一 uv 版本，否则回推产物会被守卫判漂移。
+          version: "0.10.3"
 
       - name: Set up Python
         run: uv python install 3.11
 
       # 严格对齐 CLAUDE.md §5.3 的命令序列。uv lock 为最小变更解析，
-      # 会保留 Dependabot 已写入的版本，不会回退。
+      # 会保留 Dependabot 已写入的版本，不会回退；requirements*.txt 由
+      # uv export 从 uv.lock 确定性投影。
       - name: Regenerate derived lockfiles (CLAUDE.md §5.3)
         run: |
           uv lock
-          uv pip compile pyproject.toml -o requirements.txt
-          uv pip compile pyproject.toml --extra test --extra dev -o requirements-test.txt
+          uv export --no-hashes --no-emit-project --format requirements-txt -o requirements.txt
+          uv export --no-hashes --no-emit-project --extra test --extra dev --format requirements-txt -o requirements-test.txt
 
       - name: Commit & push if changed
         run: |

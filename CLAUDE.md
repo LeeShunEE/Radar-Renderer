@@ -213,25 +213,34 @@ cd frontend && pnpm exec playwright test tests/testenv-integration/frontend/
 
 | 文件 | 用途 |
 | - | - |
-| `backend/requirements.txt` | 主依赖 pin 版本（pip 兼容兜底） |
-| `backend/requirements-test.txt` | test+dev 组 pin 版本 |
-| `backend/uv.lock` | uv 完整解析锁 |
+| `backend/requirements.txt` | 主依赖 pin 版本（pip 兼容兜底；从 uv.lock 投影） |
+| `backend/requirements-test.txt` | test+dev 组 pin 版本（从 uv.lock 投影） |
+| `backend/uv.lock` | uv 完整解析锁（唯一确定性锁源） |
 | `frontend/pnpm-lock.yaml` | 前端锁 |
 
 **全部 lockfile 必须 commit 进 git。**
 
+> **requirements\*.txt 必须用 `uv export` 从 `uv.lock` 投影，不得用 `uv pip compile`。**
+> `uv pip compile` 每次对线上 index 重新解析，结果随上游发版漂移，无法作为确定性锁、
+> 也无法被 CI 漂移守卫稳定校验。`uv export` 只读 `uv.lock`，是其确定性投影，仅当
+> `uv.lock` 变化时才变。`ci.yml` 的 Lockfile drift guard 会按字节校验三者一致。
+
 ### 5.3 改后端依赖的流程
 
 1. 编辑 `backend/pyproject.toml`
-2. 在 `backend/` 下重生派生文件：
+2. 在 `backend/` 下重生派生文件（**顺序固定**：先解析锁、再投影 requirements）：
    ```bash
-   uv pip compile pyproject.toml -o requirements.txt
-   uv pip compile pyproject.toml --extra test --extra dev -o requirements-test.txt
    uv lock
+   uv export --no-hashes --no-emit-project --format requirements-txt -o requirements.txt
+   uv export --no-hashes --no-emit-project --extra test --extra dev --format requirements-txt -o requirements-test.txt
    ```
-3. 将 `pyproject.toml` + 两份 `requirements*.txt` + `uv.lock` 一并 commit
+3. 将 `pyproject.toml` + `uv.lock` + 两份 `requirements*.txt` 一并 commit
 
-**禁止**：跳过 step 2、单独手改 `requirements*.txt`、用 `pip freeze` 凑 requirements。
+**禁止**：跳过 step 2、单独手改 `requirements*.txt`、用 `pip freeze` 凑 requirements、
+用 `uv pip compile` 生成 requirements（会引入非确定性漂移）。
+
+> **uv 版本一致性**：漂移守卫按字节比对，本地、`ci.yml`、`dependabot-lockfile-sync.yml`
+> 必须用同一 uv 版本（当前钉死 `0.10.3`）。升级 uv 时三处同步改并重生锁文件。
 
 ### 5.4 环境初始化
 

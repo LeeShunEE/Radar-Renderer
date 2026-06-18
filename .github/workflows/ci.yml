@@ -25,9 +25,26 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          # 钉死 uv 版本：漂移守卫按字节比对 uv export 产物，版本不一致会误报漂移。
+          # 升级 uv 时需同步本字段、dependabot-lockfile-sync.yml 与本地，并重生锁文件。
+          version: "0.10.3"
 
       - name: Set up Python
         run: uv python install 3.11
+
+      # 漂移守卫：保证 pyproject.toml / uv.lock / requirements*.txt 三者一致（CLAUDE.md §5）。
+      # 只校验不改文件——有人改了 pyproject.toml 却忘按 §5.3 重生派生锁文件时，CI 当场失败。
+      # Dependabot 的 PR 由 dependabot-lockfile-sync.yml 自动回推锁文件以通过本守卫。
+      - name: Lockfile drift guard (CLAUDE.md §5.3)
+        run: |
+          # uv.lock 与 pyproject.toml 是否同步（--locked 只断言、不写文件）
+          uv lock --locked \
+            || { echo "::error::uv.lock 与 pyproject.toml 不同步，请运行 'uv lock' 并提交"; exit 1; }
+          # requirements*.txt 必须是 uv.lock 的确定性投影（uv export，非 pip compile 实时解析）
+          uv export --no-hashes --no-emit-project --format requirements-txt -o requirements.txt
+          uv export --no-hashes --no-emit-project --extra test --extra dev --format requirements-txt -o requirements-test.txt
+          git diff --exit-code -- requirements.txt requirements-test.txt \
+            || { echo "::error::requirements*.txt 与 uv.lock 不同步，请按 §5.3 重生并提交"; exit 1; }
 
       - name: Sync dependencies (test + dev)
         run: uv sync --extra test --extra dev
