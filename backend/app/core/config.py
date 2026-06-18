@@ -42,6 +42,7 @@ class Settings(BaseSettings):
 
     # Resend 邮件服务
     resend_api_key_secret_string: SecretStr | None = None
+    resend_from_email: str = "onboarding@resend.dev"  # 默认 Resend 测试发件人，正式经 env 覆盖
 
     # Google OAuth
     oauth_google_client_id: str | None = None
