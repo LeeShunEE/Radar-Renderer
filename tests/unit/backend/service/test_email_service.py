@@ -51,7 +51,7 @@ class TestSendVerificationCode:
         mock_send.assert_called_once()
         payload = mock_send.call_args.args[0]
         assert payload["to"] == "a@b.com"
-        assert "注册验证码" == payload["subject"]
+        assert payload["subject"] == "Radar-Renderer 邮箱验证码"
         assert "123456" in payload["text"]
         assert payload["from"] == with_api_key
 
@@ -70,7 +70,7 @@ class TestSendVerificationCode:
             "a@b.com", "654321", "reset_password"
         )
         payload = mock_send.call_args.args[0]
-        assert payload["subject"] == "重置密码验证码"
+        assert payload["subject"] == "Radar-Renderer 重置密码验证码"
         assert "654321" in payload["text"]
 
     async def test_unknown_purpose_raises(self, with_api_key, mock_send):

@@ -36,7 +36,7 @@ describe("RegisterPage", () => {
       expect(sendVerificationCode).toHaveBeenCalledWith("a@b.com", "register"),
     );
     expect(
-      await screen.findByText("验证码已发送至 a@b.com"),
+      await screen.findByText(/验证码已发送至 a@b\.com/),
     ).toBeInTheDocument();
   });
 

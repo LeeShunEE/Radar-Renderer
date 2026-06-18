@@ -39,10 +39,10 @@ class EmailService:
         """
         # 根据 purpose 定制邮件内容
         if purpose == "register":
-            subject = "注册验证码"
+            subject = "Radar-Renderer 邮箱验证码"
             body = f"您的注册验证码是：{code}\n验证码有效期为 10 分钟，请尽快完成注册。"
         elif purpose == "reset_password":
-            subject = "重置密码验证码"
+            subject = "Radar-Renderer 重置密码验证码"
             body = f"您的重置密码验证码是：{code}\n验证码有效期为 10 分钟，请尽快完成操作。"
         else:
             raise EmailServiceError(f"未知的验证码用途：{purpose}")

@@ -103,7 +103,7 @@ export default function ForgotPasswordPage() {
         <p className="text-sm text-muted-foreground mt-1">
           {step === "email"
             ? "输入注册邮箱以接收验证码"
-            : `验证码已发送至 ${email}`}
+            : `验证码已发送至 ${email}，请检查收件箱或垃圾邮件`}
         </p>
       </div>
 

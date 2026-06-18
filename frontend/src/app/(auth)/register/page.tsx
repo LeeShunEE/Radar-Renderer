@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { OAuthButtons } from "@/components/auth/OAuthButtons";
 
 const RESEND_COUNTDOWN = 60;
 
@@ -93,7 +94,7 @@ export default function RegisterPage() {
         <p className="text-sm text-muted-foreground mt-1">
           {step === "email"
             ? "输入邮箱以接收验证码"
-            : `验证码已发送至 ${email}`}
+            : `验证码已发送至 ${email}，请检查收件箱或垃圾邮件`}
         </p>
       </div>
 
@@ -119,51 +120,58 @@ export default function RegisterPage() {
           </Button>
         </form>
       ) : (
-        <form onSubmit={handleRegister} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="code">验证码</Label>
-            <Input
-              id="code"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="输入 6 位验证码"
-              required
-              minLength={6}
-              maxLength={6}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-            />
-          </div>
+        <>
+          <form onSubmit={handleRegister} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="code">验证码</Label>
+              <Input
+                id="code"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="输入 6 位验证码"
+                required
+                minLength={6}
+                maxLength={6}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+              />
+            </div>
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p className="text-sm text-red-500">{error}</p>}
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "注册中…" : "注册"}
-          </Button>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? "注册中…" : "注册"}
+            </Button>
 
-          <div className="flex justify-between text-sm">
-            <button
-              type="button"
-              onClick={() => setStep("email")}
-              className="text-muted-foreground hover:underline"
-              disabled={loading}
-            >
-              更换邮箱
-            </button>
-            <button
-              type="button"
-              onClick={handleResend}
-              className={
-                countdown > 0
-                  ? "text-muted-foreground cursor-not-allowed"
-                  : "text-primary hover:underline"
-              }
-              disabled={countdown > 0 || loading}
-            >
-              {countdown > 0 ? `${countdown}s 后可重发` : "重新发送"}
-            </button>
-          </div>
-        </form>
+            <div className="flex justify-between text-sm">
+              <button
+                type="button"
+                onClick={() => setStep("email")}
+                className="text-muted-foreground hover:underline"
+                disabled={loading}
+              >
+                更换邮箱
+              </button>
+              <button
+                type="button"
+                onClick={handleResend}
+                className={
+                  countdown > 0
+                    ? "text-muted-foreground cursor-not-allowed"
+                    : "text-primary hover:underline"
+                }
+                disabled={countdown > 0 || loading}
+              >
+                {countdown > 0 ? `${countdown}s 后可重发` : "重新发送"}
+              </button>
+            </div>
+          </form>
+
+          <OAuthButtons />
+          <p className="text-sm text-muted-foreground text-center">
+            或使用 GitHub / Google 快捷登录
+          </p>
+        </>
       )}
 
       <div className="text-center text-sm text-muted-foreground">
