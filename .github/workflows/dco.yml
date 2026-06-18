@@ -25,6 +25,15 @@ jobs:
           while read -r sha; do
             [ -z "$sha" ] && continue
             author="$(git show -s --format='%an <%ae>' "$sha")"
+            # 豁免 Dependabot 自身的 commit：它由 GitHub 托管、不会带 Signed-off-by，
+            # 强行要求会卡死所有依赖更新 PR。dependabot-lockfile-sync 回推的同步 commit
+            # 仍带 -s 签名，不在此豁免范围。
+            case "$author" in
+              *"dependabot[bot]"*)
+                echo "跳过 Dependabot commit $sha（DCO 豁免）"
+                continue
+                ;;
+            esac
             if ! git show -s --format='%(trailers:key=Signed-off-by)' "$sha" \
                  | grep -qiF "$author"; then
               echo "::error::Commit $sha 缺少匹配作者的 Signed-off-by（应为：$author）"
