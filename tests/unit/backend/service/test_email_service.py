@@ -23,11 +23,14 @@ def mock_send(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
 
 
 @pytest.fixture
-def with_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
-    """注入伪造的 Resend key。"""
+def with_api_key(monkeypatch: pytest.MonkeyPatch) -> str:
+    """注入伪造的 Resend key 与发件人，返回发件人地址供断言。"""
     monkeypatch.setattr(
         settings, "resend_api_key_secret_string", SecretStr("fake-key")
     )
+    from_email = "noreply@test.example.com"
+    monkeypatch.setattr(settings, "resend_from_email", from_email)
+    return from_email
 
 
 class TestInit:
@@ -50,6 +53,17 @@ class TestSendVerificationCode:
         assert payload["to"] == "a@b.com"
         assert "注册验证码" == payload["subject"]
         assert "123456" in payload["text"]
+        assert payload["from"] == with_api_key
+
+    async def test_send_uses_overridden_from_email(
+        self, with_api_key, mock_send, monkeypatch
+    ):
+        """env 覆盖 resend_from_email 时，payload 使用覆盖后的发件人。"""
+        overridden = "noreply@xn--30q18ry71c.com"
+        monkeypatch.setattr(settings, "resend_from_email", overridden)
+        await EmailService().send_verification_code("a@b.com", "123456", "register")
+        payload = mock_send.call_args.args[0]
+        assert payload["from"] == overridden
 
     async def test_send_reset_password(self, with_api_key, mock_send):
         await EmailService().send_verification_code(
@@ -76,6 +90,7 @@ class TestSendOauthWelcome:
         mock_send.assert_called_once()
         payload = mock_send.call_args.args[0]
         assert "google" in payload["subject"]
+        assert payload["from"] == with_api_key
 
     async def test_send_welcome_failure_swallows(self, with_api_key, mock_send):
         """欢迎邮件失败仅记日志，不抛（不影响登录流程）。"""

@@ -68,6 +68,7 @@ services:
       OAUTH_GITHUB_REDIRECT_URI: ${OAUTH_GITHUB_REDIRECT_URI:-}
       # Email (optional)
       RESEND_API_KEY_SECRET_STRING: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-onboarding@resend.dev}
     volumes:
       - backend_storage:/app/storage
     depends_on:
