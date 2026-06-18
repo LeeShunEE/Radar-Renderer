@@ -33,7 +33,7 @@ from app.service.verification_service import VerificationService
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-def _issue_tokens(user_id: int, is_new_user: bool = False) -> TokenResponse:
+def _issue_tokens(user_id: int, *, is_new_user: bool = False) -> TokenResponse:
     subject = str(user_id)
     return TokenResponse(
         access_token=create_access_token(subject),
@@ -214,7 +214,7 @@ async def oauth_callback(
     """
     oauth_service = OAuthService(session)
     user, is_new_user = await oauth_service.handle_callback(provider, code, state)
-    return _issue_tokens(user.id, is_new_user)
+    return _issue_tokens(user.id, is_new_user=is_new_user)
 
 
 @router.get("/oauth/accounts", response_model=list[OAuthAccountResponse])

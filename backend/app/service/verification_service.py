@@ -3,7 +3,7 @@
 支持注册和重置密码场景。
 """
 
-import random
+import secrets
 import string
 from datetime import UTC, datetime, timedelta
 
@@ -94,4 +94,5 @@ class VerificationService:
 
     def _generate_numeric_code(self, length: int) -> str:
         """生成纯数字验证码。"""
-        return "".join(random.choices(string.digits, k=length))
+        # 验证码属于安全凭据，须用密码学安全随机源（secrets），避免可预测。
+        return "".join(secrets.choice(string.digits) for _ in range(length))
