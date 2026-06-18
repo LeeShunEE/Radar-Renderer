@@ -19,22 +19,23 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
+      // dev-integration 只覆盖「有 HTTP 链路」的数据层（经 MSW 验证 client/hook/context
+      // → api-client → 后端 全链路）。容器组件的渲染分支由单元阶段 perFile 60% 把关，
+      // 符合 §7.2「单元+集成合计」语义，故不纳入集成 include。
       include: [
-        "src/lib/**",
-        "src/hooks/**",
+        "src/lib/api-client.ts",
+        "src/lib/auth-store.ts",
         "src/contexts/**",
-        "src/components/**",
+        "src/hooks/useFileManagement.ts",
+        "src/hooks/usePublicAssets.ts",
+        "src/hooks/useServerRender.ts",
+        "src/hooks/useTaskPolling.ts",
+        "src/hooks/useTaskQueue.ts",
+        "src/hooks/useUploadObjectUrls.ts",
       ],
       exclude: [
         "src/types/**",
         "src/test/**",
-        "src/components/ui/**", // shadcn 生成的 UI 原语（第三方）
-        "src/remotion/**", // Remotion 运行时 composition
-        "src/app/**", // Next.js 页面/server components
-        "src/lib/browser-render.ts", // 浏览器运行时
-        "src/hooks/useLocalRender.ts", // Remotion 运行时
-        "src/components/editor/PreviewPanel.tsx", // Remotion Player 运行时
-        "src/components/editor/FontFamilyEditor.tsx", // 运行时 require('../../lib/font-list') 走 Node CJS，vitest 无法解析 .ts，单测不可行
         "**/*.config.*",
         "**/node_modules/**",
       ],
@@ -50,11 +51,26 @@ export default defineConfig({
   resolve: {
     alias: [
       { find: /^@\/(.*)$/, replacement: path.resolve(__dirname, "./src/$1") },
+      // next/navigation 与 next/link 的测试替身（集成测试不挂载 Next App Router）
+      { find: /^next\/navigation$/, replacement: path.resolve(__dirname, "./src/test/__mocks__/next-navigation.ts") },
+      { find: /^next\/link$/, replacement: path.resolve(__dirname, "./src/test/__mocks__/next-link.tsx") },
+      // 测试文件位于 frontend/ 之外（tests/dev-integration/frontend/），无法解析 frontend/node_modules，
+      // 显式指向本地安装位置（与单元 config 同因）。
+      { find: "@testing-library/react", replacement: path.resolve(__dirname, "./node_modules/@testing-library/react") },
+      { find: "@testing-library/user-event", replacement: path.resolve(__dirname, "./node_modules/@testing-library/user-event") },
+      // TSX 的 JSX runtime 无法从该目录解析 react，显式指向 frontend 的 node_modules。
+      { find: /^react\/jsx-dev-runtime$/, replacement: path.resolve(__dirname, "./node_modules/react/jsx-dev-runtime.js") },
+      { find: /^react\/jsx-runtime$/, replacement: path.resolve(__dirname, "./node_modules/react/jsx-runtime.js") },
+      { find: /^react$/, replacement: path.resolve(__dirname, "./node_modules/react") },
+      { find: /^react-dom$/, replacement: path.resolve(__dirname, "./node_modules/react-dom") },
     ],
   },
   server: {
     fs: {
       allow: [path.resolve(__dirname), path.resolve(__dirname, "../tests")],
     },
+  },
+  optimizeDeps: {
+    include: ["@testing-library/react"],
   },
 });
