@@ -25,7 +25,7 @@ async function goToResetStep() {
     target: { value: "a@b.com" },
   });
   fireEvent.click(screen.getByRole("button", { name: "发送验证码" }));
-  await screen.findByText("验证码已发送至 a@b.com");
+  await screen.findByText(/验证码已发送至 a@b\.com/);
 }
 
 describe("ForgotPasswordPage", () => {
