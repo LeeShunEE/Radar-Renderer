@@ -21,7 +21,7 @@ asyncpg==0.31.0
     # via radar-chart-backend
 authlib==1.7.2
     # via radar-chart-backend
-certifi==2026.5.20
+certifi==2026.6.17
     # via
     #   httpcore
     #   httpx
