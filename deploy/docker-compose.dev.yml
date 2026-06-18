@@ -67,6 +67,14 @@ services:
       - ../frontend/src:/app/src:ro
       - ../frontend/public:/app/public:ro
       - ../frontend/package.json:/app/package.json:ro
+    healthcheck:
+      # next dev 首次按需编译 /api/health 较慢（首屏常冲到 700MB-1.2GB），
+      # 放宽 start_period，避免编译完成前探测打过来误判 unhealthy。
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
     # next dev（on-demand 编译 + HMR + sourcemap + React 19 + Tailwind v4）首屏常冲
     # 到 700MB-1.2GB，prod 的 512m 易 OOM；dev override 覆盖为 2g，可经 env 放宽。
     mem_limit: ${FRONTEND_MEMORY_LIMIT:-2g}

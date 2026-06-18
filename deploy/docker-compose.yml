@@ -105,6 +105,13 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    healthcheck:
+      # node:20-alpine 无 curl（render-worker 同理），用 busybox 自带 wget。
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     restart: unless-stopped
     # 资源限制（生产 next start 内存占用稳定，Coolify/部署环境覆盖，不填走默认）
     mem_limit: ${FRONTEND_MEMORY_LIMIT:-512m}
