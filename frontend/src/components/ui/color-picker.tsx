@@ -99,6 +99,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
                       };
                       const ED = (window as unknown as { EyeDropper?: EyeDropperCtor })
                         .EyeDropper;
+                      if (!ED) return;
                       const result = await new ED().open();
                       const picked = parseColor(result.sRGBHex);
                       onChange(formatRgba({ ...picked, a: color.a }));
