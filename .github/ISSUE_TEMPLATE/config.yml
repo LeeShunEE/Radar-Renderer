@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "💬 Questions & Discussions / 提问与讨论"
+    url: https://github.com/LeeShunEE/Motion-Compare-Radar/discussions
+    about: "Usage questions, ideas, and general discussion go here. / 用法提问、想法与一般讨论请到 Discussions。"
+  - name: "🔒 Report a security vulnerability / 报告安全漏洞"
+    url: https://github.com/LeeShunEE/Motion-Compare-Radar/security/policy
+    about: "Please report vulnerabilities privately, do not open a public issue. / 安全漏洞请私下报告，勿开公开 issue。"

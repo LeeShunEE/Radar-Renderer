@@ -1,0 +1,82 @@
+name: "🐞 Bug report / 缺陷报告"
+description: "Report a reproducible bug / 报告一个可复现的缺陷"
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug! Please fill in as much as you can.
+        感谢反馈缺陷！请尽量填写完整信息，便于复现与定位。
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: "Pre-flight checks / 提交前检查"
+      options:
+        - label: "I searched existing issues and didn't find a duplicate. / 我已搜索现有 issue，未发现重复。"
+          required: true
+        - label: "This is a bug, not a usage question (questions go to Discussions). / 这是缺陷而非用法提问（提问请去 Discussions）。"
+          required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: "What happened? / 发生了什么？"
+      description: "Describe the bug clearly. / 清晰描述缺陷现象。"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Expected behavior / 期望行为"
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: "Steps to reproduce / 复现步骤"
+      description: "Minimal, ordered steps. / 最小化、有序的复现步骤。"
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: "Affected area / 影响范围"
+      options:
+        - "frontend (Next.js / Remotion)"
+        - "backend (FastAPI)"
+        - "rendering / 渲染"
+        - "deploy / 部署"
+        - "docs / 文档"
+        - "other / 其他"
+    validations:
+      required: true
+
+  - type: textarea
+    id: env
+    attributes:
+      label: "Environment / 环境"
+      description: "OS、浏览器、Node/pnpm、Python/uv、相关版本。"
+      placeholder: |
+        - OS:
+        - Browser:
+        - Node / pnpm:
+        - Python / uv:
+        - Commit / version:
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: "Logs / 日志（可选）"
+      description: "粘贴相关日志或截图；请勿包含任何密钥或凭据。"
+      render: shell

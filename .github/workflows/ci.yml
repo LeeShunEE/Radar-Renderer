@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# 同一分支的新推送会取消进行中的旧 run，节省额度
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (unit + dev-integration + coverage)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Sync dependencies (test + dev)
+        run: uv sync --extra test --extra dev
+
+      - name: Ruff lint
+        run: uv run ruff check app/
+
+      - name: Pytest (unit + dev-integration, coverage gate >= 80%)
+        run: >
+          uv run pytest
+          ../tests/unit/backend/ ../tests/dev-integration/backend/
+          --cov=app --cov-report=term-missing --cov-fail-under=80
+
+  frontend:
+    name: Frontend (unit + integration + coverage)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: ESLint
+        run: pnpm lint
+
+      - name: Vitest unit (coverage gate in vitest config)
+        run: pnpm test:unit
+
+      - name: Vitest dev-integration (coverage gate in vitest config)
+        run: pnpm test:integration

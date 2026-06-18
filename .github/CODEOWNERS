@@ -1,0 +1,17 @@
+# 代码所有者 —— 新 PR 会自动请求对应 owner review。
+# 语法见 https://docs.github.com/articles/about-code-owners
+# 越靠后的规则优先级越高（后者覆盖前者）。
+
+# 默认：仓库内所有内容
+*                       @LeeShunEE
+
+# 子系统（当前与默认相同，预留团队成长后细分）
+/backend/               @LeeShunEE
+/frontend/              @LeeShunEE
+/tests/                 @LeeShunEE
+/deploy/                @LeeShunEE
+
+# 治理与 CI 配置改动需 owner 把关
+/.github/               @LeeShunEE
+/LICENSE                @LeeShunEE
+/CLAUDE.md              @LeeShunEE
