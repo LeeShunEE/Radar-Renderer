@@ -47,8 +47,17 @@ RUN npm install -g pnpm
 # Install all dependencies (approve builds for native packages)
 RUN pnpm install --frozen-lockfile && pnpm approve-builds
 
-# Copy source code (including remotion components)
-COPY . .
+# Copy source code (including remotion components).
+# 不要用 COPY . .：会把宿主机 Windows pnpm 创建的绝对路径 symlink 死链
+# (frontend/node_modules/.pnpm/.../node_modules/@remotion/bundler -> C:/Users/...)
+# 盖进容器，顶替上方 pnpm install 生成的扁平真实产物，导致 ESM 解析崩溃 + restart 循环。
+# 显式 COPY 仅源码目录，node_modules 完全由容器内 pnpm install 生成。
+COPY src ./src
+COPY styles ./styles
+COPY public ./public
+COPY render-worker ./render-worker
+COPY tsconfig.json ./
+COPY package.json ./
 
 # Development server runs on port 3100
 EXPOSE 3100
