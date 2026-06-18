@@ -58,6 +58,10 @@ CMD ["pnpm", "dev"]
 # ============================================
 FROM base AS builder
 
+# ARG declarations for Coolify compatibility
+# NEXT_PUBLIC_API_URL is needed at build time for Next.js client-side code
+ARG NEXT_PUBLIC_API_URL
+
 # Configure npm mirror for China
 RUN npm config set registry https://registry.npmmirror.com
 
@@ -72,6 +76,10 @@ RUN pnpm install --frozen-lockfile
 
 # Copy source code
 COPY . .
+
+# Set NEXT_PUBLIC_API_URL as ENV for Next.js build to embed into client code
+# This must happen BEFORE pnpm build
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
 # Build Next.js application
 RUN pnpm build

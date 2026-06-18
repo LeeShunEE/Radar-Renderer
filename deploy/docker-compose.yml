@@ -97,6 +97,10 @@ services:
       context: ../frontend
       dockerfile: ../deploy/frontend/Dockerfile
       target: production
+      args:
+        # NEXT_PUBLIC_API_URL is needed at build time for Next.js client-side code
+        # Fallback to localhost for local builds; Coolify should override with real API URL
+        NEXT_PUBLIC_API_URL: ${API_PUBLIC_URL:-http://localhost:8000}
     container_name: radar-frontend
     environment:
       # Internal API URL (for server-side calls)
