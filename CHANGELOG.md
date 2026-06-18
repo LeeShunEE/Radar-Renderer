@@ -15,4 +15,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.github/` automation: CI workflow (backend + frontend), DCO check,
   issue/PR templates, Dependabot, `CODEOWNERS`.
 
-[Unreleased]: https://github.com/LeeShunEE/Motion-Compare-Radar/commits/main
+[Unreleased]: https://github.com/LeeShunEE/Radar-Renderer/commits/main

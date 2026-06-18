@@ -2,9 +2,9 @@
 
 > [English](#contributor-covenant-code-of-conduct) · [简体中文](#贡献者公约)
 
-Motion-Compare-Radar 以友好、包容的方式欢迎每一位贡献者。参与本项目即视为同意遵守 [Contributor Covenant](https://www.contributor-covenant.org/) **v2.1** 行为准则。下方为官方中英双语全文。
+Radar-Renderer 以友好、包容的方式欢迎每一位贡献者。参与本项目即视为同意遵守 [Contributor Covenant](https://www.contributor-covenant.org/) **v2.1** 行为准则。下方为官方中英双语全文。
 
-Motion-Compare-Radar welcomes every contributor in a friendly, inclusive way. By participating you agree to abide by the [Contributor Covenant](https://www.contributor-covenant.org/) **v2.1** Code of Conduct. The official bilingual text follows.
+Radar-Renderer welcomes every contributor in a friendly, inclusive way. By participating you agree to abide by the [Contributor Covenant](https://www.contributor-covenant.org/) **v2.1** Code of Conduct. The official bilingual text follows.
 
 ## 执行与报告 / Enforcement
 

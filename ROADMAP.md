@@ -10,10 +10,10 @@
 
 - 📖 New here? Read the [README](./README.md) and [CONTRIBUTING](./CONTRIBUTING.md).
 - 🟢 Looking for a first task? Filter issues by
-  [`good first issue`](https://github.com/LeeShunEE/Motion-Compare-Radar/labels/good%20first%20issue)
-  and [`help wanted`](https://github.com/LeeShunEE/Motion-Compare-Radar/labels/help%20wanted).
+  [`good first issue`](https://github.com/LeeShunEE/Radar-Renderer/labels/good%20first%20issue)
+  and [`help wanted`](https://github.com/LeeShunEE/Radar-Renderer/labels/help%20wanted).
 - 💬 Questions / ideas? Use
-  [Discussions](https://github.com/LeeShunEE/Motion-Compare-Radar/discussions),
+  [Discussions](https://github.com/LeeShunEE/Radar-Renderer/discussions),
   not issues.
 - 🔒 Security? See [SECURITY.md](./SECURITY.md) — report privately.
 - 🤝 Conduct? See [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) — be kind and respectful.
@@ -44,11 +44,11 @@ Have an idea? Open a `feature request` issue or start a Discussion.
 
 - 📖 新来？先读 [README](./README.zh-CN.md) 与 [CONTRIBUTING](./CONTRIBUTING.md)。
 - 🟢 找第一个任务？按
-  [`good first issue`](https://github.com/LeeShunEE/Motion-Compare-Radar/labels/good%20first%20issue)
-  与 [`help wanted`](https://github.com/LeeShunEE/Motion-Compare-Radar/labels/help%20wanted)
+  [`good first issue`](https://github.com/LeeShunEE/Radar-Renderer/labels/good%20first%20issue)
+  与 [`help wanted`](https://github.com/LeeShunEE/Radar-Renderer/labels/help%20wanted)
   标签筛选。
 - 💬 提问 / 想法？请用
-  [Discussions](https://github.com/LeeShunEE/Motion-Compare-Radar/discussions)，
+  [Discussions](https://github.com/LeeShunEE/Radar-Renderer/discussions)，
   不要开 issue。
 - 🔒 安全问题？见 [SECURITY.md](./SECURITY.md)，请私下报告。
 - 🤝 行为准则？见 [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)，友善与互相尊重。

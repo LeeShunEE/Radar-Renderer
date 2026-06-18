@@ -1,4 +1,4 @@
-# Contributing to Motion-Compare-Radar
+# Contributing to Radar-Renderer
 
 > [English](#english) · [简体中文](#简体中文)
 >

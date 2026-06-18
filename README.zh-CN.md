@@ -1,6 +1,6 @@
-# Motion-Compare-Radar
+# Radar-Renderer
 
-[![CI](https://github.com/LeeShunEE/Motion-Compare-Radar/actions/workflows/ci.yml/badge.svg)](https://github.com/LeeShunEE/Motion-Compare-Radar/actions/workflows/ci.yml)
+[![CI](https://github.com/LeeShunEE/Radar-Renderer/actions/workflows/ci.yml/badge.svg)](https://github.com/LeeShunEE/Radar-Renderer/actions/workflows/ci.yml)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3-blue.svg)](./LICENSE)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
 

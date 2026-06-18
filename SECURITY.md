@@ -19,7 +19,7 @@ latest `main` only. Pin a commit if you need stability.
 **Please do not open a public issue for security vulnerabilities.**
 
 Report privately through GitHub's
-[**Report a vulnerability**](https://github.com/LeeShunEE/Motion-Compare-Radar/security/advisories/new)
+[**Report a vulnerability**](https://github.com/LeeShunEE/Radar-Renderer/security/advisories/new)
 (Security → Advisories). This opens a private channel with the maintainers.
 
 Please include:
@@ -55,7 +55,7 @@ Please include:
 **请勿为安全漏洞开公开 issue。**
 
 请通过 GitHub 的
-[**Report a vulnerability**](https://github.com/LeeShunEE/Motion-Compare-Radar/security/advisories/new)
+[**Report a vulnerability**](https://github.com/LeeShunEE/Radar-Renderer/security/advisories/new)
 （Security → Advisories）私下报告，该入口会与维护者建立私密沟通渠道。
 
 请包含：

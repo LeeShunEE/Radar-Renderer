@@ -17,7 +17,7 @@
 Run the script (requires `gh` + `gh auth login`):
 
 ```bash
-bash scripts/setup-labels.sh LeeShunEE/Motion-Compare-Radar
+bash scripts/setup-labels.sh LeeShunEE/Radar-Renderer
 ```
 
 Creates: `bug`, `enhancement`, `documentation`, `good first issue`,
@@ -38,7 +38,7 @@ Creates: `bug`, `enhancement`, `documentation`, `good first issue`,
 
 ```bash
 # CLI alternative:
-gh issue create --repo LeeShunEE/Motion-Compare-Radar \
+gh issue create --repo LeeShunEE/Radar-Renderer \
   --title "Roadmap & Contribution Guide / 路线图与贡献指引" \
   --body-file ROADMAP.md
 # then pin it in the web UI (Pin issue)
