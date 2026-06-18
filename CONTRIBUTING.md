@@ -10,7 +10,8 @@
 
 ## English
 
-Thanks for contributing! Please read this before opening a PR.
+Thanks for contributing! Please read this before opening a PR. By participating,
+you agree to abide by the [`Code of Conduct`](./CODE_OF_CONDUCT.md).
 
 ### 1. Getting started
 
@@ -147,7 +148,8 @@ for the full repo setup checklist.
 
 ## 简体中文
 
-感谢贡献！开 PR 前请先阅读本文。
+感谢贡献！开 PR 前请先阅读本文。参与本项目即表示同意遵守
+[`行为准则`](./CODE_OF_CONDUCT.md)。
 
 ### 1. 环境初始化
 

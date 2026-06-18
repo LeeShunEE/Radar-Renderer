@@ -35,7 +35,7 @@
 
 5. `LICENSE` — GPL-3.0 全文。
 6. License 声明策略：仅在 `LICENSE` + README 顶部声明 GPL-3.0，**源文件不逐个加 header**（决策：从简）。
-7. `CODE_OF_CONDUCT.md` — Contributor Covenant（中英双语）。**【延后】** 文本含骚扰/暴力等禁止行为措辞，触发对话内容过滤误报，暂缓；后续用本地脚本或外部模板直接落盘处理。
+7. `CODE_OF_CONDUCT.md` — Contributor Covenant v2.1（中英双语）。
 8. 第三方依赖许可合规核查：扫 `backend/pyproject.toml` + `frontend/package.json` 依赖许可，确认与 GPL-3.0 兼容（重点查 Apache-2.0 专利条款冲突、私有许可）。
    - **核查结论**：后端（fastapi/uvicorn/pytest/httpx）全宽松许可，兼容。前端绝大多数 MIT/BSD/ISC。
    - ⚠️ **Remotion（`@remotion/*` + `remotion`）为自有「Remotion License」**——source-available 但非 OSI 开源，个人/小公司免费、规模公司需付费授权，与 GPL-3.0 存在理论兼容性争议。**处理：** 在 README/NOTICE 显著标注 Remotion 独立授权要求，提醒下游单独遵守。

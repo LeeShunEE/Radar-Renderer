@@ -96,6 +96,7 @@ are **not** committed. Add your own assets to those directories locally.
 
 Contributions are welcome! Please read [`CONTRIBUTING.md`](./CONTRIBUTING.md)
 first — note that all commits must be **signed off** (DCO, `git commit -s`).
+By participating, you agree to abide by the [`Code of Conduct`](./CODE_OF_CONDUCT.md).
 
 ## License
 

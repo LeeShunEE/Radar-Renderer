@@ -16,6 +16,7 @@
   [Discussions](https://github.com/LeeShunEE/Motion-Compare-Radar/discussions),
   not issues.
 - 🔒 Security? See [SECURITY.md](./SECURITY.md) — report privately.
+- 🤝 Conduct? See [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) — be kind and respectful.
 
 ### Status
 
@@ -50,6 +51,7 @@ Have an idea? Open a `feature request` issue or start a Discussion.
   [Discussions](https://github.com/LeeShunEE/Motion-Compare-Radar/discussions)，
   不要开 issue。
 - 🔒 安全问题？见 [SECURITY.md](./SECURITY.md)，请私下报告。
+- 🤝 行为准则？见 [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)，友善与互相尊重。
 
 ### 现状
 

@@ -92,7 +92,8 @@ cd frontend && pnpm test:unit && pnpm test:integration
 ## 参与贡献
 
 欢迎贡献！请先阅读 [`CONTRIBUTING.md`](./CONTRIBUTING.md)——注意所有 commit
-必须带 **DCO 签名**（`git commit -s`）。
+必须带 **DCO 签名**（`git commit -s`）。参与本项目即表示同意遵守
+[`行为准则`](./CODE_OF_CONDUCT.md)。
 
 ## 许可证
 
