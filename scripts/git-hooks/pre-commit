@@ -1,14 +1,17 @@
 #!/bin/bash
 # 快速通道：lint + 单元测试（≤ 10s）
+set -euo pipefail
 
 echo "Running pre-commit checks..."
 
-# 后端
-cd backend && uv run ruff check app/
-cd backend && uv run pytest ../tests/unit/backend/ -v -q --tb=no
+cd "$(git rev-parse --show-toplevel)"
+
+# 后端（子 shell 隔离 cd，避免连续 cd 叠加导致路径错乱）
+( cd backend && uv run ruff check app/ )
+( cd backend && uv run pytest ../tests/unit/backend/ -q --tb=no )
 
 # 前端
-cd frontend && pnpm lint
-cd frontend && pnpm test:unit --run
+( cd frontend && pnpm lint )
+( cd frontend && pnpm test:unit )
 
 echo "Pre-commit checks passed!"
