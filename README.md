@@ -2,6 +2,10 @@
 
 视频雷达图渲染工具，支持多模型对比可视化。
 
+<p align="center">
+  <img src="assets/panel-demo.gif" alt="全员面板渲染预览" width="720">
+</p>
+
 ## 目录结构
 
 - `frontend/` - Next.js + Remotion 前端
