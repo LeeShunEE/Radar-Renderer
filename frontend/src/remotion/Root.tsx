@@ -10,6 +10,7 @@ import {
   VIDEO_HEIGHT,
   VIDEO_WIDTH,
 } from "../types/constants";
+import type { MultiPageConfig, ComparisonPairConfig } from "../types/radar";
 import { RadarVideo } from "./RadarVideo";
 import { MultiPageVideo } from "./MultiPageVideo";
 
@@ -40,8 +41,8 @@ export const RemotionRoot: React.FC = () => {
         height={VIDEO_HEIGHT}
         defaultProps={{ config: defaultMultiPageConfig }}
         calculateMetadata={async ({ props }) => {
-          const cfg = (props as { config: any }).config;
-          const compMap = new Map<number, any>();
+          const cfg = (props as { config: MultiPageConfig }).config;
+          const compMap = new Map<number, ComparisonPairConfig>();
           for (const comp of cfg.comparisons ?? []) {
             compMap.set(comp.firstPageIndex, comp);
           }
