@@ -129,6 +129,20 @@ Never commit real connection strings, tokens, or credentials. Use the
 `.env.example` templates; real `.env` files are git-ignored. Testenv connection
 config is injected by the test system, never hard-coded (see `CLAUDE.md` §3.3.1).
 
+### 10. Releases (maintainers)
+
+This project follows [Semantic Versioning](https://semver.org/). Releases are
+cut by maintainers:
+
+```bash
+git tag -a v0.1.0 -m "v0.1.0" && git push origin v0.1.0
+gh release create v0.1.0 --generate-notes
+```
+
+Move `CHANGELOG.md` entries from `[Unreleased]` to the new version in the same
+PR. See [`docs/maintainers/github-setup.md`](./docs/maintainers/github-setup.md)
+for the full repo setup checklist.
+
 ---
 
 ## 简体中文
@@ -239,3 +253,15 @@ cd frontend && pnpm test:unit && pnpm test:integration
 
 切勿提交真实连接串、token 或凭据。使用 `.env.example` 模板；真实 `.env` 已被 git
 忽略。testenv 连接配置由测试系统注入，**不得硬编码**（见 `CLAUDE.md` §3.3.1）。
+
+### 10. 发布（维护者）
+
+本项目遵循[语义化版本](https://semver.org/lang/zh-CN/)。由维护者发布：
+
+```bash
+git tag -a v0.1.0 -m "v0.1.0" && git push origin v0.1.0
+gh release create v0.1.0 --generate-notes
+```
+
+同一 PR 内把 `CHANGELOG.md` 的 `[Unreleased]` 条目移到新版本。完整仓库设置清单见
+[`docs/maintainers/github-setup.md`](./docs/maintainers/github-setup.md)。
