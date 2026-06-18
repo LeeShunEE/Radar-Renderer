@@ -133,7 +133,7 @@ class UserDAO:
         await self._session.refresh(orm)
         return _to_user(orm)
 
-    async def set_verified(self, user_id: int, is_verified: bool = True) -> User:
+    async def set_verified(self, user_id: int, *, is_verified: bool = True) -> User:
         """设置邮箱验证状态。"""
         orm = await self._session.get(UserORM, user_id)
         if orm is None:

@@ -6,6 +6,8 @@ export const mockUser = {
   id: 1,
   username: "testuser",
   email: "test@example.com",
+  is_verified: true,
+  display_name: "Test User",
   created_at: "2026-01-01T00:00:00Z",
 };
 
@@ -13,6 +15,19 @@ export const mockTokenResponse = {
   access_token: "mock-access-token",
   refresh_token: "mock-refresh-token",
   token_type: "bearer",
+};
+
+/**
+ * 验证码注册 / OAuth 回调返回的 token 响应（含 is_new_user）。
+ *
+ * 统一 onboarding 后 register / oauth callback 不再返回 user 实体，
+ * 而是直接返回 token + 是否新用户（由前端再调 me() 拉取用户）。
+ */
+export const mockCodeTokenResponse = {
+  access_token: "mock-access-token",
+  refresh_token: "mock-refresh-token",
+  token_type: "bearer",
+  is_new_user: true,
 };
 
 export const mockQuota = {

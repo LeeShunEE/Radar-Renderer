@@ -105,6 +105,8 @@ services:
       backend:
         condition: service_healthy
     restart: unless-stopped
+    # 资源限制（生产 next start 内存占用稳定，Coolify/部署环境覆盖，不填走默认）
+    mem_limit: ${FRONTEND_MEMORY_LIMIT:-512m}
     # Coolify handles port exposure automatically
     # Uncomment for local debugging:
     # ports:
@@ -124,7 +126,9 @@ services:
     volumes:
       - render_outputs:/app/output
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3100/health"]
+      # 镜像（alpine + chromium/ffmpeg）未装 curl，但 busybox 自带 wget；
+      # 用 curl 会让 healthcheck 永远 "curl: not found" 误报 unhealthy。
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:3100/health"]
       interval: 30s
       timeout: 10s
       retries: 3

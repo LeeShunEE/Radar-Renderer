@@ -93,7 +93,12 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
                   type="button"
                   onClick={async () => {
                     try {
-                      const ED = (window as any).EyeDropper;
+                      // EyeDropper API 尚未进入 TS lib 类型，按实际形态声明构造器签名。
+                      type EyeDropperCtor = new () => {
+                        open: () => Promise<{ sRGBHex: string }>;
+                      };
+                      const ED = (window as unknown as { EyeDropper?: EyeDropperCtor })
+                        .EyeDropper;
                       const result = await new ED().open();
                       const picked = parseColor(result.sRGBHex);
                       onChange(formatRgba({ ...picked, a: color.a }));

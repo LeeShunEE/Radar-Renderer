@@ -102,7 +102,7 @@ export const CharacterConfig: React.FC<CharacterConfigProps> = ({
                   const n = Number(e.target.value);
                   if (Number.isNaN(n)) return;
                   onChange({
-                    font: { characterName: Math.max(30, Math.min(180, n)) } as any,
+                    font: { characterName: Math.max(30, Math.min(180, n)) } as Partial<RadarVideoProps>,
                   });
                 }}
                 className="h-7 w-20 text-xs"
@@ -111,7 +111,7 @@ export const CharacterConfig: React.FC<CharacterConfigProps> = ({
                 value={[characterNameFontSize]}
                 onValueChange={(v) =>
                   onChange({
-                    font: { characterName: Array.isArray(v) ? v[0] : v } as any,
+                    font: { characterName: Array.isArray(v) ? v[0] : v } as Partial<RadarVideoProps>,
                   })
                 }
                 min={30}
@@ -130,7 +130,7 @@ export const CharacterConfig: React.FC<CharacterConfigProps> = ({
               <Slider
                 value={[characterNameOffsetX]}
                 onValueChange={(v) =>
-                  onChange({ layout: { characterNameOffsetX: Array.isArray(v) ? v[0] : v } as any })
+                  onChange({ layout: { characterNameOffsetX: Array.isArray(v) ? v[0] : v } as Partial<RadarVideoProps> })
                 }
                 min={-500}
                 max={500}
@@ -142,7 +142,7 @@ export const CharacterConfig: React.FC<CharacterConfigProps> = ({
               <Slider
                 value={[characterNameOffsetY]}
                 onValueChange={(v) =>
-                  onChange({ layout: { characterNameOffsetY: Array.isArray(v) ? v[0] : v } as any })
+                  onChange({ layout: { characterNameOffsetY: Array.isArray(v) ? v[0] : v } as Partial<RadarVideoProps> })
                 }
                 min={-500}
                 max={500}
@@ -261,7 +261,7 @@ export const CharacterConfig: React.FC<CharacterConfigProps> = ({
             <Slider
               value={[silhouetteOpacity]}
               onValueChange={(v) =>
-                onChange({ theme: { silhouetteOpacity: Array.isArray(v) ? v[0] : v } as any })
+                onChange({ theme: { silhouetteOpacity: Array.isArray(v) ? v[0] : v } as Partial<RadarVideoProps> })
               }
               min={0}
               max={1}
@@ -273,7 +273,7 @@ export const CharacterConfig: React.FC<CharacterConfigProps> = ({
             <Slider
               value={[silhouetteScale]}
               onValueChange={(v) =>
-                onChange({ layout: { silhouetteScale: Array.isArray(v) ? v[0] : v } as any })
+                onChange({ layout: { silhouetteScale: Array.isArray(v) ? v[0] : v } as Partial<RadarVideoProps> })
               }
               min={0.2}
               max={3}
@@ -289,7 +289,7 @@ export const CharacterConfig: React.FC<CharacterConfigProps> = ({
               <Switch
                 checked={syncSilhouetteOffset}
                 onCheckedChange={(v) =>
-                  onChange({ layout: { syncSilhouetteOffset: v } as any })
+                  onChange({ layout: { syncSilhouetteOffset: v } as Partial<RadarVideoProps> })
                 }
               />
             </div>
@@ -305,7 +305,7 @@ export const CharacterConfig: React.FC<CharacterConfigProps> = ({
                     onChange={(e) => {
                       const n = Number(e.target.value);
                       if (Number.isNaN(n)) return;
-                      onChange({ layout: { silhouetteOffsetX: Math.max(-500, Math.min(500, n)) } as any });
+                      onChange({ layout: { silhouetteOffsetX: Math.max(-500, Math.min(500, n)) } as Partial<RadarVideoProps> });
                     }}
                     className="h-6 w-16 text-xs px-1 text-right"
                   />
@@ -313,7 +313,7 @@ export const CharacterConfig: React.FC<CharacterConfigProps> = ({
                 <Slider
                   value={[effectiveSilX]}
                   onValueChange={(v) =>
-                    onChange({ layout: { silhouetteOffsetX: Array.isArray(v) ? v[0] : v } as any })
+                    onChange({ layout: { silhouetteOffsetX: Array.isArray(v) ? v[0] : v } as Partial<RadarVideoProps> })
                   }
                   min={-500}
                   max={500}
@@ -331,7 +331,7 @@ export const CharacterConfig: React.FC<CharacterConfigProps> = ({
                     onChange={(e) => {
                       const n = Number(e.target.value);
                       if (Number.isNaN(n)) return;
-                      onChange({ layout: { silhouetteOffsetY: Math.max(-500, Math.min(500, n)) } as any });
+                      onChange({ layout: { silhouetteOffsetY: Math.max(-500, Math.min(500, n)) } as Partial<RadarVideoProps> });
                     }}
                     className="h-6 w-16 text-xs px-1 text-right"
                   />
@@ -339,7 +339,7 @@ export const CharacterConfig: React.FC<CharacterConfigProps> = ({
                 <Slider
                   value={[effectiveSilY]}
                   onValueChange={(v) =>
-                    onChange({ layout: { silhouetteOffsetY: Array.isArray(v) ? v[0] : v } as any })
+                    onChange({ layout: { silhouetteOffsetY: Array.isArray(v) ? v[0] : v } as Partial<RadarVideoProps> })
                   }
                   min={-500}
                   max={500}

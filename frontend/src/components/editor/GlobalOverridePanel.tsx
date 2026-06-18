@@ -39,7 +39,7 @@ export const GlobalOverridePanel: React.FC<Props> = ({ config, onChange }) => {
     });
   };
 
-  const setValue = (path: string, value: any) => {
+  const setValue = (path: string, value: unknown) => {
     setOverride({
       ...override,
       values: setByPath(override.values, path, value),
