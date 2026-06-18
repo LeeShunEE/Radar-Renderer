@@ -97,7 +97,7 @@ requests==2.34.2
     # via resend
 resend==2.30.1
     # via radar-chart-backend
-sqlalchemy==2.0.51
+sqlalchemy==2.0.50
     # via
     #   alembic
     #   radar-chart-backend
