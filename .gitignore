@@ -79,6 +79,7 @@ playwright-report/
 .env.development
 .env.test
 .env.production
+.env.deploy
 
 # 系统文件
 .DS_Store
