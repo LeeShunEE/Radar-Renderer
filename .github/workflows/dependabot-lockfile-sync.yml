@@ -39,7 +39,7 @@ jobs:
           ref: ${{ github.head_ref }}
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
           # 与 ci.yml 漂移守卫保持同一 uv 版本，否则回推产物会被守卫判漂移。
