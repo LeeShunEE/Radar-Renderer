@@ -2,7 +2,7 @@
  * auth-store.ts 单元测试：login/register/logout/initializeAuth + subscribe。
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mswServer, resetMockState } from "@/test/msw-server";
+import { mswServer, resetMockState, http, HttpResponse } from "@/test/msw-server";
 
 import {
   login,
@@ -12,8 +12,16 @@ import {
   refreshTokens,
   subscribe,
   getAuthState,
+  sendVerificationCode,
+  registerWithCode,
+  resetPassword,
+  setUsername,
+  setPassword,
+  handleOAuthCallback,
 } from "@/lib/auth-store";
 import { setTokens, clearTokens } from "@/lib/api-client";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 describe("auth-store", () => {
   beforeEach(() => {
@@ -84,6 +92,19 @@ describe("auth-store", () => {
       const state = getAuthState();
       expect(state.user).toBeTruthy();
     });
+    it("stored token 无效时清空 token 并置空用户", async () => {
+      setTokens("expired-access", "expired-refresh");
+      mswServer.use(
+        http.get(`${API_BASE}/api/v1/auth/me`, () =>
+          HttpResponse.json({ error: "invalid", code: "auth_error" }, { status: 401 }),
+        ),
+      );
+      await initializeAuth();
+      const state = getAuthState();
+      expect(state.user).toBeNull();
+      expect(state.loading).toBe(false);
+      expect(localStorage.getItem("access_token")).toBeNull();
+    });
   });
 
   describe("refreshTokens", () => {
@@ -112,6 +133,136 @@ describe("auth-store", () => {
       unsub();
       await register("testuser", "t@example.com", "pw");
       expect(calls.length).toBe(0);
+    });
+  });
+
+  describe("验证码 / OAuth / 设置凭证流程", () => {
+    it("sendVerificationCode 调用 send-code 且不抛错", async () => {
+      mswServer.use(
+        http.post(`${API_BASE}/api/v1/auth/send-code`, () =>
+          HttpResponse.json({ message: "ok" }),
+        ),
+      );
+      await expect(sendVerificationCode("e@x.com", "register")).resolves.toBeUndefined();
+    });
+
+    it("registerWithCode 注册并设置用户、返回是否新用户", async () => {
+      mswServer.use(
+        http.post(`${API_BASE}/api/v1/auth/register`, () =>
+          HttpResponse.json({ access_token: "a", refresh_token: "r", token_type: "bearer", is_new_user: true }),
+        ),
+      );
+      const isNew = await registerWithCode("e@x.com", "123456");
+      expect(isNew).toBe(true);
+      expect(getAuthState().user).toBeTruthy();
+      expect(getAuthState().accessToken).toBe("a");
+    });
+
+    it("registerWithCode 响应无 is_new_user 时返回 false", async () => {
+      mswServer.use(
+        http.post(`${API_BASE}/api/v1/auth/register`, () =>
+          HttpResponse.json({ access_token: "a", refresh_token: "r", token_type: "bearer" }),
+        ),
+      );
+      const isNew = await registerWithCode("e@x.com", "123456");
+      expect(isNew).toBe(false);
+    });
+
+    it("registerWithCode 失败时设置 error 并抛出", async () => {
+      mswServer.use(
+        http.post(`${API_BASE}/api/v1/auth/register`, () =>
+          HttpResponse.json({ error: "验证码错误", code: "bad_code" }, { status: 400 }),
+        ),
+      );
+      await expect(registerWithCode("e@x.com", "000")).rejects.toThrow("验证码错误");
+      expect(getAuthState().error).toBe("验证码错误");
+    });
+
+    it("resetPassword 重置并自动登录", async () => {
+      mswServer.use(
+        http.post(`${API_BASE}/api/v1/auth/reset-password`, () =>
+          HttpResponse.json({ access_token: "a", refresh_token: "r", token_type: "bearer" }),
+        ),
+      );
+      await resetPassword("e@x.com", "123", "newpw");
+      expect(getAuthState().user).toBeTruthy();
+      expect(getAuthState().accessToken).toBe("a");
+    });
+
+    it("resetPassword 失败时设置 error 并抛出", async () => {
+      mswServer.use(
+        http.post(`${API_BASE}/api/v1/auth/reset-password`, () =>
+          HttpResponse.json({ error: "验证码失效", code: "bad_code" }, { status: 400 }),
+        ),
+      );
+      await expect(resetPassword("e@x.com", "000", "pw")).rejects.toThrow("验证码失效");
+      expect(getAuthState().error).toBe("验证码失效");
+    });
+
+    it("setUsername 更新当前用户的用户名", async () => {
+      // 先登录拿到已认证用户
+      await register("testuser", "t@example.com", "pw");
+      mswServer.use(
+        http.post(`${API_BASE}/api/v1/auth/set-username`, () =>
+          HttpResponse.json({ id: 1, username: "newname", email: "t@example.com", created_at: "x" }),
+        ),
+      );
+      await setUsername("newname");
+      expect(getAuthState().user?.username).toBe("newname");
+    });
+
+    it("setUsername 失败时设置 error 并抛出", async () => {
+      await register("testuser", "t@example.com", "pw");
+      mswServer.use(
+        http.post(`${API_BASE}/api/v1/auth/set-username`, () =>
+          HttpResponse.json({ error: "用户名已存在", code: "taken" }, { status: 409 }),
+        ),
+      );
+      await expect(setUsername("dup")).rejects.toThrow("用户名已存在");
+      expect(getAuthState().error).toBe("用户名已存在");
+    });
+
+    it("setPassword 成功后清空 loading", async () => {
+      await register("testuser", "t@example.com", "pw");
+      mswServer.use(
+        http.post(`${API_BASE}/api/v1/auth/set-password`, () =>
+          HttpResponse.json({ id: 1, username: "testuser", email: "t@example.com", created_at: "x" }),
+        ),
+      );
+      await setPassword("secret");
+      expect(getAuthState().loading).toBe(false);
+      expect(getAuthState().error).toBeNull();
+    });
+
+    it("handleOAuthCallback 处理回调并返回是否新用户", async () => {
+      mswServer.use(
+        http.get(`${API_BASE}/api/v1/auth/oauth/google/callback`, () =>
+          HttpResponse.json({ access_token: "a", refresh_token: "r", token_type: "bearer", is_new_user: true }),
+        ),
+      );
+      const isNew = await handleOAuthCallback("google", "code1", "state1");
+      expect(isNew).toBe(true);
+      expect(getAuthState().user).toBeTruthy();
+    });
+
+    it("handleOAuthCallback 响应无 is_new_user 时返回 false", async () => {
+      mswServer.use(
+        http.get(`${API_BASE}/api/v1/auth/oauth/google/callback`, () =>
+          HttpResponse.json({ access_token: "a", refresh_token: "r", token_type: "bearer" }),
+        ),
+      );
+      const isNew = await handleOAuthCallback("google", "code1", "state1");
+      expect(isNew).toBe(false);
+    });
+
+    it("handleOAuthCallback 失败时设置 error 并抛出", async () => {
+      mswServer.use(
+        http.get(`${API_BASE}/api/v1/auth/oauth/google/callback`, () =>
+          HttpResponse.json({ error: "state 不匹配", code: "oauth_error" }, { status: 400 }),
+        ),
+      );
+      await expect(handleOAuthCallback("google", "c", "bad")).rejects.toThrow("state 不匹配");
+      expect(getAuthState().error).toBeTruthy();
     });
   });
 });

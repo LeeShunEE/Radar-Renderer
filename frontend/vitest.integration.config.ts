@@ -19,18 +19,32 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
+      include: [
+        "src/lib/**",
+        "src/hooks/**",
+        "src/contexts/**",
+        "src/components/**",
+      ],
+      exclude: [
+        "src/types/**",
+        "src/test/**",
+        "src/components/ui/**", // shadcn 生成的 UI 原语（第三方）
+        "src/remotion/**", // Remotion 运行时 composition
+        "src/app/**", // Next.js 页面/server components
+        "src/lib/browser-render.ts", // 浏览器运行时
+        "src/hooks/useLocalRender.ts", // Remotion 运行时
+        "src/components/editor/PreviewPanel.tsx", // Remotion Player 运行时
+        "src/components/editor/FontFamilyEditor.tsx", // 运行时 require('../../lib/font-list') 走 Node CJS，vitest 无法解析 .ts，单测不可行
+        "**/*.config.*",
+        "**/node_modules/**",
+      ],
       thresholds: {
         lines: 60,
         branches: 60,
         functions: 60,
         statements: 60,
+        perFile: true,
       },
-      exclude: [
-        "src/types/**",
-        "src/test/**",
-        "**/*.config.*",
-        "**/node_modules/**",
-      ],
     },
   },
   resolve: {

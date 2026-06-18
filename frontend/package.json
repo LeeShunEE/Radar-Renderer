@@ -72,7 +72,7 @@
     "render": "remotion render",
     "worker": "node render-worker/server.mjs",
     "deploy": "node deploy.mjs",
-    "test:unit": "vitest run --passWithNoTests",
-    "test:integration": "vitest run --passWithNoTests --config vitest.integration.config.ts"
+    "test:unit": "vitest run --coverage",
+    "test:integration": "vitest run --coverage --config vitest.integration.config.ts"
   }
 }
