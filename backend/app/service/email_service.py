@@ -19,6 +19,7 @@ class EmailService:
         if api_key is None:
             raise EmailServiceError("Resend API key 未配置")
         resend.api_key = api_key.get_secret_value()
+        self._from_email = settings.resend_from_email
 
     async def send_verification_code(
         self,
@@ -51,7 +52,7 @@ class EmailService:
             # 在生产环境中可以考虑使用 asyncio.to_thread 包装
             resend.Emails.send(
                 {
-                    "from": "noreply@your-domain.com",  # 需要在 Resend 中配置的发件域名
+                    "from": self._from_email,
                     "to": email,
                     "subject": subject,
                     "text": body,
@@ -73,7 +74,7 @@ class EmailService:
         try:
             resend.Emails.send(
                 {
-                    "from": "noreply@your-domain.com",
+                    "from": self._from_email,
                     "to": email,
                     "subject": subject,
                     "text": body,
