@@ -12,10 +12,10 @@ import { mswServer, resetMockState } from "./msw-server";
 // 补一个基于 arrayBuffer 的 ReadableStream 实现（仅在缺失时打补丁）。
 if (typeof Blob.prototype.stream !== "function") {
   Blob.prototype.stream = function (this: Blob): ReadableStream<Uint8Array> {
-    const blob = this;
+    // 箭头函数捕获外层 this（Blob），避免 const blob = this 触发 no-this-alias
     return new ReadableStream<Uint8Array>({
-      async start(controller) {
-        controller.enqueue(new Uint8Array(await blob.arrayBuffer()));
+      start: async (controller) => {
+        controller.enqueue(new Uint8Array(await this.arrayBuffer()));
         controller.close();
       },
     });
