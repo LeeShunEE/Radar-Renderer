@@ -20,6 +20,19 @@ type SilhouetteProps = {
   targetOpacityOverride?: number;
 };
 
+/**
+ * 判断剪影 src 是否为"绝对/特殊协议 URL"，应原样交给 <Img>，
+ * 否则视为相对路径交给 Remotion staticFile 解析。
+ *
+ * 为何单独抽函数：预览阶段 PreviewPanel 会把鉴权上传图本地化为 blob: URL
+ * （useUploadObjectUrls），data: 兼容未来 base64 内嵌，http(s): 保持原绝对 URL 行为。
+ * 若把 blob:/data: 误当相对路径丢给 staticFile，Remotion 会做路径化处理，
+ * 浏览器最终请求 `<origin>/blob:...`（冒号被编码 %3A）导致 404。
+ */
+export function isRemoteSilhouetteSrc(src: string): boolean {
+  return /^(https?:|blob:|data:)/i.test(src);
+}
+
 export const Silhouette: React.FC<SilhouetteProps> = ({
   src,
   opacity,
@@ -59,7 +72,7 @@ export const Silhouette: React.FC<SilhouetteProps> = ({
 
   if (!src || fadeIn < 0.01) return null;
 
-  const imgSrc = src.startsWith("http") ? src : staticFile(src);
+  const imgSrc = isRemoteSilhouetteSrc(src) ? src : staticFile(src);
 
   return (
     <div

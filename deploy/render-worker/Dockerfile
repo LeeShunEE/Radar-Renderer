@@ -1,27 +1,37 @@
+# syntax=docker/dockerfile:1.7
 # Render Worker Dockerfile for radar-chart-rendering
 # Remotion-based video rendering worker (HTTP service on port 3100)
+
+# Mirror ARGs default to empty = official sources. Coolify (overseas) passes
+# nothing and hits the global CDNs; local China dev passes the mirrors via
+# docker-compose.dev.yml build.args.
 
 # ============================================
 # Stage 1: Base image with Node.js and Chromium
 # ============================================
 FROM node:20-alpine AS base
 
-# Configure Alpine mirror for China
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+ARG ALPINE_MIRROR=
+
+# Apply Alpine mirror only when provided; empty keeps the default global CDN.
+RUN if [ -n "$ALPINE_MIRROR" ]; then \
+      sed -i "s|dl-cdn.alpinelinux.org|$ALPINE_MIRROR|g" /etc/apk/repositories; \
+    fi
 
 # Install Chromium for Remotion rendering.
 # setpriv: Remotion launches Chromium via `setpriv --pdeathsig`; BusyBox's setpriv
 # lacks that flag, so install the real util-linux setpriv (lands in /usr/bin, ahead
 # of BusyBox /bin in PATH).
-RUN apk add --no-cache \
+# Cache mount reuses the apk package cache (~300MB chromium) across rebuilds.
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add \
     chromium \
     chromium-chromedriver \
     ffmpeg \
     fontconfig \
     font-noto \
     font-noto-cjk \
-    setpriv \
-    && rm -rf /var/cache/apk/*
+    setpriv
 
 # Set Chromium path for Remotion
 ENV CHROMIUM_PATH=/usr/bin/chromium-browser
@@ -35,17 +45,21 @@ WORKDIR /app
 # ============================================
 FROM base AS development
 
-# Configure npm mirror for China
-RUN npm config set registry https://registry.npmmirror.com
+ARG NPM_REGISTRY=
+
+# Apply npm mirror only when provided; empty keeps the default registry.
+RUN if [ -n "$NPM_REGISTRY" ]; then npm config set registry "$NPM_REGISTRY"; fi
 
 # Copy package files（context=仓库根，源在 frontend/ 子树）
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/.npmrc ./
 
 # Install pnpm globally (more reliable than corepack on Alpine)
-RUN npm install -g pnpm
+RUN --mount=type=cache,target=/root/.npm \
+    npm install -g pnpm
 
 # Install all dependencies (approve builds for native packages)
-RUN pnpm install --frozen-lockfile && pnpm approve-builds
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile && pnpm approve-builds
 
 # Copy source code (including remotion components).
 # 不要用 COPY frontend/ .：会把宿主机 Windows pnpm 创建的绝对路径 symlink 死链
@@ -70,17 +84,21 @@ CMD ["pnpm", "worker"]
 # ============================================
 FROM base AS builder
 
-# Configure npm mirror for China
-RUN npm config set registry https://registry.npmmirror.com
+ARG NPM_REGISTRY=
+
+# Apply npm mirror only when provided; empty keeps the default registry.
+RUN if [ -n "$NPM_REGISTRY" ]; then npm config set registry "$NPM_REGISTRY"; fi
 
 # Copy package files（context=仓库根，源在 frontend/ 子树）
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/.npmrc ./
 
 # Install pnpm globally (more reliable than corepack on Alpine)
-RUN npm install -g pnpm
+RUN --mount=type=cache,target=/root/.npm \
+    npm install -g pnpm
 
 # Install dependencies for Remotion bundler
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
 
 # Copy source code for bundling.
 # The whole src/ is needed: remotion components import from src/lib/* and
@@ -96,22 +114,29 @@ COPY frontend/package.json ./
 # ============================================
 FROM node:20-alpine AS production
 
-# Configure Alpine mirror for China
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+ARG ALPINE_MIRROR=
+ARG NPM_REGISTRY=
 
-# Install minimal runtime dependencies for Remotion.
+# Apply Alpine mirror only when provided; empty keeps the default global CDN.
+RUN if [ -n "$ALPINE_MIRROR" ]; then \
+      sed -i "s|dl-cdn.alpinelinux.org|$ALPINE_MIRROR|g" /etc/apk/repositories; \
+    fi
+
+# Install minimal runtime dependencies for Remotion (chromromium is required —
+# this worker performs all video rendering).
 # setpriv: needed for Chromium launch (BusyBox setpriv lacks --pdeathsig).
-RUN apk add --no-cache \
+# Cache mount reuses the chromium/ffmpeg package cache across rebuilds.
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add \
     chromium \
     ffmpeg \
     fontconfig \
     font-noto \
     font-noto-cjk \
-    setpriv \
-    && rm -rf /var/cache/apk/*
+    setpriv
 
-# Configure npm mirror for China
-RUN npm config set registry https://registry.npmmirror.com
+# Apply npm mirror only when provided; empty keeps the default registry.
+RUN if [ -n "$NPM_REGISTRY" ]; then npm config set registry "$NPM_REGISTRY"; fi
 
 # Set Chromium path for Remotion
 ENV CHROMIUM_PATH=/usr/bin/chromium-browser
@@ -131,10 +156,12 @@ WORKDIR /app
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/.npmrc ./
 
 # Install pnpm globally (more reliable than corepack on Alpine)
-RUN npm install -g pnpm
+RUN --mount=type=cache,target=/root/.npm \
+    npm install -g pnpm
 
 # Install only production dependencies (need Remotion packages)
-RUN pnpm install --frozen-lockfile --prod
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile --prod
 
 # Copy render worker server
 COPY --chown=appuser:appgroup frontend/render-worker/server.mjs ./render-worker/server.mjs

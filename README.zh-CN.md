@@ -1,5 +1,7 @@
 # Radar-Renderer
 
+**[⚡立刻创建雷达图动画](https://radar.xn--30q18ry71c.com/)**
+
 [![CI](https://github.com/LeeShunEE/Radar-Renderer/actions/workflows/ci.yml/badge.svg)](https://github.com/LeeShunEE/Radar-Renderer/actions/workflows/ci.yml)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3-blue.svg)](./LICENSE)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
@@ -11,6 +13,10 @@
 
 <p align="center">
   <img src="assets/panel-demo.gif" alt="全员面板渲染预览" width="720">
+</p>
+
+<p align="center">
+  <a href="https://www.bilibili.com/video/BV1zuLK6sE4a">查看完整视频</a>
 </p>
 
 ## 特性
