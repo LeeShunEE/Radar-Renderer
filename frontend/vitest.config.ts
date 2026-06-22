@@ -59,6 +59,8 @@ export default defineConfig({
       { find: /^react\/jsx-runtime$/, replacement: path.resolve(__dirname, "./node_modules/react/jsx-runtime.js") },
       { find: /^react$/, replacement: path.resolve(__dirname, "./node_modules/react") },
       { find: /^react-dom$/, replacement: path.resolve(__dirname, "./node_modules/react-dom") },
+      // remotion：测试文件在 frontend/ 外时需显式指向 node_modules（同 react）
+      { find: /^remotion$/, replacement: path.resolve(__dirname, "./node_modules/remotion") },
     ],
   },
   server: {
