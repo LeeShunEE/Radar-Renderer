@@ -1,8 +1,11 @@
 name: E2E Tests
 
 on:
-  pull_request:
+  # 发版时触发：push 到 main 分支（合并 PR 后自动部署前）
+  push:
     branches: [main]
+  # 也支持手动触发，便于调试
+  workflow_dispatch:
 
 concurrency:
   group: e2e-${{ github.ref }}
@@ -42,9 +45,13 @@ jobs:
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
 
-      # 安装前端依赖
+      # 安装前端依赖（含 @playwright/test）
       - name: Install frontend dependencies
         run: cd frontend && pnpm install --frozen-lockfile
+
+      # 在根目录安装 @playwright/test（测试文件在 tests 目录下需要能解析此模块）
+      - name: Install Playwright test dependency at root
+        run: pnpm add -D @playwright/test
 
       # 安装 Playwright 浏览器（含系统依赖）
       - name: Install Playwright browsers
@@ -74,11 +81,10 @@ jobs:
           JWT_SECRET_STRING: ci-test-secret-not-for-production
 
       # 运行 Playwright e2e 测试
+      # 从根目录运行，使用 frontend 的配置文件，测试文件在 tests 目录下
       - name: Run Playwright e2e tests
         run: |
-          cd frontend
-          # playwright.config.ts 已定义 testDir，直接运行 test 命令
-          pnpm exec playwright test --reporter=github
+          pnpm exec playwright test --config=frontend/playwright.config.ts --reporter=github
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:13000
 
