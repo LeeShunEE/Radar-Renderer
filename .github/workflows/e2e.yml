@@ -49,10 +49,6 @@ jobs:
       - name: Install frontend dependencies
         run: cd frontend && pnpm install --frozen-lockfile
 
-      # 在根目录安装 @playwright/test（测试文件在 tests 目录下需要能解析此模块）
-      - name: Install Playwright test dependency at root
-        run: pnpm add -D @playwright/test
-
       # 安装 Playwright 浏览器（含系统依赖）
       - name: Install Playwright browsers
         run: cd frontend && pnpm exec playwright install chromium --with-deps
@@ -81,12 +77,16 @@ jobs:
           JWT_SECRET_STRING: ci-test-secret-not-for-production
 
       # 运行 Playwright e2e 测试
-      # 从根目录运行，使用 frontend 的配置文件，测试文件在 tests 目录下
+      # 使用 NODE_PATH 让测试文件能从 frontend/node_modules 解析 @playwright/test
       - name: Run Playwright e2e tests
         run: |
-          pnpm exec playwright test --config=frontend/playwright.config.ts --reporter=github
+          cd frontend
+          pnpm exec playwright test --reporter=github
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:13000
+          PLAYWRIGHT_API_URL: http://localhost:18000        # 后端地址，供 auth-helpers 取码
+          # 让 Node.js 从 frontend/node_modules 解析模块（测试文件在 tests 目录下）
+          NODE_PATH: ${{ github.workspace }}/frontend/node_modules
 
       # 上传测试结果（失败时保留报告）
       - name: Upload test artifacts

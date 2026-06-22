@@ -38,8 +38,8 @@ async function registerToWelcome(page: Page): Promise<{ email: string }> {
     timeout: 10_000,
   });
 
-  const baseURL = "http://localhost:13000";
-  const code = await fetchVerificationCode(baseURL, email);
+  const apiBaseURL = process.env.PLAYWRIGHT_API_URL ?? "http://localhost:18000";
+  const code = await fetchVerificationCode(apiBaseURL, email);
   await page.getByPlaceholder("输入 6 位验证码").fill(code);
   await page.getByRole("button", { name: "注册" }).click();
 
@@ -133,7 +133,7 @@ test.describe("认证旅程", () => {
     const submit = page.getByRole("button", { name: "登录", exact: true });
     await submit.click();
 
-    await expect(page.getByText("用户名或密码错误")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByText("用户名/邮箱或密码错误")).toBeVisible({ timeout: 10_000 });
     // 回归：登录失败后 loading 必须复位，按钮文案回到"登录"且可再次点击。
     await expect(submit).toHaveText("登录", { timeout: 10_000 });
     await expect(submit).toBeEnabled();
