@@ -5,6 +5,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:  # 允许手动触发
 
 # 同一分支的新推送会取消进行中的旧 run，节省额度
 concurrency:

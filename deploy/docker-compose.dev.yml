@@ -58,7 +58,8 @@ services:
       - ../backend/alembic:/app/alembic:ro
       - backend_storage:/app/storage
       # Public assets: frontend/public mounted for backend to list music/silhouette files
-      - ../frontend/public:/app/public_assets:ro
+      # Must be writable for Docker to create _render_tmp mountpoint
+      - ../frontend/public:/app/public_assets
       # Render tmp: writable subdir for silhouette rewrite (worker reads via staticFile)
       - render_tmp:/app/public_assets/_render_tmp
     # Create storage directory and run migrations before starting
@@ -113,7 +114,9 @@ services:
     volumes:
       # Mount source code for hot reload
       - ../frontend/src/remotion:/app/src/remotion:ro
-      - ../frontend/public:/app/public:ro
+      # Worker public must be writable for Docker to create _render_tmp mountpoint
+      # (render_tmp volume mounts under /app/public/_render_tmp)
+      - ../frontend/public:/app/public
       - ../frontend/render-worker:/app/render-worker:ro
       - render_outputs:/app/output
       - backend_storage:/app/storage  # 共享 backend storage，让产物写入后可被 backend 读取

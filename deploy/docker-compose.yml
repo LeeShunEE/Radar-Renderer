@@ -72,7 +72,8 @@ services:
     volumes:
       - backend_storage:/app/storage
       # Public assets: frontend/public mounted for backend to list music/silhouette files
-      - ../frontend/public:/app/public_assets:ro
+      # Must be writable for Docker to create _render_tmp mountpoint
+      - ../frontend/public:/app/public_assets
       # Render tmp: writable subdir for silhouette rewrite (worker reads via staticFile)
       - render_tmp:/app/public_assets/_render_tmp
     depends_on:
