@@ -15,6 +15,9 @@ services:
   # PostgreSQL Database (optional, can use SQLite instead)
   # ============================================
   db:
+    # Dev override 使用默认密码，覆盖 docker-compose.yml 的必填要求
+    environment:
+      POSTGRES_PASSWORD: devpass
     ports:
       - "15432:5432"
 
