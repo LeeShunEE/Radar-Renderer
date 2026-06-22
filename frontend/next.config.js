@@ -1,22 +1,26 @@
 const { execSync } = require("child_process");
+const pkg = require("./package.json");
 
 /**
- * 取构建版本号：git describe --tags --always --dirty 的原生输出。
- * - 有 tag 且 HEAD 在 tag 上: "v1.2.3"
- * - 有 tag 但领先: "v1.2.3-5-gabc1234"
- * - 无 tag（本项目现状）: 纯短 hash，如 "ea79778"（可能带 -dirty）
- * - git 命令彻底失败（无 .git / 无 git 二进制）: 降级 "unknown"
- * execSync 失败时绝不能让 next build 崩，故整段 try/catch。
+ * 取构建版本号，按优先级降级（整段 try/catch 兜底，绝不让 build 崩）：
+ * 1. 注入了 NEXT_PUBLIC_APP_VERSION（非空）→ 直接用（最高优先，便于覆盖/测试）
+ * 2. 有 SOURCE_COMMIT（Coolify 容器构建，上下文无 .git）→ "v{pkg.version}-{shortSha}"
+ * 3. 本地 pnpm build（有 .git）→ git describe --tags --always --dirty 原生输出
+ * 4. 都拿不到 → 兜底 "v{pkg.version}"（比原来的 "unknown" 更有信息量）
  * @returns {string}
  */
 function getAppVersion() {
+  const injected = process.env.NEXT_PUBLIC_APP_VERSION;
+  if (injected && injected.trim()) return injected.trim();
+  const sha = process.env.SOURCE_COMMIT;
+  if (sha && sha.trim()) return `v${pkg.version}-${sha.trim().slice(0, 7)}`;
   try {
     return execSync("git describe --tags --always --dirty", {
       stdio: ["ignore", "pipe", "ignore"],
       encoding: "utf-8",
     }).trim();
   } catch {
-    return "unknown";
+    return `v${pkg.version}`;
   }
 }
 

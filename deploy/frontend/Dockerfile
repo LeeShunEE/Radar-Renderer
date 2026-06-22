@@ -98,16 +98,14 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
 # Copy source code（context=仓库根，源在 frontend/ 子树）
 COPY frontend/ ./
 
-# 装 git 并拷 .git：next.config.js 用 git describe 生成版本号注入 NEXT_PUBLIC_APP_VERSION。
-# 仅 builder 阶段，产物经 --from=builder 精挑 COPY，.git 不进最终镜像。
-# repositories 已在 base stage 配好；cache mount 复用 apk 缓存。
-RUN --mount=type=cache,target=/var/cache/apk \
-    apk add git
-COPY .git ./.git
-
 # Set NEXT_PUBLIC_API_URL as ENV for Next.js build to embed into client code
 # This must happen BEFORE pnpm build
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+
+# 版本号经 build ARG 注入（容器构建上下文无 .git，跑不了 git describe）。
+# Coolify 自动提供 SOURCE_COMMIT；next.config.js 拼 package.json 版本 + 短 sha。
+ARG SOURCE_COMMIT=
+ENV SOURCE_COMMIT=${SOURCE_COMMIT}
 
 # Build Next.js application
 RUN pnpm build

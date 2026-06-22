@@ -99,6 +99,9 @@ services:
         # NEXT_PUBLIC_API_URL is needed at build time for Next.js client-side code
         # Fallback to localhost for local builds; Coolify should override with real API URL
         NEXT_PUBLIC_API_URL: ${API_PUBLIC_URL:-http://localhost:8000}
+        # commit sha：Coolify build-time 环境自带 SOURCE_COMMIT；本地不传则空，
+        # next.config.js 退化为 git describe / package.json 版本兜底
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-}
     environment:
       # Internal API URL (for server-side calls)
       NEXT_PUBLIC_API_URL: ${API_PUBLIC_URL:-http://localhost:8000}

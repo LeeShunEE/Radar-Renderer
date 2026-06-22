@@ -6,6 +6,11 @@
 > 适用对象：Claude Code 编码代理 + 前后端研发团队
 > 由 `kinema-tdd-injector` skill 生成
 
+> **前置必读**：进行任何开发计划（制定 Plan / 动手改代码）之前，**必须先阅读
+> [`CONTRIBUTING.md`](./CONTRIBUTING.md)**，了解分支规范、commit/DCO 签名、依赖与
+> lockfile 流程、发版（含 `package.json` 版本 bump）等贡献约束，避免与本规范冲突或
+> 触发 CI 守卫。
+
 ---
 
 ## 1. 核心原则
