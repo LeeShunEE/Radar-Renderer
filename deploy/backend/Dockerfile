@@ -1,18 +1,32 @@
+# syntax=docker/dockerfile:1.7
 # Backend Dockerfile for radar-chart-rendering
 # Multi-stage build: development -> production
+
+# Mirror ARGs default to empty = official sources. Coolify (overseas) passes
+# nothing and hits official PyPI; local China dev passes the mirror via
+# docker-compose.dev.yml build.args.
 
 # ============================================
 # Stage 1: Base image with uv installer
 # ============================================
 FROM python:3.11-slim AS base
 
+ARG PIP_INDEX=
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv (fast Python package manager) via pip with Chinese mirror
-RUN pip install uv -i https://mirrors.aliyun.com/pypi/simple/
+# Install uv (fast Python package manager) via pip.
+# Use PIP_INDEX (China mirror) only when provided; empty = official PyPI.
+# Cache mount reuses pip's wheel cache across rebuilds.
+RUN --mount=type=cache,target=/root/.cache/pip \
+    if [ -n "$PIP_INDEX" ]; then \
+      pip install uv -i "$PIP_INDEX"; \
+    else \
+      pip install uv; \
+    fi
 
 # Set working directory
 WORKDIR /app
@@ -22,11 +36,21 @@ WORKDIR /app
 # ============================================
 FROM base AS development
 
+ARG PIP_INDEX=
+
 # Copy dependency files
 COPY pyproject.toml .
 
-# Install all dependencies (including dev/test extras)
-RUN uv pip install --system -e ".[test,dev]" --index-url https://mirrors.aliyun.com/pypi/simple/
+# Install all dependencies (including dev/test extras).
+# Use PIP_INDEX (China mirror) only when provided; empty = official PyPI.
+# Cache mounts on pip + uv avoid re-downloading wheels across rebuilds.
+RUN --mount=type=cache,target=/root/.cache/pip \
+    --mount=type=cache,target=/root/.cache/uv \
+    if [ -n "$PIP_INDEX" ]; then \
+      uv pip install --system -e ".[test,dev]" --index-url "$PIP_INDEX"; \
+    else \
+      uv pip install --system -e ".[test,dev]"; \
+    fi
 
 # Copy source code and alembic
 COPY app ./app
@@ -44,11 +68,20 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload
 # ============================================
 FROM base AS builder
 
+ARG PIP_INDEX=
+
 # Copy dependency files
 COPY pyproject.toml .
 
-# Install production dependencies only
-RUN uv pip install --system -e "." --index-url https://mirrors.aliyun.com/pypi/simple/
+# Install production dependencies only.
+# Use PIP_INDEX (China mirror) only when provided; empty = official PyPI.
+RUN --mount=type=cache,target=/root/.cache/pip \
+    --mount=type=cache,target=/root/.cache/uv \
+    if [ -n "$PIP_INDEX" ]; then \
+      uv pip install --system -e "." --index-url "$PIP_INDEX"; \
+    else \
+      uv pip install --system -e "."; \
+    fi
 
 # Copy source code and alembic
 COPY app ./app
