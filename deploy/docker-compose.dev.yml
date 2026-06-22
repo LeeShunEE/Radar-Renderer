@@ -114,3 +114,4 @@ services:
       - ../frontend/public:/app/public:ro
       - ../frontend/render-worker:/app/render-worker:ro
       - render_outputs:/app/output
+      - backend_storage:/app/storage  # 共享 backend storage，让产物写入后可被 backend 读取
