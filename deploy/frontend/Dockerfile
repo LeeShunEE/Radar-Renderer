@@ -35,8 +35,8 @@ FROM base AS development
 # Configure npm mirror for China
 RUN npm config set registry https://registry.npmmirror.com
 
-# Copy package files and npm config first
-COPY package.json pnpm-lock.yaml .npmrc ./
+# Copy package files and npm config first（context=仓库根，源在 frontend/ 子树）
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/.npmrc ./
 
 # Install pnpm globally
 RUN npm install -g pnpm
@@ -44,8 +44,8 @@ RUN npm install -g pnpm
 # Install dependencies (npmrc configures hoisting)
 RUN pnpm install --frozen-lockfile
 
-# Copy source code (exclude node_modules via .dockerignore)
-COPY . .
+# Copy source code（只拷 frontend 子树，根 context 下不 COPY 整个仓库）
+COPY frontend/ ./
 
 # Development server runs on port 3000
 EXPOSE 3000
@@ -66,7 +66,7 @@ ARG NEXT_PUBLIC_API_URL
 RUN npm config set registry https://registry.npmmirror.com
 
 # Copy package files (.npmrc configures hoisting for self-contained node_modules)
-COPY package.json pnpm-lock.yaml .npmrc ./
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/.npmrc ./
 
 # Install pnpm globally (more reliable than corepack on Alpine)
 RUN npm install -g pnpm
@@ -74,8 +74,13 @@ RUN npm install -g pnpm
 # Install dependencies for build
 RUN pnpm install --frozen-lockfile
 
-# Copy source code
-COPY . .
+# Copy source code（context=仓库根，源在 frontend/ 子树）
+COPY frontend/ ./
+
+# 装 git 并拷 .git：next.config.js 用 git describe 生成版本号注入 NEXT_PUBLIC_APP_VERSION。
+# 仅 builder 阶段，产物经 --from=builder 精挑 COPY，.git 不进最终镜像。
+RUN apk add --no-cache git
+COPY .git ./.git
 
 # Set NEXT_PUBLIC_API_URL as ENV for Next.js build to embed into client code
 # This must happen BEFORE pnpm build
@@ -118,7 +123,7 @@ RUN addgroup --system appgroup \
 WORKDIR /app
 
 # Copy package files (.npmrc configures hoisting for self-contained node_modules)
-COPY package.json pnpm-lock.yaml .npmrc ./
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/.npmrc ./
 
 # Install pnpm globally (more reliable than corepack on Alpine)
 RUN npm install -g pnpm

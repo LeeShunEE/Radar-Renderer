@@ -1,0 +1,15 @@
+# context=仓库根 时由本文件控制 build context
+# 注意：.git 放行（builder 要跑 git describe），但严格排除 node_modules / 构建产物
+**/node_modules
+**/.next
+**/dist
+**/build
+**/.env*.local
+**/.env
+**/.vscode
+**/.idea
+**/*.log
+**/.pnpm-store
+backend/.venv
+backend/**/__pycache__
+backend/.pytest_cache

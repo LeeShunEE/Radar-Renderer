@@ -38,8 +38,8 @@ FROM base AS development
 # Configure npm mirror for China
 RUN npm config set registry https://registry.npmmirror.com
 
-# Copy package files (.npmrc configures hoisting for self-contained node_modules)
-COPY package.json pnpm-lock.yaml .npmrc ./
+# Copy package files（context=仓库根，源在 frontend/ 子树）
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/.npmrc ./
 
 # Install pnpm globally (more reliable than corepack on Alpine)
 RUN npm install -g pnpm
@@ -48,16 +48,16 @@ RUN npm install -g pnpm
 RUN pnpm install --frozen-lockfile && pnpm approve-builds
 
 # Copy source code (including remotion components).
-# 不要用 COPY . .：会把宿主机 Windows pnpm 创建的绝对路径 symlink 死链
+# 不要用 COPY frontend/ .：会把宿主机 Windows pnpm 创建的绝对路径 symlink 死链
 # (frontend/node_modules/.pnpm/.../node_modules/@remotion/bundler -> C:/Users/...)
 # 盖进容器，顶替上方 pnpm install 生成的扁平真实产物，导致 ESM 解析崩溃 + restart 循环。
 # 显式 COPY 仅源码目录，node_modules 完全由容器内 pnpm install 生成。
-COPY src ./src
-COPY styles ./styles
-COPY public ./public
-COPY render-worker ./render-worker
-COPY tsconfig.json ./
-COPY package.json ./
+COPY frontend/src ./src
+COPY frontend/styles ./styles
+COPY frontend/public ./public
+COPY frontend/render-worker ./render-worker
+COPY frontend/tsconfig.json ./
+COPY frontend/package.json ./
 
 # Development server runs on port 3100
 EXPOSE 3100
@@ -73,8 +73,8 @@ FROM base AS builder
 # Configure npm mirror for China
 RUN npm config set registry https://registry.npmmirror.com
 
-# Copy package files (.npmrc configures hoisting for self-contained node_modules)
-COPY package.json pnpm-lock.yaml .npmrc ./
+# Copy package files（context=仓库根，源在 frontend/ 子树）
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/.npmrc ./
 
 # Install pnpm globally (more reliable than corepack on Alpine)
 RUN npm install -g pnpm
@@ -85,11 +85,11 @@ RUN pnpm install --frozen-lockfile
 # Copy source code for bundling.
 # The whole src/ is needed: remotion components import from src/lib/* and
 # src/types/* (and tsconfig "@/*" path alias resolves to ./src/*).
-COPY src ./src
-COPY styles ./styles
-COPY public ./public
-COPY tsconfig.json ./
-COPY package.json ./
+COPY frontend/src ./src
+COPY frontend/styles ./styles
+COPY frontend/public ./public
+COPY frontend/tsconfig.json ./
+COPY frontend/package.json ./
 
 # ============================================
 # Stage 4: Production (minimal worker)
@@ -128,7 +128,7 @@ RUN addgroup --system appgroup \
 WORKDIR /app
 
 # Copy package files (.npmrc configures hoisting for self-contained node_modules)
-COPY package.json pnpm-lock.yaml .npmrc ./
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/.npmrc ./
 
 # Install pnpm globally (more reliable than corepack on Alpine)
 RUN npm install -g pnpm
@@ -137,7 +137,7 @@ RUN npm install -g pnpm
 RUN pnpm install --frozen-lockfile --prod
 
 # Copy render worker server
-COPY --chown=appuser:appgroup render-worker/server.mjs ./render-worker/server.mjs
+COPY --chown=appuser:appgroup frontend/render-worker/server.mjs ./render-worker/server.mjs
 
 # Copy source code needed for Remotion bundling (whole src/: components pull in
 # src/lib/* and src/types/*, and tsconfig "@/*" alias resolves to ./src/*).
