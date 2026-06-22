@@ -46,7 +46,7 @@ dnspython==2.8.0
     # via email-validator
 email-validator==2.3.0
     # via pydantic
-fastapi==0.138.0
+fastapi==0.137.2
     # via radar-chart-backend
 greenlet==3.5.2 ; platform_machine == 'AMD64' or platform_machine == 'WIN32' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'ppc64le' or platform_machine == 'win32' or platform_machine == 'x86_64'
     # via sqlalchemy
@@ -79,9 +79,9 @@ pydantic==2.13.4
     #   fastapi
     #   pydantic-settings
     #   radar-chart-backend
-pydantic-core==2.47.0
+pydantic-core==2.46.4
     # via pydantic
-pydantic-settings==2.14.2
+pydantic-settings==2.14.1
     # via radar-chart-backend
 pyjwt==2.13.0
     # via radar-chart-backend
