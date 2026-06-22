@@ -18,6 +18,21 @@ jobs:
     name: Trigger Coolify redeploy
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4 # release 事件默认 checkout tag 指向的 commit
+
+      # 仅 release 触发时校验；workflow_dispatch 手动兜底不校验
+      - name: 校验 tag 与 frontend/package.json 版本一致
+        if: github.event_name == 'release'
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          TAG_VER="${TAG#v}"                                  # 去掉前缀 v
+          PKG_VER="$(jq -r .version frontend/package.json)"
+          if [ "$TAG_VER" != "$PKG_VER" ]; then
+            echo "::error::release tag ($TAG) 与 frontend/package.json version ($PKG_VER) 不一致，请先 bump package.json"
+            exit 1
+          fi
+          echo "版本一致：tag=$TAG package.json=$PKG_VER"
+
       - name: 触发 Coolify 部署 webhook
         # Coolify 官方推荐的外部 CI 触发方式
         # （https://coolify.io/docs/applications/ci-cd/other-providers）：

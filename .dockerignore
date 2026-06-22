@@ -1,5 +1,7 @@
 # context=仓库根 时由本文件控制 build context
-# 注意：.git 放行（builder 要跑 git describe），但严格排除 node_modules / 构建产物
+# .git 排除：builder 不再跑 git describe（版本号经 SOURCE_COMMIT build ARG 注入），
+# 排除可缩小构建上下文。同时严格排除 node_modules / 构建产物。
+**/.git
 **/node_modules
 **/.next
 **/dist
