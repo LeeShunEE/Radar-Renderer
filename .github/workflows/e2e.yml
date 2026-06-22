@@ -1,0 +1,88 @@
+name: E2E Tests
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: Playwright E2E (testenv)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # 启动 testenv stack (backend + frontend + render-worker + db)
+      - name: Start testenv stack
+        run: |
+          cd deploy
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+      # 安装 pnpm
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 9
+
+      # 设置 Node.js 环境
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      # 安装前端依赖
+      - name: Install frontend dependencies
+        run: cd frontend && pnpm install --frozen-lockfile
+
+      # 安装 Playwright 浏览器（含系统依赖）
+      - name: Install Playwright browsers
+        run: cd frontend && pnpm exec playwright install chromium --with-deps
+
+      # 等待服务完全就绪（backend + frontend）
+      # dev stack: backend 暴露 18000:8000，frontend 暴露 13000:3000
+      - name: Wait for services
+        run: |
+          echo "等待服务就绪..."
+          for i in {1..30}; do
+            backend_ready=$(curl -sf http://localhost:18000/api/v1/health && echo "ok" || echo "fail")
+            frontend_ready=$(curl -sf http://localhost:13000/api/health && echo "ok" || echo "fail")
+            if [ "$backend_ready" = "ok" ] && [ "$frontend_ready" = "ok" ]; then
+              echo "所有服务就绪 ✓"
+              exit 0
+            fi
+            echo "第 $i/30 次检查: backend=$backend_ready, frontend=$frontend_ready"
+            sleep 5
+          done
+          echo "::error::服务在 150 秒后仍未就绪"
+          # 输出日志便于排查
+          docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.dev.yml logs --tail=50
+          exit 1
+
+      # 运行 Playwright e2e 测试
+      - name: Run Playwright e2e tests
+        run: |
+          cd frontend
+          pnpm exec playwright test ../tests/testenv-integration/frontend/ --reporter=github
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:13000
+
+      # 上传测试结果（失败时保留报告）
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/test-results/
+          retention-days: 7
+
+      # 清理 Docker 资源
+      - name: Stop testenv stack
+        if: always()
+        run: cd deploy && docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v
