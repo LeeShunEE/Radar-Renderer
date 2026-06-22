@@ -655,3 +655,37 @@ db.execute(text("SELECT * FROM users WHERE name = :name"), {"name": name})
 # 真正需要明文时才解封：
 headers = {"Authorization": f"Bearer {api_key_secret_string.get_secret_value()}"}
 ```
+
+---
+
+## 13. 构建链路与路径变更的 Plan 审计
+
+本项目 CI 不构建 Docker 镜像（仅本地人工验证，见各 Plan 的风险章节），构建链路改动回归风险高。涉及**系统性路径变更**的 Plan，动手改之前必须做**全量静态审计**，不得按"阶段"或"模块"粗粒度推理。
+
+### 13.1 触发条件
+
+Plan 涉及任一即须审计：改 Docker `build.context` 根、改 Dockerfile 任何 `COPY`/`ADD` 源路径前缀、改 monorepo 包结构 / import alias 根 / 源码根折叠规则，或任何"一处改、多处路径跟随"的连锁变更。
+
+### 13.2 审计动作
+
+动手改之前，先用静态工具列出全部受影响位点并逐条分类，再批量改：
+
+```bash
+# 列出所有 COPY/ADD，按是否 --from=xxx 区分"依赖 context / 不依赖"
+grep -nE '^(COPY|ADD) ' deploy/**/Dockerfile
+```
+
+**关键陷阱**：多阶段 Dockerfile 的**每个阶段（含 production）**都可能有直接从 context 的 COPY——典型如 production 阶段为重装生产依赖（`pnpm install --prod`）而 COPY `package.json`/`pnpm-lock.yaml`，或直接拷入口文件（`server.mjs`）。**不得因"某阶段主要从 builder 取产物"就跳过该阶段全部 COPY**。
+
+### 13.3 审计表入 Plan
+
+审计结果以表格写进 Plan 正文（不得仅脑内推理）：
+
+| 文件:行 | 指令 | 依赖 context? | 处置 |
+| - | - | - | - |
+| frontend/Dockerfile:121 | `COPY package.json ...` | ✅ | → `COPY frontend/package.json ...` |
+| frontend/Dockerfile:135 | `COPY --from=builder /app/.next` | ❌ | 不改 |
+
+### 13.4 反面案例
+
+本节源自 PR #24（前端版本号展示）：Plan 把 `build.context` 从 `../frontend` 改到仓库根时，只审计了 dev/builder 阶段的 COPY，误判"production 阶段全是 `--from=builder` 不用改"，漏掉 production 阶段开头的 `COPY package.json` 与 `COPY render-worker/server.mjs`（均为直接 context 依赖），导致首次 `docker compose build` 失败（`"/package.json": not found`）。本地构建验证兜住了回归，但本可由事前全量审计避免。
