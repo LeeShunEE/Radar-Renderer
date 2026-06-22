@@ -66,7 +66,8 @@ test.describe("文件与素材旅程", () => {
 
   test("公共素材：全局 Tab 列出背景音乐资源", async ({ page }) => {
     await page.getByRole("tab", { name: "全局" }).click();
-    await expect(page.getByText("公共资源")).toBeVisible();
+    // 等待公共资源加载（usePublicAssets hook 初始化时异步获取）
+    await expect(page.getByText("公共资源")).toBeVisible({ timeout: 10000 });
     await expect(page.getByText(/\.flac/)).toBeVisible();
   });
 });
