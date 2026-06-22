@@ -77,7 +77,8 @@ jobs:
       - name: Run Playwright e2e tests
         run: |
           cd frontend
-          pnpm exec playwright test ../tests/testenv-integration/frontend/ --reporter=github
+          # playwright.config.ts 已定义 testDir，直接运行 test 命令
+          pnpm exec playwright test --reporter=github
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:13000
 
