@@ -23,12 +23,17 @@ cd backend && uv pip install -e ".[test,dev]"
 cd frontend && pnpm install
 ```
 
-Install the git hooks so the same checks run locally as in CI:
+Install the git hooks so the same checks run locally as in CI. **Git hooks are
+not version-controlled** — `git clone` never runs an installer — so you must run
+this **once on every new clone** (your machine, CI, new teammates):
 
 ```bash
-# links scripts/git-hooks/* into .git/hooks/
-bash scripts/init_env.sh   # or follow scripts/git-hooks/ manually
+bash scripts/install-hooks.sh   # lightweight: only installs hooks, no deps
+# or the full one-shot bootstrap (hooks + frontend + backend deps):
+bash scripts/init_env.sh
 ```
+
+Both set `core.hooksPath` to `scripts/git-hooks/` (cross-platform, no symlinks).
 
 ### 2. Developer Certificate of Origin (DCO) — required
 
@@ -164,11 +169,17 @@ cd backend && uv pip install -e ".[test,dev]"
 cd frontend && pnpm install
 ```
 
-安装 git hook，让本地跑与 CI 相同的检查：
+安装 git hook，让本地跑与 CI 相同的检查。**Git hook 不进版本控制**——`git clone`
+从不自动运行安装脚本——因此**每个新 clone**（你的机器、CI、新同事）都必须手动跑
+一次：
 
 ```bash
-bash scripts/init_env.sh   # 或手动参照 scripts/git-hooks/
+bash scripts/install-hooks.sh   # 轻量：只装 hook，不装依赖
+# 或一次性全量引导（hook + 前后端依赖）：
+bash scripts/init_env.sh
 ```
+
+两者都把 `core.hooksPath` 指向 `scripts/git-hooks/`（跨平台，无需软链）。
 
 ### 2. DCO 开发者来源证明（必填）
 
