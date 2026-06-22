@@ -57,6 +57,8 @@ services:
       RENDER_CONCURRENCY: ${RENDER_CONCURRENCY:-2}
       WORKER_BASE_URL: http://render-worker:3100
       RENDER_TIMEOUT_SECONDS: ${RENDER_TIMEOUT_SECONDS:-600}
+      # Public assets path (frontend public directory mounted for asset listing)
+      PUBLIC_ASSETS_PATH: /app/public_assets
       # OAuth (optional)
       OAUTH_GOOGLE_CLIENT_ID: ${OAUTH_GOOGLE_CLIENT_ID:-}
       OAUTH_GOOGLE_CLIENT_SECRET_SECRET_STRING: ${OAUTH_GOOGLE_CLIENT_SECRET:-}
@@ -69,6 +71,8 @@ services:
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-onboarding@resend.dev}
     volumes:
       - backend_storage:/app/storage
+      # Public assets: frontend/public mounted for backend to list music/silhouette files
+      - ../frontend/public:/app/public_assets:ro
     depends_on:
       db:
         condition: service_healthy
