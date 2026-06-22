@@ -4,6 +4,7 @@
 testenv 等环境通过环境变量注入连接配置（见 CLAUDE.md §3.3.1），不在仓库硬编码。
 """
 
+import os
 from pathlib import Path
 
 from pydantic import SecretStr
@@ -66,7 +67,10 @@ class Settings(BaseSettings):
     worker_base_url: str = "http://localhost:3100"
     render_timeout_seconds: int = 600
     # 公共资源（silhouettes / music 等静态素材所在目录）
-    public_assets_path: Path = _BACKEND_ROOT / ".." / "frontend" / "public"
+    # Docker 环境通过环境变量 PUBLIC_ASSETS_PATH 覆盖（见 deploy/docker-compose.yml）
+    public_assets_path: Path = Path(
+        os.getenv("PUBLIC_ASSETS_PATH", str(_BACKEND_ROOT / ".." / "frontend" / "public"))
+    )
 
     # 是否在应用启动时自动拉起队列消费协程（测试中关闭以保证确定性）
     render_queue_autostart: bool = True

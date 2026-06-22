@@ -57,6 +57,8 @@ services:
       - ../backend/app:/app/app:ro
       - ../backend/alembic:/app/alembic:ro
       - backend_storage:/app/storage
+      # Public assets: frontend/public mounted for backend to list music/silhouette files
+      - ../frontend/public:/app/public_assets:ro
     # Create storage directory and run migrations before starting
     entrypoint: ["sh", "-c", "mkdir -p /app/storage && cd /app && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"]
 
