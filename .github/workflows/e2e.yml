@@ -22,6 +22,11 @@ jobs:
         run: |
           cd deploy
           docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+        env:
+          # docker-compose.yml 要求必填的环境变量
+          # dev override 使用 SQLite，但这些变量仍需设置以通过 docker compose 解析阶段
+          POSTGRES_PASSWORD: devpass
+          JWT_SECRET_STRING: ci-test-secret-not-for-production
 
       # 安装 pnpm
       - name: Install pnpm
@@ -64,6 +69,9 @@ jobs:
           # 输出日志便于排查
           docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.dev.yml logs --tail=50
           exit 1
+        env:
+          POSTGRES_PASSWORD: devpass
+          JWT_SECRET_STRING: ci-test-secret-not-for-production
 
       # 运行 Playwright e2e 测试
       - name: Run Playwright e2e tests
@@ -86,3 +94,6 @@ jobs:
       - name: Stop testenv stack
         if: always()
         run: cd deploy && docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v
+        env:
+          POSTGRES_PASSWORD: devpass
+          JWT_SECRET_STRING: ci-test-secret-not-for-production
