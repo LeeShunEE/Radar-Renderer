@@ -73,6 +73,8 @@ services:
       - backend_storage:/app/storage
       # Public assets: frontend/public mounted for backend to list music/silhouette files
       - ../frontend/public:/app/public_assets:ro
+      # Render tmp: writable subdir for silhouette rewrite (worker reads via staticFile)
+      - render_tmp:/app/public_assets/_render_tmp
     depends_on:
       db:
         condition: service_healthy
@@ -140,6 +142,9 @@ services:
     volumes:
       - render_outputs:/app/output
       - backend_storage:/app/storage  # 共享 backend storage，让产物写入后可被 backend 读取
+      # Render tmp: shared with backend for silhouette rewrite temporary files
+      # Mounted to public subdir so staticFile() can read them
+      - render_tmp:/app/public/_render_tmp
     healthcheck:
       # 镜像（alpine + chromium/ffmpeg）未装 curl，但 busybox 自带 wget；
       # 用 curl 会让 healthcheck 永远 "curl: not found" 误报 unhealthy。
@@ -167,6 +172,8 @@ volumes:
     name: radar_backend_storage
   render_outputs:
     name: radar_render_outputs
+  render_tmp:
+    name: radar_render_tmp
 
 # ============================================
 # Network (optional, Coolify creates default)
