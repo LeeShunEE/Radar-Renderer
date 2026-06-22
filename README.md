@@ -1,5 +1,7 @@
 # Radar-Renderer
 
+**[Deployed service → https://雷达图.com/](https://radar.xn--30q18ry71c.com/)**
+
 [![CI](https://github.com/LeeShunEE/Radar-Renderer/actions/workflows/ci.yml/badge.svg)](https://github.com/LeeShunEE/Radar-Renderer/actions/workflows/ci.yml)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3-blue.svg)](./LICENSE)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
@@ -97,6 +99,8 @@ are **not** committed. Add your own assets to those directories locally.
 Contributions are welcome! Please read [`CONTRIBUTING.md`](./CONTRIBUTING.md)
 first — note that all commits must be **signed off** (DCO, `git commit -s`).
 By participating, you agree to abide by the [`Code of Conduct`](./CODE_OF_CONDUCT.md).
+
+**Full preview video → [Bilibili](https://www.bilibili.com/video/BV1zuLK6sE4a)**
 
 ## License
 
