@@ -58,6 +58,16 @@ uv pip install -e ".[test,dev]"
 uv run uvicorn app.main:app --reload
 ```
 
+### Git hook（每个 clone 装一次）
+
+安装本地 hook，让 `git commit` / `git push` 跑与 CI 相同的 lint + 测试。**Git hook
+不进版本控制**，因此每个新 clone（你的机器、CI、新同事）都必须手动跑一次：
+
+```bash
+bash scripts/install-hooks.sh   # 轻量：只装 hook，不装依赖
+# 或一次性全量引导（hook + 前后端依赖）：bash scripts/init_env.sh
+```
+
 ### 环境变量
 
 复制模板并填入真实值（真实 `.env` 已被 git 忽略，**切勿提交任何密钥**）：

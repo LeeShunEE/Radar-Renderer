@@ -59,6 +59,17 @@ uv pip install -e ".[test,dev]"
 uv run uvicorn app.main:app --reload
 ```
 
+### Git hooks (run once per clone)
+
+Install the local hooks so `git commit` / `git push` run the same lint + tests as
+CI. **Git hooks are not version-controlled**, so you must run this once on every
+new clone (your machine, CI, teammates):
+
+```bash
+bash scripts/install-hooks.sh   # lightweight: only installs hooks, no deps
+# or the full bootstrap (hooks + frontend + backend deps): bash scripts/init_env.sh
+```
+
 ### Environment variables
 
 Copy the templates and fill in real values (the actual `.env` files are
