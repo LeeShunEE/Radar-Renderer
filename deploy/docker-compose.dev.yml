@@ -24,6 +24,9 @@ services:
   backend:
     build:
       target: development
+      args:
+        # 国内本地开发走中国镜像（生产/Coolify 不传 → 官方源）
+        PIP_INDEX: https://mirrors.aliyun.com/pypi/simple/
     environment:
       # Use SQLite for development (uncomment to use PostgreSQL)
       DATABASE_URL: sqlite+aiosqlite:///./storage/dev.db
@@ -60,6 +63,10 @@ services:
   frontend:
     build:
       target: development
+      args:
+        # 国内本地开发走中国镜像（生产/Coolify 不传 → 官方源）
+        ALPINE_MIRROR: mirrors.aliyun.com
+        NPM_REGISTRY: https://registry.npmmirror.com
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:18000
     ports:
@@ -88,6 +95,10 @@ services:
   render-worker:
     build:
       target: development
+      args:
+        # 国内本地开发走中国镜像（生产/Coolify 不传 → 官方源）
+        ALPINE_MIRROR: mirrors.aliyun.com
+        NPM_REGISTRY: https://registry.npmmirror.com
     environment:
       WORKER_PORT: 3100
     ports:
