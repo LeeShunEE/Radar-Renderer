@@ -9,27 +9,17 @@
  *
  * 回归点（bug #4）：useServerRender 监听 effect 此前用 isPolling 作前置守卫，
  * 而轮询拉到 done 的同一批次会 setTask(done)+stop()(isPolling=false)，
- * React 批处理后 effect 永远看不到 done → 不触发下载。本用例以“下载事件必触发”守门。
+ * React 批处理后 effect 永远看不到 done → 不触发下载。本用例以"下载事件必触发"守门。
  */
 import { test, expect, type Page } from "@playwright/test";
+import { registerAndLanding } from "./auth-helpers";
 
 // 真实渲染较慢（Remotion 出帧），单用例放宽到 2 分钟。
 test.setTimeout(120_000);
 
-async function registerAndLanding(page: Page): Promise<void> {
-  const tag = `${Date.now()}_${Math.floor(Math.random() * 1e4)}`;
-  await page.goto("/register");
-  await page.getByPlaceholder("输入用户名（3-64 字符）").fill(`e2e_${tag}`);
-  await page.getByPlaceholder("输入邮箱").fill(`e2e_${tag}@test.com`);
-  await page.getByPlaceholder("输入密码（至少 8 位）").fill("password123");
-  await page.getByPlaceholder("再次输入密码").fill("password123");
-  await page.getByRole("button", { name: "注册" }).click();
-  await expect(page).toHaveURL(/\/app$/);
-}
-
 async function submitMp4Render(page: Page): Promise<void> {
   await page.getByRole("tab", { name: "导出" }).click();
-  // 默认渲染方式即“服务端”。
+  // 默认渲染方式即"服务端"。
   await page.getByRole("button", { name: "导出当前页 MP4" }).click();
 }
 
@@ -48,7 +38,7 @@ test.describe("服务端渲染任务旅程", () => {
 
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/^render-\d+\.mp4$/);
-    // 下载完成后状态文案落到“下载完成”。
+    // 下载完成后状态文案落到"下载完成"。
     await expect(page.getByText("下载完成")).toBeVisible({ timeout: 15_000 });
   });
 

@@ -71,6 +71,9 @@ class Settings(BaseSettings):
     # 是否在应用启动时自动拉起队列消费协程（测试中关闭以保证确定性）
     render_queue_autostart: bool = True
 
+    # 测试环境标识（启用测试端点，生产必须 false）
+    testing: bool = False
+
     model_config = SettingsConfigDict(
         extra="ignore",
         env_file=_BACKEND_ROOT / ".env",

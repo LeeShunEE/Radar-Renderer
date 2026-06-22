@@ -96,3 +96,16 @@ class VerificationService:
         """生成纯数字验证码。"""
         # 验证码属于安全凭据，须用密码学安全随机源（secrets），避免可预测。
         return "".join(secrets.choice(string.digits) for _ in range(length))
+
+    async def get_latest_code(self, email: str, purpose: str) -> str | None:
+        """获取最新未使用的验证码（仅测试用）。
+
+        Args:
+            email: 目标邮箱
+            purpose: 用途（"register" | "reset_password"）
+
+        Returns:
+            最新未使用验证码，若无则 None
+        """
+        orm = await self._dao.get_latest_unused(email, purpose)
+        return orm.code if orm else None

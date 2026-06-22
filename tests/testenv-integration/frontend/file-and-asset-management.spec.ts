@@ -9,23 +9,13 @@
  * Blob 下载（点击文件名 → fetchUploadBlob → 触发保存）。
  */
 import path from "node:path";
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
+import { registerAndLanding } from "./auth-helpers";
 
 const SAMPLE_PNG = path.join(
   __dirname,
   "../../data/frontend/file-and-asset-management/sample.png",
 );
-
-async function registerAndLanding(page: Page): Promise<void> {
-  const tag = `${Date.now()}_${Math.floor(Math.random() * 1e4)}`;
-  await page.goto("/register");
-  await page.getByPlaceholder("输入用户名（3-64 字符）").fill(`e2e_${tag}`);
-  await page.getByPlaceholder("输入邮箱").fill(`e2e_${tag}@test.com`);
-  await page.getByPlaceholder("输入密码（至少 8 位）").fill("password123");
-  await page.getByPlaceholder("再次输入密码").fill("password123");
-  await page.getByRole("button", { name: "注册" }).click();
-  await expect(page).toHaveURL(/\/app$/);
-}
 
 test.describe("文件与素材旅程", () => {
   test.beforeEach(async ({ page }) => {

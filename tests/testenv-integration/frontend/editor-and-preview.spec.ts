@@ -7,18 +7,8 @@
  * 说明：预览基于 Remotion <Player>，其渲染内容用 DOM 断言校验（svg/polygon/文本），
  * 不依赖像素截图（截图对 Player 内容捕获不可靠）。
  */
-import { test, expect, type Page } from "@playwright/test";
-
-async function registerAndLanding(page: Page): Promise<void> {
-  const tag = `${Date.now()}_${Math.floor(Math.random() * 1e4)}`;
-  await page.goto("/register");
-  await page.getByPlaceholder("输入用户名（3-64 字符）").fill(`e2e_${tag}`);
-  await page.getByPlaceholder("输入邮箱").fill(`e2e_${tag}@test.com`);
-  await page.getByPlaceholder("输入密码（至少 8 位）").fill("password123");
-  await page.getByPlaceholder("再次输入密码").fill("password123");
-  await page.getByRole("button", { name: "注册" }).click();
-  await expect(page).toHaveURL(/\/app$/);
-}
+import { test, expect } from "@playwright/test";
+import { registerAndLanding } from "./auth-helpers";
 
 test.describe("编辑器与预览旅程", () => {
   test.beforeEach(async ({ page }) => {
