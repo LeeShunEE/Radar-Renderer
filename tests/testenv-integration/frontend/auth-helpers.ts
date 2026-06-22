@@ -51,9 +51,9 @@ export async function registerAndLanding(page: Page): Promise<{
     timeout: 10_000,
   });
 
-  // Step 2: 获取验证码并输入
-  const baseURL = "http://localhost:13000";
-  const code = await fetchVerificationCode(baseURL, email);
+  // Step 2: 获取验证码并输入（取码走后端测试端点，地址由测试系统注入，本地缺省回退）
+  const apiBaseURL = process.env.PLAYWRIGHT_API_URL ?? "http://localhost:18000";
+  const code = await fetchVerificationCode(apiBaseURL, email);
   await page.getByPlaceholder("输入 6 位验证码").fill(code);
   await page.getByRole("button", { name: "注册" }).click();
 

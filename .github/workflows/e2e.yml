@@ -84,6 +84,7 @@ jobs:
           pnpm exec playwright test --reporter=github
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:13000
+          PLAYWRIGHT_API_URL: http://localhost:18000        # 后端地址，供 auth-helpers 取码
           # 让 Node.js 从 frontend/node_modules 解析模块（测试文件在 tests 目录下）
           NODE_PATH: ${{ github.workspace }}/frontend/node_modules
 
