@@ -59,6 +59,8 @@ services:
       - backend_storage:/app/storage
       # Public assets: frontend/public mounted for backend to list music/silhouette files
       - ../frontend/public:/app/public_assets:ro
+      # Render tmp: writable subdir for silhouette rewrite (worker reads via staticFile)
+      - render_tmp:/app/public_assets/_render_tmp
     # Create storage directory and run migrations before starting
     entrypoint: ["sh", "-c", "mkdir -p /app/storage && cd /app && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"]
 
@@ -115,3 +117,6 @@ services:
       - ../frontend/render-worker:/app/render-worker:ro
       - render_outputs:/app/output
       - backend_storage:/app/storage  # 共享 backend storage，让产物写入后可被 backend 读取
+      # Render tmp: shared with backend for silhouette rewrite temporary files
+      # Mounted to public subdir so staticFile() can read them
+      - render_tmp:/app/public/_render_tmp
