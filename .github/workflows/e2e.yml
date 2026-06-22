@@ -56,8 +56,8 @@ jobs:
         run: |
           echo "等待服务就绪..."
           for i in {1..30}; do
-            backend_ready=$(curl -sf http://localhost:18000/api/v1/health && echo "ok" || echo "fail")
-            frontend_ready=$(curl -sf http://localhost:13000/api/health && echo "ok" || echo "fail")
+            backend_ready=$(curl -sf http://localhost:18000/api/v1/health > /dev/null && echo "ok" || echo "fail")
+            frontend_ready=$(curl -sf http://localhost:13000/api/health > /dev/null && echo "ok" || echo "fail")
             if [ "$backend_ready" = "ok" ] && [ "$frontend_ready" = "ok" ]; then
               echo "所有服务就绪 ✓"
               exit 0
