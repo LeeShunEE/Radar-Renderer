@@ -435,6 +435,10 @@ AI 辅助完成需署名：
 Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
 ```
 
+### 10.4 DCO 签名（必填）
+
+每个 commit 必须带 `Signed-off-by`（Developer Certificate of Origin）。用 `git commit -s` 自动追加 `Signed-off-by: <user.name> <user.email>`；与 §10.3 的 `Co-Authored-By` **并存**，不是替代。`.github/workflows/dco.yml` 的 CI 会拒绝缺少**匹配 commit author** 的 `Signed-off-by` 的 PR（详见 [`CONTRIBUTING.md`](./CONTRIBUTING.md) §2）。补签：`git commit --amend -s` 或 `git rebase --signoff <base>`。
+
 ---
 
 ## 11. 前端包管理器
