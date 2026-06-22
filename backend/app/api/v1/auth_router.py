@@ -53,9 +53,10 @@ async def send_verification_code(
     verification_service = VerificationService(session)
     code = await verification_service.generate_code(payload.email, payload.purpose)
 
-    # 发送邮件
-    email_service = EmailService()
-    await email_service.send_verification_code(payload.email, code, payload.purpose)
+    # 测试环境（TESTING=true）不连真实邮件服务，验证码经 /test/latest-code 取回
+    if not settings.testing:
+        email_service = EmailService()
+        await email_service.send_verification_code(payload.email, code, payload.purpose)
 
     return {"message": "验证码已发送"}
 
