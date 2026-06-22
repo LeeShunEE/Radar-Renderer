@@ -1,8 +1,9 @@
 """认证路由：验证码发送、注册、登录、刷新、当前用户、OAuth。"""
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, HTTPException, status
 
 from app.api.deps import CurrentUserDep, SessionDep
+from app.core.config import settings
 from app.core.security import (
     TokenType,
     create_access_token,
@@ -263,3 +264,32 @@ async def unbind_oauth_account(
     oauth_service = OAuthService(session)
     success = await oauth_service.unbind_oauth_account(current_user.id, provider)
     return {"success": success}
+
+
+# === 测试端点（仅测试环境启用）===
+
+
+@router.get("/test/latest-code")
+async def get_latest_verification_code(
+    *,
+    email: str,
+    purpose: str = "register",
+    session: SessionDep,
+) -> dict[str, str | None]:
+    """获取最新验证码（仅测试环境）。
+
+    通过环境变量 TESTING=true 启用，生产环境返回 404。
+
+    Args:
+        email: 目标邮箱
+        purpose: 用途（"register" | "reset_password"），默认 "register"
+
+    Returns:
+        {"code": "123456"} 或 {"code": null}
+    """
+    if not settings.testing:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    verification_service = VerificationService(session)
+    code = await verification_service.get_latest_code(email, purpose)
+    return {"code": code}

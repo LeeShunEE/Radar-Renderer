@@ -38,6 +38,8 @@ services:
       JWT_REFRESH_EXPIRE_MINUTES: 10080
       # Storage
       STORAGE_ROOT: /app/storage
+      # Test environment（启用测试端点如 /api/v1/auth/test/latest-code）
+      TESTING: "true"
       # Render worker
       RENDER_CONCURRENCY: 2
       WORKER_BASE_URL: http://render-worker:3100
