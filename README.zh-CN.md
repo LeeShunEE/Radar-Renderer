@@ -1,5 +1,7 @@
 # Radar-Renderer
 
+**[已部署服务 → https://雷达图.com/](https://radar.xn--30q18ry71c.com/)**
+
 [![CI](https://github.com/LeeShunEE/Radar-Renderer/actions/workflows/ci.yml/badge.svg)](https://github.com/LeeShunEE/Radar-Renderer/actions/workflows/ci.yml)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPLv3-blue.svg)](./LICENSE)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](./CONTRIBUTING.md)
@@ -94,6 +96,8 @@ cd frontend && pnpm test:unit && pnpm test:integration
 欢迎贡献！请先阅读 [`CONTRIBUTING.md`](./CONTRIBUTING.md)——注意所有 commit
 必须带 **DCO 签名**（`git commit -s`）。参与本项目即表示同意遵守
 [`行为准则`](./CODE_OF_CONDUCT.md)。
+
+**完整预览视频 → [Bilibili](https://www.bilibili.com/video/BV1zuLK6sE4a)**
 
 ## 许可证
 
