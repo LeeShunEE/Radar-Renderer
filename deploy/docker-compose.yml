@@ -92,8 +92,8 @@ services:
   # ============================================
   frontend:
     build:
-      context: ../frontend
-      dockerfile: ../deploy/frontend/Dockerfile
+      context: ..
+      dockerfile: ./deploy/frontend/Dockerfile
       target: production
       args:
         # NEXT_PUBLIC_API_URL is needed at build time for Next.js client-side code
@@ -125,8 +125,8 @@ services:
   # ============================================
   render-worker:
     build:
-      context: ../frontend
-      dockerfile: ../deploy/render-worker/Dockerfile
+      context: ..
+      dockerfile: ./deploy/render-worker/Dockerfile
       target: production
     environment:
       WORKER_PORT: 3100
