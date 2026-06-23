@@ -28,6 +28,8 @@ class TaskResponse(BaseModel):
     # 渲染中逐帧进度（worker 旁路回调提供）；非运行中或未上报时为 None。
     rendered_frames: int | None = None
     total_frames: int | None = None
+    # 全局队列规模（排队 + 运行中），排队态展示「共 N 个」。
+    queue_size: int = 0
 
     @classmethod
     def from_domain(cls, view: TaskView) -> "TaskResponse":
@@ -48,6 +50,7 @@ class TaskResponse(BaseModel):
             eta_seconds=view.eta_seconds,
             rendered_frames=view.rendered_frames,
             total_frames=view.total_frames,
+            queue_size=view.queue_size,
         )
 
 

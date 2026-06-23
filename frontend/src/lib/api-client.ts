@@ -327,4 +327,5 @@ export interface TaskResponse {
   eta_seconds: number | null;
   rendered_frames: number | null;
   total_frames: number | null;
+  queue_size: number;
 }

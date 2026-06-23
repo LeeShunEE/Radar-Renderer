@@ -40,7 +40,8 @@ export function ExportPanel({ props, config }: ExportPanelProps) {
       case "queued": {
         const pos = serverRender.currentTask?.position ?? 0;
         const eta = serverRender.currentTask?.eta_seconds ?? 0;
-        return `排队中（第 ${pos} 位，预计 ${formatEtaSeconds(eta)}）`;
+        const size = serverRender.currentTask?.queue_size ?? 0;
+        return `排队中（第 ${pos} 位 / 共 ${size} 个，预计 ${formatEtaSeconds(eta)}）`;
       }
       case "rendering":
         return null;

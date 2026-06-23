@@ -15,6 +15,7 @@ const { serverState, localState } = vi.hoisted(() => ({
       eta_seconds?: number | null;
       rendered_frames?: number | null;
       total_frames?: number | null;
+      queue_size?: number;
     },
     error: null as string | null,
     submitRender: vi.fn(),
@@ -62,12 +63,12 @@ describe("ExportPanel", () => {
     expect(screen.getByText("导出当前页 WebM")).toBeInTheDocument();
   });
 
-  it("服务端排队中显示位置与格式化预计时间", () => {
+  it("服务端排队中显示位置、队列规模与格式化预计时间", () => {
     serverState.status = "queued";
-    serverState.currentTask = { position: 2, eta_seconds: 90 };
+    serverState.currentTask = { position: 2, eta_seconds: 90, queue_size: 5 };
     render(<ExportPanel props={props} config={config} />);
     expect(screen.getByText(/排队中/)).toBeInTheDocument();
-    expect(screen.getByText(/第 2 位/)).toBeInTheDocument();
+    expect(screen.getByText(/第 2 位 \/ 共 5 个/)).toBeInTheDocument();
     // 90s 经 formatEtaSeconds → "1 分 30 秒"
     expect(screen.getByText(/1 分 30 秒/)).toBeInTheDocument();
   });

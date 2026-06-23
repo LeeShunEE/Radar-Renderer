@@ -63,6 +63,7 @@ class TestView:
         queue.position.return_value = 0
         queue.eta_seconds.return_value = 12.0
         queue.progress.return_value = (30, 120)
+        queue.queue_size.return_value = 3
         service = _make_service(dao, queue)
 
         view = await service.get_for_user(task_id=1, user_id=10)
@@ -76,11 +77,13 @@ class TestView:
         queue.position.return_value = 0
         queue.eta_seconds.return_value = None
         queue.progress.return_value = None
+        queue.queue_size.return_value = 0
         service = _make_service(dao, queue)
 
         view = await service.get_for_user(task_id=1, user_id=10)
         assert view.rendered_frames is None
         assert view.total_frames is None
+        assert view.queue_size == 0
 
 
 class TestGetForUser:
@@ -91,6 +94,7 @@ class TestGetForUser:
         queue.position.return_value = 0
         queue.eta_seconds.return_value = None
         queue.progress.return_value = None
+        queue.queue_size.return_value = 1
         service = _make_service(dao, queue)
 
         view = await service.get_for_user(task_id=1, user_id=10)
