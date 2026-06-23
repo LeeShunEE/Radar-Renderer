@@ -144,11 +144,12 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV NODE_ENV=production
 ENV WORKER_PORT=3100
 
-# Create non-root user for security
-# Let Alpine pick free IDs: node:20-alpine already ships a user at uid/gid 1000.
-RUN addgroup --system appgroup \
-    && adduser --system --ingroup appgroup --shell /bin/sh appuser
-
+# Run as the preexisting `node` user (uid/gid 1000) that node:20-alpine ships.
+# This MUST match the backend's appuser uid (1000): the worker writes rendered
+# videos into the shared `backend_storage` volume at paths whose dirs the backend
+# creates (FileService.outputs_dir mkdir, owner 1000, mode 0755). A non-matching
+# uid (e.g. a `--system` appuser at uid 100) cannot write into those dirs → EACCES,
+# so renders fail at the worker output-write step.
 # Set working directory
 WORKDIR /app
 
@@ -164,23 +165,23 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --prod
 
 # Copy render worker server
-COPY --chown=appuser:appgroup frontend/render-worker/server.mjs ./render-worker/server.mjs
+COPY --chown=node:node frontend/render-worker/server.mjs ./render-worker/server.mjs
 
 # Copy source code needed for Remotion bundling (whole src/: components pull in
 # src/lib/* and src/types/*, and tsconfig "@/*" alias resolves to ./src/*).
-COPY --from=builder --chown=appuser:appgroup /app/src ./src
-COPY --from=builder --chown=appuser:appgroup /app/styles ./styles
-COPY --from=builder --chown=appuser:appgroup /app/public ./public
-COPY --from=builder --chown=appuser:appgroup /app/tsconfig.json ./
+COPY --from=builder --chown=node:node /app/src ./src
+COPY --from=builder --chown=node:node /app/styles ./styles
+COPY --from=builder --chown=node:node /app/public ./public
+COPY --from=builder --chown=node:node /app/tsconfig.json ./
 
 # Create output directory, plus a writable webpack cache dir (node_modules is
-# root-owned; without this appuser hits EACCES on /app/node_modules/.cache and
-# bundling can't be cached across renders).
+# root-owned; without this the node user hits EACCES on /app/node_modules/.cache
+# and bundling can't be cached across renders).
 RUN mkdir -p /app/output /app/node_modules/.cache \
-    && chown -R appuser:appgroup /app/output /app/node_modules/.cache
+    && chown -R node:node /app/output /app/node_modules/.cache
 
-# Switch to non-root user
-USER appuser
+# Switch to non-root node user (uid 1000, matches backend appuser)
+USER node
 
 # Production server runs on port 3100
 EXPOSE 3100
