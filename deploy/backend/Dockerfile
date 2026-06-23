@@ -117,6 +117,15 @@ COPY --from=builder --chown=appuser:appgroup /app/alembic.ini .
 # Create storage directory for uploads/outputs
 RUN mkdir -p /app/storage && chown -R appuser:appgroup /app/storage
 
+# Pre-create the render_tmp mountpoint owned by appuser. The `render_tmp`
+# named volume mounts at /app/public_assets/_render_tmp; Docker copies this
+# directory's ownership into a fresh (empty) volume on first mount, so the
+# non-root appuser can mkdir token subdirs during silhouette rewrite.
+# Without this the volume is created root-owned and renders with uploaded
+# silhouettes fail with PermissionError (silhouette_rewrite.py mkdir).
+# (Dev backend runs as root via the `development` target, so it never hit this.)
+RUN mkdir -p /app/public_assets/_render_tmp && chown -R appuser:appgroup /app/public_assets
+
 # Switch to non-root user
 USER appuser
 
