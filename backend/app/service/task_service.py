@@ -12,11 +12,13 @@ from app.service.queue_service import RenderQueue
 
 
 class TaskView(BaseModel):
-    """任务 + 队列派生信息（排位、ETA），供接口层组装响应。"""
+    """任务 + 队列派生信息（排位、ETA、渲染进度），供接口层组装响应。"""
 
     task: RenderTask
     position: int
     eta_seconds: float | None
+    rendered_frames: int | None = None
+    total_frames: int | None = None
 
 
 class TaskService:
@@ -27,10 +29,14 @@ class TaskService:
         self._queue = queue
 
     def _view(self, task: RenderTask) -> TaskView:
+        progress = self._queue.progress(task.id)
+        rendered, total = progress if progress is not None else (None, None)
         return TaskView(
             task=task,
             position=self._queue.position(task.id),
             eta_seconds=self._queue.eta_seconds(task.id),
+            rendered_frames=rendered,
+            total_frames=total,
         )
 
     async def list_for_user(self, user_id: int) -> tuple[int, list[TaskView]]:

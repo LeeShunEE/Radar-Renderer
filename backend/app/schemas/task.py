@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.render_task import Codec, RenderMode, RenderStatus
 from app.service.task_service import TaskView
@@ -25,6 +25,9 @@ class TaskResponse(BaseModel):
     finished_at: datetime | None = None
     position: int
     eta_seconds: float | None
+    # 渲染中逐帧进度（worker 旁路回调提供）；非运行中或未上报时为 None。
+    rendered_frames: int | None = None
+    total_frames: int | None = None
 
     @classmethod
     def from_domain(cls, view: TaskView) -> "TaskResponse":
@@ -43,6 +46,8 @@ class TaskResponse(BaseModel):
             finished_at=t.finished_at,
             position=view.position,
             eta_seconds=view.eta_seconds,
+            rendered_frames=view.rendered_frames,
+            total_frames=view.total_frames,
         )
 
 
@@ -51,3 +56,10 @@ class TaskListResponse(BaseModel):
 
     queue_size: int
     tasks: list[TaskResponse]
+
+
+class RenderProgressRequest(BaseModel):
+    """worker 旁路上报的渲染进度（内部端点入参）。"""
+
+    rendered_frames: int = Field(ge=0, description="已渲染帧数")
+    total_frames: int = Field(ge=0, description="合成总帧数")

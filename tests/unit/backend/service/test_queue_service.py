@@ -5,7 +5,8 @@
 """
 
 import asyncio
-from unittest.mock import AsyncMock
+from contextlib import asynccontextmanager
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -110,3 +111,54 @@ class TestAverageDuration:
         q = _make_queue()
         q._durations.extend([10.0, 20.0, 30.0])
         assert q.average_duration() == 20.0
+
+
+class TestProgress:
+    def test_update_progress_only_for_running(self):
+        q = _make_queue()
+        q._running[10] = 0.0
+        q.update_progress(10, 30, 120)
+        assert q.progress(10) == (30, 120)
+
+    def test_update_progress_ignored_when_not_running(self):
+        q = _make_queue()
+        # 迟到/越权上报：任务不在 running，应被忽略
+        q.update_progress(99, 30, 120)
+        assert q.progress(99) is None
+
+    def test_progress_unknown_returns_none(self):
+        q = _make_queue()
+        assert q.progress(999) is None
+
+    def test_forget_clears_progress(self):
+        q = _make_queue()
+        q._running[10] = 0.0
+        q.update_progress(10, 30, 120)
+        q.forget(10)
+        assert q.progress(10) is None
+
+    def test_reset_clears_progress(self):
+        q = _make_queue()
+        q._running[10] = 0.0
+        q.update_progress(10, 30, 120)
+        q.reset()
+        assert q.progress(10) is None
+
+    async def test_process_one_clears_progress_in_finally(self):
+        """渲染结束后 _process_one 的 finally 必须清理 running + progress。"""
+        q = _make_queue()
+
+        @asynccontextmanager
+        async def _factory():
+            yield AsyncMock()
+
+        q._session_factory = _factory
+        dao = AsyncMock()
+        dao.get.return_value = None  # 提前返回，验证 finally 仍跑清理
+        # 预置一条进度（模拟回调已写入），_process_one 的 finally 应清掉
+        q._progress[10] = (5, 10)
+        with patch("app.service.queue_service.RenderTaskDAO", return_value=dao):
+            await q._process_one(10)
+
+        assert 10 not in q._running
+        assert q.progress(10) is None

@@ -50,6 +50,8 @@ services:
       RENDER_CONCURRENCY: 2
       WORKER_BASE_URL: http://render-worker:3100
       RENDER_TIMEOUT_SECONDS: 600
+      # 进度回调共享密钥（与 render-worker 的 RENDER_CALLBACK_TOKEN 同值）
+      RENDER_CALLBACK_TOKEN_SECRET_STRING: dev-only-render-callback-token
     ports:
       - "18000:8000"
     volumes:
@@ -109,6 +111,9 @@ services:
         NPM_REGISTRY: https://registry.npmmirror.com
     environment:
       WORKER_PORT: 3100
+      # 进度回调目标 + 共享密钥（与 backend 的 RENDER_CALLBACK_TOKEN_SECRET_STRING 同值）
+      BACKEND_INTERNAL_URL: http://backend:8000
+      RENDER_CALLBACK_TOKEN: dev-only-render-callback-token
     ports:
       - "13100:3100"
     volumes:

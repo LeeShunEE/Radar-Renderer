@@ -10,7 +10,12 @@ import { makePage, makeMultiPageConfig } from "./_fixtures";
 const { serverState, localState } = vi.hoisted(() => ({
   serverState: {
     status: "idle" as string,
-    currentTask: null as null | { position: number; eta_seconds: number },
+    currentTask: null as null | {
+      position?: number;
+      eta_seconds?: number | null;
+      rendered_frames?: number | null;
+      total_frames?: number | null;
+    },
     error: null as string | null,
     submitRender: vi.fn(),
     cancelRender: vi.fn(),
@@ -57,12 +62,37 @@ describe("ExportPanel", () => {
     expect(screen.getByText("导出当前页 WebM")).toBeInTheDocument();
   });
 
-  it("服务端排队中显示位置与预计秒数", () => {
+  it("服务端排队中显示位置与格式化预计时间", () => {
     serverState.status = "queued";
-    serverState.currentTask = { position: 2, eta_seconds: 30 };
+    serverState.currentTask = { position: 2, eta_seconds: 90 };
     render(<ExportPanel props={props} config={config} />);
     expect(screen.getByText(/排队中/)).toBeInTheDocument();
     expect(screen.getByText(/第 2 位/)).toBeInTheDocument();
+    // 90s 经 formatEtaSeconds → "1 分 30 秒"
+    expect(screen.getByText(/1 分 30 秒/)).toBeInTheDocument();
+  });
+
+  it("服务端渲染中显示进度条 + 帧数 + 剩余时间", () => {
+    serverState.status = "rendering";
+    serverState.currentTask = {
+      rendered_frames: 60,
+      total_frames: 120,
+      eta_seconds: 30,
+    };
+    render(<ExportPanel props={props} config={config} />);
+    expect(screen.getByText(/第 60\/120 帧/)).toBeInTheDocument();
+    expect(screen.getByText(/预计剩余 30 秒/)).toBeInTheDocument();
+  });
+
+  it("服务端渲染中无帧数时退回「渲染中...」", () => {
+    serverState.status = "rendering";
+    serverState.currentTask = {
+      rendered_frames: null,
+      total_frames: null,
+      eta_seconds: null,
+    };
+    render(<ExportPanel props={props} config={config} />);
+    expect(screen.getByText(/渲染中\.\.\./)).toBeInTheDocument();
   });
 
   it("服务端失败显示错误文案", () => {

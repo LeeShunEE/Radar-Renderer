@@ -6,11 +6,13 @@
 import { useState } from "react";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
+import { Progress } from "../ui/progress";
 import type { RadarVideoProps, MultiPageConfig } from "../../types/radar";
 import { calculateDuration, VIDEO_FPS } from "../../types/constants";
 import { useServerRender } from "../../hooks/useServerRender";
 import { useLocalRender } from "../../hooks/useLocalRender";
 import { applyGlobalOverride } from "../../lib/global-override";
+import { formatEtaSeconds } from "../../lib/format";
 
 type ExportPanelProps = {
   props: RadarVideoProps;
@@ -28,7 +30,7 @@ export function ExportPanel({ props, config }: ExportPanelProps) {
     0,
   );
 
-  // 服务端渲染状态文案
+  // 服务端渲染状态文案（rendering 走下方独立进度区，这里返回 null）
   const getServerStatusText = () => {
     switch (serverRender.status) {
       case "idle":
@@ -38,10 +40,10 @@ export function ExportPanel({ props, config }: ExportPanelProps) {
       case "queued": {
         const pos = serverRender.currentTask?.position ?? 0;
         const eta = serverRender.currentTask?.eta_seconds ?? 0;
-        return `排队中（第 ${pos} 位，预计 ${eta} 秒）`;
+        return `排队中（第 ${pos} 位，预计 ${formatEtaSeconds(eta)}）`;
       }
       case "rendering":
-        return "渲染中...";
+        return null;
       case "downloading":
         return "完成！正在下载...";
       case "done":
@@ -49,6 +51,30 @@ export function ExportPanel({ props, config }: ExportPanelProps) {
       case "failed":
         return `失败：${serverRender.error}`;
     }
+  };
+
+  // 服务端渲染中进度区：进度条 + 帧数 + 运行中剩余 ETA
+  const renderProgress = () => {
+    if (serverRender.status !== "rendering") return null;
+    const task = serverRender.currentTask;
+    const rendered = task?.rendered_frames ?? null;
+    const total = task?.total_frames ?? null;
+    const eta = task?.eta_seconds ?? null;
+    const hasFrames = total !== null && total > 0 && rendered !== null;
+    const value = hasFrames ? (rendered / total) * 100 : 0;
+
+    return (
+      <div className="space-y-1">
+        <Progress value={value} />
+        <p className="text-xs text-muted-foreground">
+          {hasFrames
+            ? `渲染中 第 ${rendered}/${total} 帧${
+                eta !== null ? ` · 预计剩余 ${formatEtaSeconds(eta)}` : ""
+              }`
+            : "渲染中..."}
+        </p>
+      </div>
+    );
   };
 
   // 本地渲染状态文案
@@ -120,6 +146,9 @@ export function ExportPanel({ props, config }: ExportPanelProps) {
               {getServerStatusText()}
             </p>
           )}
+
+          {/* 渲染中进度 */}
+          {renderProgress()}
 
           {/* 单页导出 */}
           <div className="space-y-2">

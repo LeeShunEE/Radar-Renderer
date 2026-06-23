@@ -16,6 +16,7 @@ from app.core.exceptions import RenderFailedError
 class WorkerRenderRequest(BaseModel):
     """发给 worker 的渲染请求。"""
 
+    task_id: int  # 供 worker 反向上报渲染进度（旁路回调）时定位任务
     mode: str  # "single" | "multi"
     codec: str  # "h264" | "gif"
     output_path: str
@@ -40,6 +41,7 @@ class RenderWorkerClient:
     async def render(self, request: WorkerRenderRequest) -> WorkerRenderResult:
         """提交一次渲染；非 2xx 或网络错误均抛 ``RenderFailedError``。"""
         payload = {
+            "taskId": request.task_id,
             "mode": request.mode,
             "codec": request.codec,
             "outputPath": request.output_path,

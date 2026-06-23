@@ -4,11 +4,13 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { useTaskQueue } from "@/hooks/useTaskQueue";
 import { TaskStatusBadge } from "./TaskStatusBadge";
 import { TaskEtaDisplay } from "./TaskEtaDisplay";
 import { RefreshCw, Trash2, Download, Clock } from "lucide-react";
 import { files } from "@/lib/api-client";
+import { formatEtaSeconds } from "@/lib/format";
 
 export function TaskQueuePanel() {
   const { tasks, queueSize, loading, error, refreshTasks, deleteTask } = useTaskQueue();
@@ -98,6 +100,28 @@ export function TaskQueuePanel() {
               {/* ETA */}
               {task.status === "queued" && (
                 <TaskEtaDisplay etaSeconds={task.eta_seconds} position={task.position} />
+              )}
+
+              {/* 运行中进度条 + 剩余 ETA */}
+              {task.status === "running" && (
+                <div className="flex items-center gap-2 min-w-0 flex-1 max-w-[240px]">
+                  <Progress
+                    value={
+                      task.total_frames && task.total_frames > 0 && task.rendered_frames !== null
+                        ? (task.rendered_frames / task.total_frames) * 100
+                        : 0
+                    }
+                    className="flex-1"
+                  />
+                  <span className="text-xs text-muted-foreground shrink-0 whitespace-nowrap">
+                    {task.total_frames && task.total_frames > 0 && task.rendered_frames !== null
+                      ? `${task.rendered_frames}/${task.total_frames}`
+                      : "渲染中"}
+                    {task.eta_seconds !== null && task.eta_seconds > 0
+                      ? ` · 剩 ${formatEtaSeconds(task.eta_seconds)}`
+                      : ""}
+                  </span>
+                </div>
               )}
 
               {/* 耗时 */}

@@ -325,4 +325,6 @@ export interface TaskResponse {
   finished_at: string | null;
   position: number;
   eta_seconds: number | null;
+  rendered_frames: number | null;
+  total_frames: number | null;
 }

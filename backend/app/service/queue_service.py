@@ -41,6 +41,8 @@ class RenderQueue:
         self._queue: asyncio.Queue[int] = asyncio.Queue()
         self._pending: list[int] = []  # 已排队但未开始的任务 id（有序）
         self._running: dict[int, float] = {}  # 运行中任务 id -> 起始 monotonic
+        # 运行中任务 id -> (已渲染帧, 总帧)，由 worker 旁路回调更新（瞬时内存态）。
+        self._progress: dict[int, tuple[int, int]] = {}
         self._canceled: set[int] = set()
         self._durations: deque[float] = deque(maxlen=20)
         self._consumers: list[asyncio.Task[None]] = []
@@ -63,15 +65,28 @@ class RenderQueue:
         if task_id in self._pending:
             self._pending.remove(task_id)
         self._running.pop(task_id, None)
+        self._progress.pop(task_id, None)
 
     def reset(self) -> None:
         """清空全部内存态（测试隔离用）。"""
         self._pending.clear()
         self._running.clear()
+        self._progress.clear()
         self._canceled.clear()
         self._durations.clear()
         while not self._queue.empty():
             self._queue.get_nowait()
+
+    # ---- 渲染进度（worker 旁路回调写入，GET /tasks 读取） ----
+
+    def update_progress(self, task_id: int, rendered: int, total: int) -> None:
+        """记录运行中任务的逐帧进度；非运行中任务的上报（迟到/越权）一律忽略。"""
+        if task_id in self._running:
+            self._progress[task_id] = (rendered, total)
+
+    def progress(self, task_id: int) -> tuple[int, int] | None:
+        """返回 (已渲染帧, 总帧)；无进度时返回 None。"""
+        return self._progress.get(task_id)
 
     # ---- 排位 / ETA 计算 ----
 
@@ -153,6 +168,7 @@ class RenderQueue:
                     return
                 await dao.mark_running(task_id)
                 request = WorkerRenderRequest(
+                    task_id=task_id,
                     mode=task.mode.value,
                     codec=task.codec.value,
                     output_path=task.output_path,
@@ -174,6 +190,7 @@ class RenderQueue:
                 )
         finally:
             self._running.pop(task_id, None)
+            self._progress.pop(task_id, None)
             # 清理 silhouette rewrite 产生的临时文件（worker 已读完）。
             if task is not None:
                 cleanup_render_tmp(task.input_props, settings.public_assets_path)

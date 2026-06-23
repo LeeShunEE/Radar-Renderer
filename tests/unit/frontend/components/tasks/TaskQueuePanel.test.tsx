@@ -99,4 +99,20 @@ describe("TaskQueuePanel", () => {
     fireEvent.click(screen.getAllByRole("button")[1]);
     expect(queueState.deleteTask).toHaveBeenCalledWith(9);
   });
+
+  it("running 任务显示进度条 + 帧数 + 剩余时间", () => {
+    queueState.tasks = [
+      task({
+        id: 7,
+        status: "running",
+        duration_ms: null,
+        rendered_frames: 40,
+        total_frames: 200,
+        eta_seconds: 90,
+      }),
+    ];
+    render(<TaskQueuePanel />);
+    expect(screen.getByText(/40\/200/)).toBeInTheDocument();
+    expect(screen.getByText(/剩 1 分 30 秒/)).toBeInTheDocument();
+  });
 });

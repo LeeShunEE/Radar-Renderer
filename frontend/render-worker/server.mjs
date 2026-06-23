@@ -24,6 +24,14 @@ const MULTI_COMP_NAME = "MultiPageRadarVideo";
 const PORT = Number(process.env.WORKER_PORT ?? 3100);
 const ENTRY = path.resolve(process.cwd(), "src", "remotion", "index.ts");
 const PUBLIC_DIR = path.resolve(process.cwd(), "public");
+// 进度反向回调：worker 在渲染过程中把帧进度 POST 回后端内部端点。
+// compose 内网调用 backend；本地直跑默认 localhost:8000。
+const BACKEND_INTERNAL_URL =
+  process.env.BACKEND_INTERNAL_URL ?? "http://localhost:8000";
+const RENDER_CALLBACK_TOKEN = process.env.RENDER_CALLBACK_TOKEN ?? "";
+// 节流参数：至少间隔多久、或进度跨过多少比例才上报一次，避免高频打爆后端。
+const PROGRESS_MIN_INTERVAL_MS = 800;
+const PROGRESS_MIN_DELTA = 0.02;
 // 容器内已装系统 Chromium（见 Dockerfile 的 CHROMIUM_PATH）；显式指定可执行文件，
 // 否则 Remotion 会尝试把无头浏览器下载到只读的 node_modules/.remotion（EACCES）。
 const BROWSER_EXECUTABLE =
@@ -48,8 +56,39 @@ async function readJson(req) {
   return JSON.parse(Buffer.concat(chunks).toString("utf-8"));
 }
 
+// 节流上报渲染进度（fire-and-forget，失败绝不中断渲染）。
+function makeProgressReporter(taskId, totalFrames) {
+  let lastReportAt = 0;
+  let lastProgress = -1;
+  // taskId 缺失或未配置回调令牌时直接禁用，避免无谓请求。
+  const enabled = taskId != null && RENDER_CALLBACK_TOKEN !== "";
+  return ({ renderedFrames, progress }) => {
+    if (!enabled) return;
+    const now = Date.now();
+    const crossedDelta = progress - lastProgress >= PROGRESS_MIN_DELTA;
+    const elapsedEnough = now - lastReportAt >= PROGRESS_MIN_INTERVAL_MS;
+    // 终帧（progress=1）始终放行，保证进度条收尾到满。
+    if (progress < 1 && !crossedDelta && !elapsedEnough) return;
+    lastReportAt = now;
+    lastProgress = progress;
+    fetch(`${BACKEND_INTERNAL_URL}/api/v1/internal/render-progress/${taskId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Render-Callback-Token": RENDER_CALLBACK_TOKEN,
+      },
+      body: JSON.stringify({
+        rendered_frames: renderedFrames,
+        total_frames: totalFrames,
+      }),
+    }).catch(() => {
+      // 进度上报失败不影响渲染主流程，静默忽略。
+    });
+  };
+}
+
 async function handleRender(body) {
-  const { mode = "single", codec = "h264", outputPath, inputProps } = body;
+  const { taskId, mode = "single", codec = "h264", outputPath, inputProps } = body;
   if (!outputPath) throw new Error("缺少 outputPath");
 
   const serveUrl = await getBundle();
@@ -65,6 +104,10 @@ async function handleRender(body) {
     browserExecutable: BROWSER_EXECUTABLE,
   });
 
+  const reportProgress = makeProgressReporter(
+    taskId,
+    composition.durationInFrames,
+  );
   const startedAt = Date.now();
   await renderMedia({
     composition,
@@ -76,7 +119,7 @@ async function handleRender(body) {
     hardwareAcceleration: "if-possible",
     chromiumOptions,
     browserExecutable: BROWSER_EXECUTABLE,
-    onProgress: () => {},
+    onProgress: reportProgress,
   });
 
   return { outputPath, durationMs: Date.now() - startedAt };
