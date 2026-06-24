@@ -151,6 +151,10 @@ services:
       # Render tmp: shared with backend for silhouette rewrite temporary files
       # Mounted to public subdir so staticFile() can read them
       - render_tmp:/app/public/_render_tmp
+      # 背景媒体零拷贝（方案 B）：只读复用 backend_storage 到 publicDir 子目录，
+      # 让 staticFile() 经 _user_media/users/<uid>/uploads/<name> 直读上传原件，
+      # 渲染端无需 copy 进 _render_tmp（见 silhouette_rewrite._try_rewrite 挂载分支）。
+      - backend_storage:/app/public/_user_media:ro
     healthcheck:
       # 镜像（alpine + chromium/ffmpeg）未装 curl，但 busybox 自带 wget；
       # 用 curl 会让 healthcheck 永远 "curl: not found" 误报 unhealthy。
