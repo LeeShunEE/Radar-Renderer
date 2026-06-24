@@ -284,9 +284,7 @@ describe("BackgroundConfigPanel", () => {
         onChange={onChange}
       />,
     );
-    const sliders = screen.getAllByTestId("slider");
-    // vignette 第一条 slider（亮度偏移）
-    const brightnessSlider = sliders[sliders.length - 5]; // 5 vignette sliders at end
+    const brightnessSlider = screen.getByTestId("vignette-brightness");
     fireEvent.change(brightnessSlider, { target: { value: "-50" } });
     const call = onChange.mock.calls.at(-1)![0];
     expect(call.theme?.vignetteBrightness).toBe(-50);

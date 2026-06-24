@@ -17,7 +17,6 @@ type BackgroundConfigPanelProps = {
   background: BackgroundConfig;
   theme: RadarTheme;
   onChange: (updates: Partial<RadarVideoProps>) => void;
-  importMenu?: React.ReactNode;
 };
 
 const SCALE_OPTIONS: BackgroundMediaConfig["scale"][] = ["cover", "contain", "fill"];
@@ -58,6 +57,8 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
   // ── type switch ───────────────────────────────────────────────────────────
   const handleTypeChange = (type: BackgroundConfig["type"]) => {
     if (type === "gradient") {
+      // 切回渐变时保留 media，便于来回切换不丢失已选素材（往返非破坏性）。
+      // 渲染端按 type==="gradient" 分发，保留的 media 不影响渐变渲染（见 selectBackgroundKind）。
       onChange({ background: { type: "gradient", media: background.media } });
     } else {
       onChange({
@@ -261,6 +262,7 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
                 </span>
               </div>
               <Slider
+                data-testid="vignette-brightness"
                 value={[theme.vignetteBrightness]}
                 onValueChange={(v) =>
                   updateTheme({
