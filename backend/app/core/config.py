@@ -66,6 +66,10 @@ class Settings(BaseSettings):
     render_concurrency: int = 2
     worker_base_url: str = "http://localhost:3100"
     render_timeout_seconds: int = 600
+    # worker 反向上报渲染进度的共享密钥（非用户态鉴权，防公网伪造）；生产经 env 覆盖。
+    render_callback_token_secret_string: SecretStr = SecretStr(
+        "dev-only-render-callback-token"
+    )
     # 公共资源（silhouettes / music 等静态素材所在目录）
     # Docker 环境通过环境变量 PUBLIC_ASSETS_PATH 覆盖（见 deploy/docker-compose.yml）
     public_assets_path: Path = Path(

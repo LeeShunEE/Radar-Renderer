@@ -35,6 +35,10 @@ export default [
         __filename: "readonly",
         module: "readonly",
         require: "readonly",
+        // Node 18+ globals
+        fetch: "readonly",
+        URL: "readonly",
+        URLSearchParams: "readonly",
       },
     },
   },

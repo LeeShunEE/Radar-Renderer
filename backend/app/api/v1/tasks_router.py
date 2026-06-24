@@ -19,6 +19,7 @@ async def list_tasks(
     return TaskListResponse(
         queue_size=queue_size,
         tasks=[TaskResponse.from_domain(v) for v in views],
+        avg_fps=render_queue.average_fps(),
     )
 
 

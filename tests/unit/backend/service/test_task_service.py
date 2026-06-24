@@ -43,6 +43,7 @@ class TestListForUser:
         queue.queue_size.return_value = 5
         queue.position.side_effect = lambda tid: {1: 1, 2: 2}[tid]
         queue.eta_seconds.return_value = 30.0
+        queue.progress.return_value = None
         service = _make_service(dao, queue)
 
         size, views = await service.list_for_user(user_id=10)
@@ -54,6 +55,37 @@ class TestListForUser:
         assert views[0].eta_seconds == 30.0
 
 
+class TestView:
+    async def test_view_includes_progress_when_queue_has_it(self):
+        dao = AsyncMock()
+        dao.get_for_user.return_value = _make_task()
+        queue = MagicMock()
+        queue.position.return_value = 0
+        queue.eta_seconds.return_value = 12.0
+        queue.progress.return_value = (30, 120)
+        queue.queue_size.return_value = 3
+        service = _make_service(dao, queue)
+
+        view = await service.get_for_user(task_id=1, user_id=10)
+        assert view.rendered_frames == 30
+        assert view.total_frames == 120
+
+    async def test_view_progress_none_when_queue_empty(self):
+        dao = AsyncMock()
+        dao.get_for_user.return_value = _make_task()
+        queue = MagicMock()
+        queue.position.return_value = 0
+        queue.eta_seconds.return_value = None
+        queue.progress.return_value = None
+        queue.queue_size.return_value = 0
+        service = _make_service(dao, queue)
+
+        view = await service.get_for_user(task_id=1, user_id=10)
+        assert view.rendered_frames is None
+        assert view.total_frames is None
+        assert view.queue_size == 0
+
+
 class TestGetForUser:
     async def test_found(self):
         dao = AsyncMock()
@@ -61,6 +93,8 @@ class TestGetForUser:
         queue = MagicMock()
         queue.position.return_value = 0
         queue.eta_seconds.return_value = None
+        queue.progress.return_value = None
+        queue.queue_size.return_value = 1
         service = _make_service(dao, queue)
 
         view = await service.get_for_user(task_id=1, user_id=10)

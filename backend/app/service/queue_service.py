@@ -41,8 +41,12 @@ class RenderQueue:
         self._queue: asyncio.Queue[int] = asyncio.Queue()
         self._pending: list[int] = []  # 已排队但未开始的任务 id（有序）
         self._running: dict[int, float] = {}  # 运行中任务 id -> 起始 monotonic
+        # 运行中任务 id -> (已渲染帧, 总帧)，由 worker 旁路回调更新（瞬时内存态）。
+        self._progress: dict[int, tuple[int, int]] = {}
         self._canceled: set[int] = set()
         self._durations: deque[float] = deque(maxlen=20)
+        # 近期渲染速度（帧/秒）滚动样本，进程级内存态：启动空、退出随进程清除。
+        self._fps_samples: deque[float] = deque(maxlen=20)
         self._consumers: list[asyncio.Task[None]] = []
 
     # ---- 入队 / 取消 / 清理（内存态，供请求路径调用） ----
@@ -63,20 +67,43 @@ class RenderQueue:
         if task_id in self._pending:
             self._pending.remove(task_id)
         self._running.pop(task_id, None)
+        self._progress.pop(task_id, None)
 
     def reset(self) -> None:
         """清空全部内存态（测试隔离用）。"""
         self._pending.clear()
         self._running.clear()
+        self._progress.clear()
         self._canceled.clear()
         self._durations.clear()
+        self._fps_samples.clear()
         while not self._queue.empty():
             self._queue.get_nowait()
+
+    # ---- 渲染进度（worker 旁路回调写入，GET /tasks 读取） ----
+
+    def update_progress(self, task_id: int, rendered: int, total: int) -> None:
+        """记录运行中任务的逐帧进度；非运行中任务的上报（迟到/越权）一律忽略。"""
+        if task_id in self._running:
+            self._progress[task_id] = (rendered, total)
+
+    def progress(self, task_id: int) -> tuple[int, int] | None:
+        """返回 (已渲染帧, 总帧)；无进度时返回 None。"""
+        return self._progress.get(task_id)
 
     # ---- 排位 / ETA 计算 ----
 
     def average_duration(self) -> float:
         return fmean(self._durations) if self._durations else _DEFAULT_DURATION_SECONDS
+
+    def record_render_speed(self, total_frames: int, duration_ms: int) -> None:
+        """记录一次渲染的瞬时速度（帧/秒）；0 帧或 0ms 忽略，避免除零与噪声。"""
+        if total_frames > 0 and duration_ms > 0:
+            self._fps_samples.append(total_frames / (duration_ms / 1000))
+
+    def average_fps(self) -> float | None:
+        """近期平均渲速（帧/秒）；无样本时返回 None（前端降级为「统计中」）。"""
+        return fmean(self._fps_samples) if self._fps_samples else None
 
     def queue_size(self) -> int:
         return len(self._pending) + len(self._running)
@@ -153,6 +180,7 @@ class RenderQueue:
                     return
                 await dao.mark_running(task_id)
                 request = WorkerRenderRequest(
+                    task_id=task_id,
                     mode=task.mode.value,
                     codec=task.codec.value,
                     output_path=task.output_path,
@@ -165,6 +193,9 @@ class RenderQueue:
                     await dao.mark_failed(task_id, exc.message)
                     return
                 self._durations.append(time.monotonic() - started)
+                # 同一处记录渲速：用 worker 权威的帧数 + 渲染耗时，避免 fire-and-forget
+                # 进度回调的竞态。
+                self.record_render_speed(result.total_frames, result.duration_ms)
                 if task_id in self._canceled:
                     self._canceled.discard(task_id)
                     await dao.mark_canceled(task_id)
@@ -174,6 +205,7 @@ class RenderQueue:
                 )
         finally:
             self._running.pop(task_id, None)
+            self._progress.pop(task_id, None)
             # 清理 silhouette rewrite 产生的临时文件（worker 已读完）。
             if task is not None:
                 cleanup_render_tmp(task.input_props, settings.public_assets_path)
