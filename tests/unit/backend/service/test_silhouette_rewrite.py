@@ -119,3 +119,35 @@ class TestCleanup:
         props = {"silhouetteSrc": "silhouettes/builtin.png"}
         # 不应抛异常
         cleanup_render_tmp(props, public_dir)
+
+
+class TestRewriteBackgroundMedia:
+    def test_rewrites_background_media_src(self, file_service: FileService, public_dir: Path) -> None:
+        props = {"background": {"type": "video", "media": {"src": UPLOADS_URL}}}
+        rewritten, tmp_files = rewrite_uploaded_silhouettes(
+            props, user_id=1, file_service=file_service, public_dir=public_dir,
+        )
+        assert rewritten["background"]["media"]["src"].startswith("_render_tmp/")
+        assert rewritten["background"]["media"]["src"].endswith("/hero.png")
+        assert len(tmp_files) == 1
+
+    def test_cleanup_removes_background_media_tmp(self, file_service: FileService, public_dir: Path) -> None:
+        props = {"background": {"media": {"src": UPLOADS_URL}}}
+        rewritten, _ = rewrite_uploaded_silhouettes(
+            props, user_id=1, file_service=file_service, public_dir=public_dir,
+        )
+        rel = rewritten["background"]["media"]["src"]
+        tmp_dir = public_dir / rel.split("/")[0] / rel.split("/")[1]
+        assert tmp_dir.is_dir()
+        cleanup_render_tmp(rewritten, public_dir)
+        assert not tmp_dir.exists()
+
+    def test_rewrites_both_silhouette_and_background(self, file_service: FileService, public_dir: Path) -> None:
+        # 同一 props 中剪影 + 背景媒体都应被改写
+        props = {"silhouetteSrc": UPLOADS_URL, "background": {"media": {"src": UPLOADS_URL}}}
+        rewritten, tmp_files = rewrite_uploaded_silhouettes(
+            props, user_id=1, file_service=file_service, public_dir=public_dir,
+        )
+        assert rewritten["silhouetteSrc"].startswith("_render_tmp/")
+        assert rewritten["background"]["media"]["src"].startswith("_render_tmp/")
+        assert len(tmp_files) == 2
