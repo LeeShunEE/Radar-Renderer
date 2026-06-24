@@ -40,6 +40,7 @@ function resolveSrc(src: string): string {
  *   AbsoluteFill 包裹的背景层，src 为空时返回 null
  */
 export const BackgroundMedia: React.FC<BackgroundMediaProps> = ({ type, media }) => {
+  // fps 仅用于 video 分支的 trimBefore 换算，但 Hook 必须在顶层调用（Rules of Hooks），不能移入 video 分支内。
   const { fps } = useVideoConfig();
 
   if (!media.src) return null;
@@ -58,7 +59,8 @@ export const BackgroundMedia: React.FC<BackgroundMediaProps> = ({ type, media })
   return (
     <AbsoluteFill>
       {type === "video" ? (
-        // OffthreadVideo 无音轨；声音由 musicUrl/独立 Audio 负责（阶段 7）。
+        // OffthreadVideo 本身无音轨，此 muted 仅为语义占位（恒静音）。
+        // 背景视频出声在阶段 7 通过并行 <Audio> 实现，由 videoOptions.muted 控制，不走此 prop。
         <OffthreadVideo
           src={src}
           muted
