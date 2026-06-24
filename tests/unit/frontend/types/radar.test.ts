@@ -48,5 +48,6 @@ describe("RadarVideoSchema background 兼容", () => {
 describe("defaultBackground", () => {
   it("defaultBackground 是 gradient 类型", () => {
     expect(defaultBackground.type).toBe("gradient");
+    expect(defaultBackground.media).toBeUndefined();
   });
 });

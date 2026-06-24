@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { RadarVideoSchema, MultiPageSchema, ComparisonPairSchema } from "./radar";
+import { RadarVideoSchema, MultiPageSchema, ComparisonPairSchema, defaultBackground } from "./radar";
 
 export const COMP_NAME = "RadarChartVideo";
 export const VIDEO_FPS = 30;
@@ -110,6 +110,7 @@ export const defaultRadarProps: z.infer<typeof RadarVideoSchema> = {
     radarScale: 1,
   },
   overrideIgnored: {},
+  background: defaultBackground,
 };
 
 export const defaultMultiPageConfig: z.infer<typeof MultiPageSchema> = {
