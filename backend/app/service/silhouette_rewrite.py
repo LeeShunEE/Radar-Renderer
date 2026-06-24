@@ -26,6 +26,11 @@ _UPLOADS_URL_RE = re.compile(r"/api/v1/files/uploads/([^/?#]+)$")
 # 临时子目录前缀（相对于 worker publicDir）。
 _TMP_PREFIX = "_render_tmp"
 
+# worker publicDir 下的挂载子目录名（Task 6.2 compose mount 的挂载点）。
+# Docker 下 backend_storage 以只读方式挂载到 publicDir/_user_media，
+# 存储布局与 FileService 一致：_user_media/users/<uid>/uploads/<name>。
+_MOUNT_SUBDIR = "_user_media"
+
 
 def rewrite_uploaded_silhouettes(
     input_props: dict,
@@ -108,13 +113,29 @@ def _try_rewrite(
     token: str,
     tmp_files: list[Path],
 ) -> str | None:
-    """若 url 匹配 uploads URL 则改写，否则返回 None。"""
+    """若 url 匹配 uploads URL 则改写，否则返回 None。
+
+    方案 B 零拷贝：当 worker publicDir 下存在 ``_user_media`` 挂载目录时，
+    直接将 URL 改写为挂载相对路径，不复制文件、不写入 tmp_files。
+    未挂载时（本地开发）回退为复制进 ``_render_tmp``。
+    无论哪条路径，都通过 ``get_upload_path`` 做文件名校验 + 存在性检查。
+    """
     m = _UPLOADS_URL_RE.search(url)
     if not m:
         return None
     name = unquote(m.group(1))
-    # get_upload_path 内部会做 _validate_filename 校验，防止路径穿越。
+    # get_upload_path 内部做 _validate_filename 校验（防路径穿越）
+    # 并在文件不存在时抛 StoredFileNotFoundError。两条路径都走此校验，
+    # 保证零拷贝路径不低于 copy 路径的安全性。
     src_path = file_service.get_upload_path(user_id, name)
+
+    mount_dir = public_dir / _MOUNT_SUBDIR
+    if mount_dir.is_dir():
+        # worker 已挂载 backend_storage → 零拷贝，直接改写为挂载相对路径。
+        # 存储布局与 FileService 一致：users/<uid>/uploads/<name>。
+        return f"{_MOUNT_SUBDIR}/users/{user_id}/uploads/{name}"
+
+    # 回退：本地开发无挂载，复制进 _render_tmp 临时目录。
     rel = f"{_TMP_PREFIX}/{token}/{name}"
     dest = public_dir / rel
     dest.parent.mkdir(parents=True, exist_ok=True)

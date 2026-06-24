@@ -151,3 +151,57 @@ class TestRewriteBackgroundMedia:
         assert rewritten["silhouetteSrc"].startswith("_render_tmp/")
         assert rewritten["background"]["media"]["src"].startswith("_render_tmp/")
         assert len(tmp_files) == 2
+
+
+class TestMountZeroCopy:
+    def test_uses_mount_path_when_mount_present(self, file_service: FileService, public_dir: Path) -> None:
+        # 模拟 worker 已挂载 backend_storage 到 publicDir/_user_media
+        (public_dir / "_user_media").mkdir()
+        props = {"silhouetteSrc": UPLOADS_URL}
+        rewritten, tmp_files = rewrite_uploaded_silhouettes(
+            props, user_id=1, file_service=file_service, public_dir=public_dir,
+        )
+        assert rewritten["silhouetteSrc"] == "_user_media/users/1/uploads/hero.png"
+        assert tmp_files == []  # 零拷贝，无临时文件
+
+    def test_background_media_uses_mount_path(self, file_service: FileService, public_dir: Path) -> None:
+        (public_dir / "_user_media").mkdir()
+        props = {"background": {"media": {"src": UPLOADS_URL}}}
+        rewritten, tmp_files = rewrite_uploaded_silhouettes(
+            props, user_id=1, file_service=file_service, public_dir=public_dir,
+        )
+        assert rewritten["background"]["media"]["src"] == "_user_media/users/1/uploads/hero.png"
+        assert tmp_files == []
+
+    def test_falls_back_to_copy_without_mount(self, file_service: FileService, public_dir: Path) -> None:
+        # 无 _user_media 挂载（本地开发）→ 回退 copy
+        props = {"silhouetteSrc": UPLOADS_URL}
+        rewritten, tmp_files = rewrite_uploaded_silhouettes(
+            props, user_id=1, file_service=file_service, public_dir=public_dir,
+        )
+        assert rewritten["silhouetteSrc"].startswith("_render_tmp/")
+        assert len(tmp_files) == 1
+        assert tmp_files[0].is_file()
+
+    def test_mount_path_still_validates_file_exists(self, file_service: FileService, public_dir: Path) -> None:
+        # 即使走挂载零拷贝路径，get_upload_path 也会对不存在的文件抛 StoredFileNotFoundError。
+        # 这保证零拷贝路径不低于 copy 路径的安全性。
+        (public_dir / "_user_media").mkdir()
+        bad = "http://localhost:8000/api/v1/files/uploads/nonexistent.png"
+        props = {"silhouetteSrc": bad}
+        with pytest.raises(Exception):
+            rewrite_uploaded_silhouettes(
+                props, user_id=1, file_service=file_service, public_dir=public_dir,
+            )
+
+    def test_cleanup_noop_for_mount_paths(self, file_service: FileService, public_dir: Path) -> None:
+        # 挂载路径（_user_media/...）不在 _collect_tmp_tokens 扫描范围内，cleanup 是 no-op。
+        (public_dir / "_user_media").mkdir()
+        props = {"silhouetteSrc": UPLOADS_URL}
+        rewritten, tmp_files = rewrite_uploaded_silhouettes(
+            props, user_id=1, file_service=file_service, public_dir=public_dir,
+        )
+        assert tmp_files == []
+        # cleanup 不应抛异常，也不应删除 _user_media 目录
+        cleanup_render_tmp(rewritten, public_dir)
+        assert (public_dir / "_user_media").is_dir()  # 挂载目录未被清理
