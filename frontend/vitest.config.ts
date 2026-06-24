@@ -26,8 +26,11 @@ export default defineConfig({
         "src/remotion/**", // Remotion 运行时 composition，依赖 Chromium，单测不可行
         "src/app/**", // Next.js 路由页面/server components，e2e 验证
         "src/lib/browser-render.ts", // 浏览器运行时
+        "src/lib/mp4-encoder.ts", // WebCodecs 运行时，依赖浏览器 API
+        "src/lib/render-media-source.ts", // AudioContext 运行时，依赖浏览器 API
         "src/hooks/useLocalRender.ts", // Remotion 运行时
         "src/components/editor/PreviewPanel.tsx", // Remotion Player 运行时，依赖 Chromium；渲染由 testenv Playwright e2e 验证
+        "src/components/editor/LocalRenderStage.tsx", // Remotion Player + WebCodecs 运行时，e2e 验证
         "src/components/editor/FontFamilyEditor.tsx", // 运行时 require('../../lib/font-list') 走 Node CJS，vitest 无法解析 .ts，单测不可行
         "**/*.config.*",
         "**/node_modules/**",

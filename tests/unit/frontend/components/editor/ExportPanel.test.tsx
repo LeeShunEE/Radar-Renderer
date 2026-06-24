@@ -19,8 +19,10 @@ const { serverState, localState } = vi.hoisted(() => ({
     rendering: false,
     progress: 0,
     error: null as string | null,
+    mp4Supported: null as boolean | null,
     startLocalRender: vi.fn(),
     cancel: vi.fn(),
+    renderStage: vi.fn(() => null),
   },
 }));
 
@@ -39,8 +41,10 @@ beforeEach(() => {
   localState.rendering = false;
   localState.progress = 0;
   localState.error = null;
+  localState.mp4Supported = null;
   localState.startLocalRender = vi.fn();
   localState.cancel = vi.fn();
+  localState.renderStage = vi.fn(() => null);
 });
 
 describe("ExportPanel", () => {
@@ -50,11 +54,21 @@ describe("ExportPanel", () => {
     expect(screen.getByText("导出全部 MP4")).toBeInTheDocument(); // 3 页
   });
 
-  it("切换到本地模式渲染 WebM 按钮 + 限制提示", () => {
+  it("切换到本地模式渲染 MP4 按钮 + 提示文案", () => {
     render(<ExportPanel props={props} config={config} />);
     fireEvent.click(screen.getByText("本地浏览器"));
-    expect(screen.getByText(/本地渲染仅支持 WebM/)).toBeInTheDocument();
-    expect(screen.getByText("导出当前页 WebM")).toBeInTheDocument();
+    // 新文案：MP4 格式
+    expect(screen.getByText(/本地渲染输出 MP4/)).toBeInTheDocument();
+    expect(screen.getByText("导出当前页 MP4（本地）")).toBeInTheDocument();
+    // 多页时还有全部按钮
+    expect(screen.getByText("导出全部 MP4（本地）")).toBeInTheDocument();
+  });
+
+  it("本地模式 mp4Supported=false 显示降级提示", () => {
+    localState.mp4Supported = false;
+    render(<ExportPanel props={props} config={config} />);
+    fireEvent.click(screen.getByText("本地浏览器"));
+    expect(screen.getByText(/当前浏览器不支持，将导出无音频 WebM/)).toBeInTheDocument();
   });
 
   it("服务端排队中显示位置与预计秒数", () => {
@@ -95,11 +109,24 @@ describe("ExportPanel", () => {
     expect(serverState.cancelRender).toHaveBeenCalled();
   });
 
-  it("本地模式点击触发 startLocalRender", () => {
+  it("本地模式点击单页触发 startLocalRender(single)", () => {
     render(<ExportPanel props={props} config={config} />);
     fireEvent.click(screen.getByText("本地浏览器"));
-    fireEvent.click(screen.getByText("导出当前页 WebM"));
-    expect(localState.startLocalRender).toHaveBeenCalledWith(props, config);
+    fireEvent.click(screen.getByText("导出当前页 MP4（本地）"));
+    const [mode, p, c] = localState.startLocalRender.mock.calls.at(-1)!;
+    expect(mode).toBe("single");
+    expect(p).toEqual(props);
+    expect(c).toEqual(config);
+  });
+
+  it("本地模式点击全部触发 startLocalRender(multi)", () => {
+    render(<ExportPanel props={props} config={config} />);
+    fireEvent.click(screen.getByText("本地浏览器"));
+    fireEvent.click(screen.getByText("导出全部 MP4（本地）"));
+    const [mode, p, c] = localState.startLocalRender.mock.calls.at(-1)!;
+    expect(mode).toBe("multi");
+    expect(p).toEqual(props);
+    expect(c).toEqual(config);
   });
 
   it("本地渲染中按钮显示「渲染中...」并出现取消按钮", () => {
@@ -110,5 +137,12 @@ describe("ExportPanel", () => {
     expect(screen.getByText(/本地渲染中/)).toBeInTheDocument();
     fireEvent.click(screen.getByText("取消渲染"));
     expect(localState.cancel).toHaveBeenCalled();
+  });
+
+  it("本地渲染调用 renderStage()", () => {
+    render(<ExportPanel props={props} config={config} />);
+    fireEvent.click(screen.getByText("本地浏览器"));
+    fireEvent.click(screen.getByText("导出当前页 MP4（本地）"));
+    expect(localState.renderStage).toHaveBeenCalled();
   });
 });
