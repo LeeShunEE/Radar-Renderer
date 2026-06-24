@@ -198,4 +198,74 @@ describe("AssetSelector", () => {
     render(<AssetSelector category="silhouettes" value="" onChange={vi.fn()} />);
     expect(screen.getByText(/暂无资源/)).toBeInTheDocument();
   });
+
+  describe("backgrounds 类别", () => {
+    beforeEach(() => {
+      // 用户文件包含一个视频和一个图片，以及一个音频（应被过滤掉）
+      fileMgmt.files = [
+        { name: "bg-video.mp4" },
+        { name: "bg-image.png" },
+        { name: "should-be-excluded.mp3" },
+      ];
+    });
+
+    it("header 显示「背景媒体」", () => {
+      render(<AssetSelector category="backgrounds" value="" onChange={vi.fn()} />);
+      expect(screen.getByText("背景媒体")).toBeInTheDocument();
+    });
+
+    it("upload input 的 accept 为「image/*,video/*」", () => {
+      render(<AssetSelector category="backgrounds" value="" onChange={vi.fn()} />);
+      const fileInput = document.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+      expect(fileInput.accept).toBe("image/*,video/*");
+    });
+
+    it("mp4 和 png 用户文件出现在「我的上传」中", () => {
+      render(<AssetSelector category="backgrounds" value="" onChange={vi.fn()} />);
+      expect(screen.getByText("我的上传")).toBeInTheDocument();
+      expect(screen.getByTitle("bg-video.mp4")).toBeInTheDocument();
+      expect(screen.getByTitle("bg-image.png")).toBeInTheDocument();
+    });
+
+    it("mp4 用户文件渲染 <video> 元素", () => {
+      const { container } = render(
+        <AssetSelector category="backgrounds" value="" onChange={vi.fn()} />,
+      );
+      const videos = container.querySelectorAll("video");
+      expect(videos.length).toBe(1);
+      // 视频 src 走 objectURL（鉴权）
+      expect(videos[0].src).toContain("blob:cached");
+    });
+
+    it("png 用户文件渲染 <img> 元素（不是 <video>）", () => {
+      const { container } = render(
+        <AssetSelector category="backgrounds" value="" onChange={vi.fn()} />,
+      );
+      // 找 grid 内 img（objectURL src）
+      const imgs = container.querySelectorAll("img");
+      const bgImg = Array.from(imgs).find((el) =>
+        el.src.includes("blob:cached"),
+      );
+      expect(bgImg).toBeDefined();
+    });
+
+    it("mp3 用户文件不出现在 backgrounds 中", () => {
+      render(<AssetSelector category="backgrounds" value="" onChange={vi.fn()} />);
+      expect(screen.queryByTitle("should-be-excluded.mp3")).toBeNull();
+    });
+
+    it("点击 backgrounds 项 → onChange(path)", () => {
+      const onChange = vi.fn();
+      render(<AssetSelector category="backgrounds" value="" onChange={onChange} />);
+      fireEvent.click(screen.getByTitle("bg-image.png"));
+      expect(onChange).toHaveBeenCalledWith("http://cdn/bg-image.png");
+    });
+
+    it("背景类别无公共资源（不显示「公共资源」区块）", () => {
+      render(<AssetSelector category="backgrounds" value="" onChange={vi.fn()} />);
+      expect(screen.queryByText("公共资源")).toBeNull();
+    });
+  });
 });
