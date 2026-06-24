@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- feat(local-render): 浏览器端 WebCodecs MP4 导出（带 AAC 音轨），帧精确 seekTo + 截图管线；无 WebCodecs 时回退 WebM（无音频）
 - Open-source governance scaffolding: `LICENSE` (GPL-3.0), `NOTICE`,
   `CONTRIBUTING.md`, `SECURITY.md`, bilingual `README`.
 - `.github/` automation: CI workflow (backend + frontend), DCO check,

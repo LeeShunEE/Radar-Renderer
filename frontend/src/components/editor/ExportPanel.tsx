@@ -1,5 +1,7 @@
 /**
- * 导出面板：服务端渲染 + 本地 WebM 渲染。
+ * 导出面板：服务端渲染 + 本地 MP4/WebM 渲染。
+ *
+ * 本地渲染使用 WebCodecs 输出 MP4（带音频），不支持时回退 WebM（无音频）。
  */
 "use client";
 
@@ -8,7 +10,7 @@ import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { Progress } from "../ui/progress";
 import type { RadarVideoProps, MultiPageConfig } from "../../types/radar";
-import { calculateDuration, VIDEO_FPS } from "../../types/constants";
+import { calculateDuration, calculateComparisonDuration, VIDEO_FPS } from "../../types/constants";
 import { useServerRender } from "../../hooks/useServerRender";
 import { useLocalRender } from "../../hooks/useLocalRender";
 import { applyGlobalOverride } from "../../lib/global-override";
@@ -29,10 +31,31 @@ export function ExportPanel({ props, config, previewMode }: ExportPanelProps) {
   const [renderRange, setRenderRange] = useState<"current" | "all">("current");
 
   const totalPages = config.pages.length;
-  const totalFrames = config.pages.reduce(
-    (sum, p) => sum + calculateDuration(p.animation),
-    0,
-  );
+
+  // 计算单页时长
+  const singleFrames = calculateDuration(applyGlobalOverride(props, config.globalOverride).animation);
+
+  // 计算多页总时长（与 PreviewPanel 一致）
+  const multiFrames = (() => {
+    if (!config.pages.length) return 0;
+    const mergedPages = config.pages.map((p) => applyGlobalOverride(p, config.globalOverride));
+    const compMap = new Map<number, (typeof config.comparisons)[number]>();
+    for (const c of config.comparisons) compMap.set(c.firstPageIndex, c);
+    const compared = new Set<number>();
+    let t = 0;
+    for (let i = 0; i < config.pages.length; i++) {
+      if (compared.has(i)) continue;
+      const comp = compMap.get(i);
+      if (comp && i + 1 < config.pages.length) {
+        t += calculateComparisonDuration(mergedPages[i], mergedPages[i + 1], comp);
+        compared.add(i);
+        compared.add(i + 1);
+      } else {
+        t += calculateDuration(mergedPages[i].animation);
+      }
+    }
+    return t;
+  })();
 
   // 渲染范围派生规则：
   // - multi 预览：强制全部（当前页灰禁 + 全部锁定已选）。
@@ -112,9 +135,14 @@ export function ExportPanel({ props, config, previewMode }: ExportPanelProps) {
     serverRender.submitRender(renderType, codec, inputProps as Record<string, unknown>);
   };
 
-  // 开始本地渲染
-  const handleLocalRender = () => {
-    localRender.startLocalRender(props, config);
+  // 开始本地渲染（单页）
+  const handleLocalRenderSingle = () => {
+    localRender.startLocalRender("single", props, config);
+  };
+
+  // 开始本地渲染（多页）
+  const handleLocalRenderMulti = () => {
+    localRender.startLocalRender("multi", props, config);
   };
 
   return (
@@ -146,10 +174,15 @@ export function ExportPanel({ props, config, previewMode }: ExportPanelProps) {
         </button>
       </div>
 
-      {/* 本地渲染限制提示 */}
+      {/* 本地渲染提示 */}
       {exportMode === "local" && (
         <p className="text-xs text-muted-foreground">
-          本地渲染仅支持 WebM 格式，无音频轨道，质量取决于浏览器。
+          本地渲染输出 MP4 格式（带音频），需要浏览器支持 WebCodecs。
+          {localRender.mp4Supported === false && (
+            <span className="text-geist-error ml-1">
+              当前浏览器不支持，将导出无音频 WebM。
+            </span>
+          )}
         </p>
       )}
 
@@ -209,7 +242,7 @@ export function ExportPanel({ props, config, previewMode }: ExportPanelProps) {
           {effectiveRange === "current" ? (
             <div className="space-y-2">
               <p className="text-xs text-subtitle">
-                导出当前页：{props.characterName}
+                导出当前页：{props.characterName}（{singleFrames} 帧 / {(singleFrames / VIDEO_FPS).toFixed(1)} 秒）
               </p>
               <div className="flex gap-2">
                 <Button
@@ -234,8 +267,7 @@ export function ExportPanel({ props, config, previewMode }: ExportPanelProps) {
           ) : (
             <div className="space-y-2">
               <p className="text-xs text-subtitle">
-                导出全部页面：{totalPages} 页，共 {totalFrames} 帧 /{" "}
-                {(totalFrames / VIDEO_FPS).toFixed(1)} 秒
+                导出全部页面：{totalPages} 页，共 {multiFrames} 帧 / {(multiFrames / VIDEO_FPS).toFixed(1)} 秒
               </p>
               <div className="flex gap-2">
                 <Button
@@ -287,17 +319,35 @@ export function ExportPanel({ props, config, previewMode }: ExportPanelProps) {
           {/* 单页导出 */}
           <div className="space-y-2">
             <p className="text-xs text-subtitle">
-              导出当前页：{props.characterName}
+              导出当前页：{props.characterName}（{singleFrames} 帧 / {(singleFrames / VIDEO_FPS).toFixed(1)} 秒）
             </p>
             <Button
-              onClick={handleLocalRender}
+              onClick={handleLocalRenderSingle}
               disabled={localRender.rendering}
               className="w-full"
               size="sm"
             >
-              {localRender.rendering ? "渲染中..." : "导出当前页 WebM"}
+              {localRender.rendering ? "渲染中..." : "导出当前页 MP4（本地）"}
             </Button>
           </div>
+
+          {/* 全部导出 */}
+          {totalPages > 1 && (
+            <div className="space-y-2">
+              <p className="text-xs text-subtitle">
+                导出全部页面：{totalPages} 页，共 {multiFrames} 帧 / {(multiFrames / VIDEO_FPS).toFixed(1)} 秒
+              </p>
+              <Button
+                onClick={handleLocalRenderMulti}
+                disabled={localRender.rendering}
+                className="w-full"
+                size="sm"
+                variant="secondary"
+              >
+                {localRender.rendering ? "渲染中..." : "导出全部 MP4（本地）"}
+              </Button>
+            </div>
+          )}
 
           {/* 取消按钮 */}
           {localRender.rendering && (
@@ -312,6 +362,9 @@ export function ExportPanel({ props, config, previewMode }: ExportPanelProps) {
           )}
         </>
       )}
+
+      {/* LocalRenderStage 渲染入口 */}
+      {localRender.renderStage()}
     </div>
   );
 }
