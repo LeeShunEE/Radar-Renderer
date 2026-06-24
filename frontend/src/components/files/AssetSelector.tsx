@@ -10,6 +10,25 @@ import { usePublicAssets } from "@/hooks/usePublicAssets";
 import { useFileManagement } from "@/hooks/useFileManagement";
 import { useUploadObjectUrls } from "@/hooks/useUploadObjectUrls";
 import { RefreshCw, Upload } from "lucide-react";
+import { checkBackgroundVideo } from "@/lib/media-guard";
+
+/** 读取视频文件的宽高（异步，jsdom 中会走 onerror 分支，回退 0×0）。 */
+async function readVideoMeta(file: File): Promise<{ width: number; height: number }> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const v = document.createElement("video");
+    v.preload = "metadata";
+    v.onloadedmetadata = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: v.videoWidth, height: v.videoHeight });
+    };
+    v.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: 0, height: 0 });
+    };
+    v.src = url;
+  });
+}
 
 type AssetCategory = "silhouettes" | "music" | "backgrounds";
 
@@ -62,6 +81,8 @@ export function AssetSelector({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [playing, setPlaying] = useState(false);
   const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
+  // 背景视频上传软警告（决策 Q7）：仅提示，不拦截上传
+  const [bgWarnings, setBgWarnings] = useState<string[]>([]);
 
   // 合并公共资源和用户上传资源
   // backgrounds 无公共资源（仅用户上传）
@@ -96,6 +117,32 @@ export function AssetSelector({
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // 清空上次警告
+    setBgWarnings([]);
+    // 背景视频软警告（Q7）：并行读元数据 + 上传，不因读取失败而阻塞
+    if (category === "backgrounds" && (file.type.startsWith("video/") || /\.(mp4|webm|mov)$/i.test(file.name))) {
+      // 并行：上传不等读取完成
+      const metaPromise = readVideoMeta(file).then(({ width, height }) => {
+        const warns = checkBackgroundVideo({ width, height, sizeBytes: file.size });
+        if (warns.length > 0) setBgWarnings(warns);
+      }).catch(() => {
+        // 读取失败时仅按体积检查
+        const warns = checkBackgroundVideo({ width: 0, height: 0, sizeBytes: file.size });
+        if (warns.length > 0) setBgWarnings(warns);
+      });
+      // 上传与元数据读取并行进行
+      try {
+        await upload(file);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      } catch {
+        // 错误已在 hook 中处理
+      }
+      // 等元数据读完（通常在上传完成前早已就绪）
+      await metaPromise;
+      return;
+    }
     try {
       await upload(file);
       if (fileInputRef.current) {
@@ -188,6 +235,17 @@ export function AssetSelector({
           />
         </div>
       </div>
+
+      {/* 背景视频上传软警告（Q7）：不拦截上传，仅提示 */}
+      {bgWarnings.length > 0 && (
+        <div className="rounded-md border border-yellow-400/50 bg-yellow-50/10 px-2 py-1.5 space-y-0.5">
+          {bgWarnings.map((w, i) => (
+            <p key={i} className="text-xs text-yellow-600 dark:text-yellow-400">
+              ⚠ {w}
+            </p>
+          ))}
+        </div>
+      )}
 
       {loading && allOptions.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-2">加载中...</p>
