@@ -4,14 +4,16 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { useTaskQueue } from "@/hooks/useTaskQueue";
 import { TaskStatusBadge } from "./TaskStatusBadge";
 import { TaskEtaDisplay } from "./TaskEtaDisplay";
-import { RefreshCw, Trash2, Download, Clock } from "lucide-react";
+import { RefreshCw, Trash2, Download, Clock, Gauge } from "lucide-react";
 import { files } from "@/lib/api-client";
+import { formatEtaSeconds } from "@/lib/format";
 
 export function TaskQueuePanel() {
-  const { tasks, queueSize, loading, error, refreshTasks, deleteTask } = useTaskQueue();
+  const { tasks, queueSize, avgFps, loading, error, refreshTasks, deleteTask } = useTaskQueue();
 
   const handleDownload = async (taskId: number, codec: string) => {
     // 产物端点需鉴权：先带 token 拉 Blob，再用 blob URL 触发保存。
@@ -41,14 +43,24 @@ export function TaskQueuePanel() {
             队列中 {queueSize} 个任务待渲染
           </span>
         </div>
-        <Button
-          onClick={refreshTasks}
-          disabled={loading}
-          variant="ghost"
-          size="sm"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-        </Button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Gauge className="w-4 h-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">
+              {avgFps !== null
+                ? `平均渲速 ${avgFps.toFixed(1)} 帧/秒`
+                : "平均渲速 统计中"}
+            </span>
+          </div>
+          <Button
+            onClick={refreshTasks}
+            disabled={loading}
+            variant="ghost"
+            size="sm"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
       </div>
 
       {/* 错误提示 */}
@@ -98,6 +110,28 @@ export function TaskQueuePanel() {
               {/* ETA */}
               {task.status === "queued" && (
                 <TaskEtaDisplay etaSeconds={task.eta_seconds} position={task.position} />
+              )}
+
+              {/* 运行中进度条 + 剩余 ETA */}
+              {task.status === "running" && (
+                <div className="flex items-center gap-2 min-w-0 flex-1 max-w-[240px]">
+                  <Progress
+                    value={
+                      task.total_frames && task.total_frames > 0 && task.rendered_frames !== null
+                        ? (task.rendered_frames / task.total_frames) * 100
+                        : 0
+                    }
+                    className="flex-1"
+                  />
+                  <span className="text-xs text-muted-foreground shrink-0 whitespace-nowrap">
+                    {task.total_frames && task.total_frames > 0 && task.rendered_frames !== null
+                      ? `${task.rendered_frames}/${task.total_frames}`
+                      : "渲染中"}
+                    {task.eta_seconds !== null && task.eta_seconds > 0
+                      ? ` · 剩 ${formatEtaSeconds(task.eta_seconds)}`
+                      : ""}
+                  </span>
+                </div>
               )}
 
               {/* 耗时 */}

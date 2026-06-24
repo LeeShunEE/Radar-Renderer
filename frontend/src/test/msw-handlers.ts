@@ -207,7 +207,7 @@ export const handlers = [
       position: t.status === "queued" ? i : 0,
       eta_seconds: t.status === "queued" ? 30 : null,
     }));
-    return HttpResponse.json({ queue_size: _tasks.filter((t) => t.status === "queued").length, tasks: tasksWithMeta });
+    return HttpResponse.json({ queue_size: _tasks.filter((t) => t.status === "queued").length, avg_fps: null, tasks: tasksWithMeta });
   }),
 
   http.get(`${API_BASE}/api/v1/tasks/:taskId`, ({ params, request }) => {

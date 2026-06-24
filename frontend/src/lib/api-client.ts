@@ -292,7 +292,7 @@ export const render = {
 // ── Tasks ─────────────────────────────────────────────
 export const tasks = {
   list: () =>
-    authFetch<{ queue_size: number; tasks: Array<TaskResponse> }>("/api/v1/tasks"),
+    authFetch<{ queue_size: number; avg_fps?: number | null; tasks: Array<TaskResponse> }>("/api/v1/tasks"),
   get: (id: number) => authFetch<TaskResponse>(`/api/v1/tasks/${id}`),
   delete: (id: number) => authFetch<void>(`/api/v1/tasks/${id}`, { method: "DELETE" }),
 };
@@ -325,4 +325,7 @@ export interface TaskResponse {
   finished_at: string | null;
   position: number;
   eta_seconds: number | null;
+  rendered_frames: number | null;
+  total_frames: number | null;
+  queue_size: number;
 }

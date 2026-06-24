@@ -11,6 +11,8 @@ export interface UseTaskQueueResult {
   tasks: TaskResponse[];
   /** 队列大小。 */
   queueSize: number;
+  /** 近期平均渲速（帧/秒）；无样本时为 null。 */
+  avgFps: number | null;
   /** 是否正在加载。 */
   loading: boolean;
   /** 错误信息。 */
@@ -24,6 +26,7 @@ export interface UseTaskQueueResult {
 export function useTaskQueue(): UseTaskQueueResult {
   const [taskList, setTaskList] = useState<TaskResponse[]>([]);
   const [queueSize, setQueueSize] = useState(0);
+  const [avgFps, setAvgFps] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -36,6 +39,7 @@ export function useTaskQueue(): UseTaskQueueResult {
       const data = await tasks.list();
       setTaskList(data.tasks);
       setQueueSize(data.queue_size);
+      setAvgFps(data.avg_fps ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "获取任务列表失败");
     } finally {
@@ -82,6 +86,7 @@ export function useTaskQueue(): UseTaskQueueResult {
   return {
     tasks: taskList,
     queueSize,
+    avgFps,
     loading,
     error,
     refreshTasks,
