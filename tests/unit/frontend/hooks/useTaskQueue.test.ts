@@ -57,7 +57,7 @@ describe("useTaskQueue", () => {
   describe("初始化状态", () => {
     it("初始化时返回空队列", async () => {
       // 设置默认 mock
-      vi.mocked(tasks.list).mockResolvedValue({ queue_size: 0, tasks: [] });
+      vi.mocked(tasks.list).mockResolvedValue({ queue_size: 0, avg_fps: null, tasks: [] });
 
       const { result } = renderHook(() => useTaskQueue());
 
@@ -68,11 +68,12 @@ describe("useTaskQueue", () => {
 
       expect(result.current.tasks).toEqual([]);
       expect(result.current.queueSize).toBe(0);
+      expect(result.current.avgFps).toBeNull();
       expect(result.current.error).toBeNull();
     });
 
     it("初始化时自动调用 refreshTasks", async () => {
-      vi.mocked(tasks.list).mockResolvedValue({ queue_size: 0, tasks: [] });
+      vi.mocked(tasks.list).mockResolvedValue({ queue_size: 0, avg_fps: null, tasks: [] });
 
       renderHook(() => useTaskQueue());
 
@@ -86,9 +87,9 @@ describe("useTaskQueue", () => {
     it("refresh 后更新任务列表", async () => {
       // 先返回空列表作为初始加载
       vi.mocked(tasks.list)
-        .mockResolvedValueOnce({ queue_size: 0, tasks: [] })
-        // 第二次返回有任务
-        .mockResolvedValueOnce({ queue_size: 1, tasks: mockTasks });
+        .mockResolvedValueOnce({ queue_size: 0, avg_fps: null, tasks: [] })
+        // 第二次返回有任务 + avg_fps
+        .mockResolvedValueOnce({ queue_size: 1, avg_fps: 45.5, tasks: mockTasks });
 
       const { result } = renderHook(() => useTaskQueue());
 
@@ -105,12 +106,13 @@ describe("useTaskQueue", () => {
 
       expect(result.current.tasks).toEqual(mockTasks);
       expect(result.current.queueSize).toBe(1);
+      expect(result.current.avgFps).toBe(45.5);
       expect(result.current.loading).toBe(false);
     });
 
     it("refresh 过程中 loading 状态正确切换", async () => {
       // 先返回空列表作为初始加载
-      vi.mocked(tasks.list).mockResolvedValueOnce({ queue_size: 0, tasks: [] });
+      vi.mocked(tasks.list).mockResolvedValueOnce({ queue_size: 0, avg_fps: null, tasks: [] });
 
       const { result } = renderHook(() => useTaskQueue());
 
@@ -121,7 +123,7 @@ describe("useTaskQueue", () => {
 
       // 设置一个延迟响应来观察 loading 状态
       vi.mocked(tasks.list).mockImplementationOnce(
-        () => new Promise((resolve) => setTimeout(() => resolve({ queue_size: 1, tasks: mockTasks }), 50))
+        () => new Promise((resolve) => setTimeout(() => resolve({ queue_size: 1, avg_fps: 60, tasks: mockTasks }), 50))
       );
 
       // 开始刷新
@@ -144,7 +146,7 @@ describe("useTaskQueue", () => {
     it("refresh 失败时设置 error", async () => {
       // 先返回空列表作为初始加载
       vi.mocked(tasks.list)
-        .mockResolvedValueOnce({ queue_size: 0, tasks: [] })
+        .mockResolvedValueOnce({ queue_size: 0, avg_fps: null, tasks: [] })
         .mockRejectedValueOnce(new Error("网络错误"));
 
       const { result } = renderHook(() => useTaskQueue());
@@ -165,7 +167,7 @@ describe("useTaskQueue", () => {
     it("refresh 失败时非 Error 对象使用默认消息", async () => {
       // 先返回空列表作为初始加载
       vi.mocked(tasks.list)
-        .mockResolvedValueOnce({ queue_size: 0, tasks: [] })
+        .mockResolvedValueOnce({ queue_size: 0, avg_fps: null, tasks: [] })
         .mockRejectedValueOnce("unknown error");
 
       const { result } = renderHook(() => useTaskQueue());
@@ -187,8 +189,8 @@ describe("useTaskQueue", () => {
     it("deleteTask 调用 API 并刷新列表", async () => {
       // 先返回空列表作为初始加载
       vi.mocked(tasks.list)
-        .mockResolvedValueOnce({ queue_size: 0, tasks: [] })
-        .mockResolvedValueOnce({ queue_size: 0, tasks: [] });
+        .mockResolvedValueOnce({ queue_size: 0, avg_fps: null, tasks: [] })
+        .mockResolvedValueOnce({ queue_size: 0, avg_fps: null, tasks: [] });
       vi.mocked(tasks.delete).mockResolvedValueOnce(undefined);
 
       const { result } = renderHook(() => useTaskQueue());
@@ -209,7 +211,7 @@ describe("useTaskQueue", () => {
 
     it("deleteTask 失败时设置 error", async () => {
       // 先返回空列表作为初始加载
-      vi.mocked(tasks.list).mockResolvedValueOnce({ queue_size: 0, tasks: [] });
+      vi.mocked(tasks.list).mockResolvedValueOnce({ queue_size: 0, avg_fps: null, tasks: [] });
       vi.mocked(tasks.delete).mockRejectedValueOnce(new Error("删除失败"));
 
       const { result } = renderHook(() => useTaskQueue());
@@ -228,7 +230,7 @@ describe("useTaskQueue", () => {
 
     it("deleteTask 失败时非 Error 对象使用默认消息", async () => {
       // 先返回空列表作为初始加载
-      vi.mocked(tasks.list).mockResolvedValueOnce({ queue_size: 0, tasks: [] });
+      vi.mocked(tasks.list).mockResolvedValueOnce({ queue_size: 0, avg_fps: null, tasks: [] });
       vi.mocked(tasks.delete).mockRejectedValueOnce({});
 
       const { result } = renderHook(() => useTaskQueue());
@@ -270,8 +272,8 @@ describe("useTaskQueue", () => {
 
       // 初始加载返回活动任务
       vi.mocked(tasks.list)
-        .mockResolvedValueOnce({ queue_size: 1, tasks: [activeTask] })
-        .mockResolvedValueOnce({ queue_size: 1, tasks: [activeTask] });
+        .mockResolvedValueOnce({ queue_size: 1, avg_fps: null, tasks: [activeTask] })
+        .mockResolvedValueOnce({ queue_size: 1, avg_fps: null, tasks: [activeTask] });
 
       const { result } = renderHook(() => useTaskQueue());
 
@@ -310,7 +312,7 @@ describe("useTaskQueue", () => {
       };
 
       // 初始加载返回终态任务
-      vi.mocked(tasks.list).mockResolvedValueOnce({ queue_size: 0, tasks: [doneTask] });
+      vi.mocked(tasks.list).mockResolvedValueOnce({ queue_size: 0, avg_fps: 45.5, tasks: [doneTask] });
 
       const { result } = renderHook(() => useTaskQueue());
 

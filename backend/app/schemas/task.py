@@ -55,10 +55,12 @@ class TaskResponse(BaseModel):
 
 
 class TaskListResponse(BaseModel):
-    """任务列表 + 全局队列大小。"""
+    """任务列表 + 全局队列大小 + 近期平均渲速。"""
 
     queue_size: int
     tasks: list[TaskResponse]
+    # 近期平均渲速（帧/秒），进程级滚动均值；服务启动初期无样本时为 None。
+    avg_fps: float | None = None
 
 
 class RenderProgressRequest(BaseModel):

@@ -1,5 +1,5 @@
 /**
- * ExportPanel 单元测试：模式切换、服务端/本地状态文案、提交渲染与取消。
+ * ExportPanel 单元测试：模式切换、服务端/本地状态文案、提交渲染与取消、渲染范围选择器。
  * useServerRender / useLocalRender 用 vi.hoisted 持有可变状态，按用例改写。
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -35,6 +35,7 @@ vi.mock("@/hooks/useLocalRender", () => ({ useLocalRender: () => localState }));
 
 const props = makePage();
 const config = makeMultiPageConfig(3);
+const singlePageConfig = makeMultiPageConfig(1);
 
 beforeEach(() => {
   serverState.status = "idle";
@@ -50,14 +51,60 @@ beforeEach(() => {
 });
 
 describe("ExportPanel", () => {
-  it("默认服务端模式渲染单页导出按钮", () => {
-    render(<ExportPanel props={props} config={config} />);
-    expect(screen.getByText("导出当前页 MP4")).toBeInTheDocument();
-    expect(screen.getByText("导出全部 MP4")).toBeInTheDocument(); // 3 页
+  // ── 渲染范围选择器 + 服务端提示 ─────────────────────────────────────────────
+
+  it("服务端模式显示资源有限风险提示", () => {
+    render(<ExportPanel props={props} config={config} previewMode="single" />);
+    expect(screen.getByText(/服务器资源有限/)).toBeInTheDocument();
+    expect(screen.getByText(/可在下方任务列表查看当前负载/)).toBeInTheDocument();
   });
 
+  it("本地模式不显示服务端资源提示", () => {
+    render(<ExportPanel props={props} config={config} previewMode="single" />);
+    fireEvent.click(screen.getByText("本地浏览器"));
+    expect(screen.queryByText(/服务器资源有限/)).not.toBeInTheDocument();
+  });
+
+  it("single 预览默认显示「导出当前页」组", () => {
+    render(<ExportPanel props={props} config={config} previewMode="single" />);
+    expect(screen.getByText("导出当前页 MP4")).toBeInTheDocument();
+    // 未点击「渲染全部页面」，「导出全部」组不显示
+    expect(screen.queryByText("导出全部 MP4")).not.toBeInTheDocument();
+  });
+
+  it("single 预览点击「渲染全部页面」后显示「导出全部」组", () => {
+    render(<ExportPanel props={props} config={config} previewMode="single" />);
+    fireEvent.click(screen.getByText("渲染全部页面"));
+    expect(screen.getByText("导出全部 MP4")).toBeInTheDocument();
+    expect(screen.queryByText("导出当前页 MP4")).not.toBeInTheDocument();
+  });
+
+  it("multi 预览「渲染当前页」灰禁 + tooltip", () => {
+    render(<ExportPanel props={props} config={config} previewMode="multi" />);
+    const btn = screen.getByText("渲染当前页");
+    expect(btn).toBeDisabled();
+    expect(btn).toHaveAttribute("title", "当前已经选中全局了");
+  });
+
+  it("multi 预览范围锁定为全部、显示「导出全部」组", () => {
+    render(<ExportPanel props={props} config={config} previewMode="multi" />);
+    // 不显示「导出当前页」组
+    expect(screen.queryByText("导出当前页 MP4")).not.toBeInTheDocument();
+    // 直接显示「导出全部」组
+    expect(screen.getByText("导出全部 MP4")).toBeInTheDocument();
+  });
+
+  it("仅 1 页时「渲染全部页面」灰禁 + tooltip", () => {
+    render(<ExportPanel props={props} config={singlePageConfig} previewMode="single" />);
+    const btn = screen.getByText("渲染全部页面");
+    expect(btn).toBeDisabled();
+    expect(btn).toHaveAttribute("title", "当前只有 1 页");
+  });
+
+  // ── 原有测试（需传 previewMode） ─────────────────────────────────────────────
+
   it("切换到本地模式渲染 WebM 按钮 + 限制提示", () => {
-    render(<ExportPanel props={props} config={config} />);
+    render(<ExportPanel props={props} config={config} previewMode="single" />);
     fireEvent.click(screen.getByText("本地浏览器"));
     expect(screen.getByText(/本地渲染仅支持 WebM/)).toBeInTheDocument();
     expect(screen.getByText("导出当前页 WebM")).toBeInTheDocument();
@@ -66,7 +113,7 @@ describe("ExportPanel", () => {
   it("服务端排队中显示位置、队列规模与格式化预计时间", () => {
     serverState.status = "queued";
     serverState.currentTask = { position: 2, eta_seconds: 90, queue_size: 5 };
-    render(<ExportPanel props={props} config={config} />);
+    render(<ExportPanel props={props} config={config} previewMode="single" />);
     expect(screen.getByText(/排队中/)).toBeInTheDocument();
     expect(screen.getByText(/第 2 位 \/ 共 5 个/)).toBeInTheDocument();
     // 90s 经 formatEtaSeconds → "1 分 30 秒"
@@ -80,7 +127,7 @@ describe("ExportPanel", () => {
       total_frames: 120,
       eta_seconds: 30,
     };
-    render(<ExportPanel props={props} config={config} />);
+    render(<ExportPanel props={props} config={config} previewMode="single" />);
     expect(screen.getByText(/第 60\/120 帧/)).toBeInTheDocument();
     expect(screen.getByText(/预计剩余 30 秒/)).toBeInTheDocument();
   });
@@ -92,27 +139,28 @@ describe("ExportPanel", () => {
       total_frames: null,
       eta_seconds: null,
     };
-    render(<ExportPanel props={props} config={config} />);
+    render(<ExportPanel props={props} config={config} previewMode="single" />);
     expect(screen.getByText(/渲染中\.\.\./)).toBeInTheDocument();
   });
 
   it("服务端失败显示错误文案", () => {
     serverState.status = "failed";
     serverState.error = "boom";
-    render(<ExportPanel props={props} config={config} />);
+    render(<ExportPanel props={props} config={config} previewMode="single" />);
     expect(screen.getByText(/失败：boom/)).toBeInTheDocument();
   });
 
   it("点击单页 MP4 → submitRender(single,h264)", () => {
-    render(<ExportPanel props={props} config={config} />);
+    render(<ExportPanel props={props} config={config} previewMode="single" />);
     fireEvent.click(screen.getByText("导出当前页 MP4"));
     const [renderType, codec] = serverState.submitRender.mock.calls.at(-1)!;
     expect(renderType).toBe("single");
     expect(codec).toBe("h264");
   });
 
-  it("点击全部 MP4 → submitRender(multi) 传 config", () => {
-    render(<ExportPanel props={props} config={config} />);
+  it("点击全部 MP4 → submitRender(multi) 传 config（需先切换到全部）", () => {
+    render(<ExportPanel props={props} config={config} previewMode="single" />);
+    fireEvent.click(screen.getByText("渲染全部页面"));
     fireEvent.click(screen.getByText("导出全部 MP4"));
     const [renderType, , inputProps] = serverState.submitRender.mock.calls.at(-1)!;
     expect(renderType).toBe("multi");
@@ -121,13 +169,13 @@ describe("ExportPanel", () => {
 
   it("渲染中显示取消按钮并触发 cancelRender", () => {
     serverState.status = "rendering";
-    render(<ExportPanel props={props} config={config} />);
+    render(<ExportPanel props={props} config={config} previewMode="single" />);
     fireEvent.click(screen.getByText("取消任务"));
     expect(serverState.cancelRender).toHaveBeenCalled();
   });
 
   it("本地模式点击触发 startLocalRender", () => {
-    render(<ExportPanel props={props} config={config} />);
+    render(<ExportPanel props={props} config={config} previewMode="single" />);
     fireEvent.click(screen.getByText("本地浏览器"));
     fireEvent.click(screen.getByText("导出当前页 WebM"));
     expect(localState.startLocalRender).toHaveBeenCalledWith(props, config);
@@ -136,7 +184,7 @@ describe("ExportPanel", () => {
   it("本地渲染中按钮显示「渲染中...」并出现取消按钮", () => {
     localState.rendering = true;
     localState.progress = 42;
-    render(<ExportPanel props={props} config={config} />);
+    render(<ExportPanel props={props} config={config} previewMode="single" />);
     fireEvent.click(screen.getByText("本地浏览器"));
     expect(screen.getByText(/本地渲染中/)).toBeInTheDocument();
     fireEvent.click(screen.getByText("取消渲染"));

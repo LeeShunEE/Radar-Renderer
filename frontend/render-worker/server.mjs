@@ -3,7 +3,7 @@
 //
 // 请求：POST /render { mode: "single"|"multi", codec: "h264"|"gif",
 //                      outputPath: <绝对路径>, inputProps: <图表配置> }
-// 响应：200 { outputPath, durationMs } | 4xx/5xx { error }
+// 响应：200 { outputPath, durationMs, totalFrames } | 4xx/5xx { error }
 //
 // 启动：cd frontend && node render-worker/server.mjs   （或 pnpm worker）
 // 环境变量：WORKER_PORT（默认 3100）
@@ -122,7 +122,12 @@ async function handleRender(body) {
     onProgress: reportProgress,
   });
 
-  return { outputPath, durationMs: Date.now() - startedAt };
+  // durationMs 为 wall-clock 渲染耗时，totalFrames 供后端计算平均渲速（fps）。
+  return {
+    outputPath,
+    durationMs: Date.now() - startedAt,
+    totalFrames: composition.durationInFrames,
+  };
 }
 
 const server = http.createServer(async (req, res) => {

@@ -113,6 +113,47 @@ class TestAverageDuration:
         assert q.average_duration() == 20.0
 
 
+class TestFpsStats:
+    def test_record_render_speed_appends_sample(self):
+        q = _make_queue()
+        q.record_render_speed(180, 3000)  # 180 frames / 3s = 60 fps
+        assert list(q._fps_samples) == [60.0]
+
+    def test_record_render_speed_ignores_zero_frames(self):
+        q = _make_queue()
+        q.record_render_speed(0, 3000)
+        assert len(q._fps_samples) == 0
+
+    def test_record_render_speed_ignores_zero_duration(self):
+        q = _make_queue()
+        q.record_render_speed(180, 0)
+        assert len(q._fps_samples) == 0
+
+    def test_average_fps_returns_none_when_empty(self):
+        q = _make_queue()
+        assert q.average_fps() is None
+
+    def test_average_fps_with_samples(self):
+        q = _make_queue()
+        q._fps_samples.extend([30.0, 60.0, 90.0])
+        assert q.average_fps() == 60.0
+
+    def test_fps_samples_maxlen_20_rolling(self):
+        q = _make_queue()
+        # 填入 25 个样本
+        for i in range(25):
+            q.record_render_speed(60, 1000)  # 60 fps each
+        assert len(q._fps_samples) == 20
+        # 最新 20 个保留，平均值仍为 60
+        assert q.average_fps() == 60.0
+
+    def test_reset_clears_fps_samples(self):
+        q = _make_queue()
+        q._fps_samples.extend([30.0, 60.0])
+        q.reset()
+        assert q.average_fps() is None
+
+
 class TestProgress:
     def test_update_progress_only_for_running(self):
         q = _make_queue()

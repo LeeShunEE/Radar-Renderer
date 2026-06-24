@@ -29,6 +29,8 @@ class WorkerRenderResult(BaseModel):
 
     output_path: str
     duration_ms: int
+    # 合成总帧数，供后端计算平均渲速（fps = total_frames / (duration_ms/1000)）。
+    total_frames: int = 0
 
 
 class RenderWorkerClient:
@@ -61,4 +63,5 @@ class RenderWorkerClient:
         return WorkerRenderResult(
             output_path=data["outputPath"],
             duration_ms=int(data.get("durationMs", 0)),
+            total_frames=int(data.get("totalFrames", 0)),
         )

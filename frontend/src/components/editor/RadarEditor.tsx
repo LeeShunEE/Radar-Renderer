@@ -207,7 +207,6 @@ export const RadarEditor: React.FC = () => {
               <TabsTrigger value="values">数值</TabsTrigger>
               <TabsTrigger value="pages">页面</TabsTrigger>
               <TabsTrigger value="assets">素材</TabsTrigger>
-              <TabsTrigger value="tasks">任务</TabsTrigger>
               <TabsTrigger value="export">导出</TabsTrigger>
             </TabsList>
           </div>
@@ -294,14 +293,18 @@ export const RadarEditor: React.FC = () => {
             <FileManagerPanel />
           </TabsContent>
 
-          <TabsContent value="tasks" className="overflow-y-auto p-6 space-y-4">
-            <TaskQueuePanel />
-          </TabsContent>
-
           <TabsContent value="export" className="overflow-y-auto p-6 space-y-4">
+            {/* 队列任务卡片 */}
+            <div className="space-y-3 border border-unfocused-border-color rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-foreground">渲染队列</h3>
+              <TaskQueuePanel />
+            </div>
+
+            {/* 创建渲染任务卡片 */}
             <ExportPanel
               props={playerProps}
               config={config}
+              previewMode={previewMode}
             />
           </TabsContent>
         </Tabs>

@@ -34,7 +34,7 @@ class TestRender:
             assert request.url.path == "/render"
             assert request.method == "POST"
             return httpx.Response(
-                200, json={"outputPath": "/out/x.mp4", "durationMs": 1234}
+                200, json={"outputPath": "/out/x.mp4", "durationMs": 1234, "totalFrames": 180}
             )
 
         _patch_transport(mocker, handler)
@@ -42,6 +42,18 @@ class TestRender:
         result = await client.render(_request())
         assert result.output_path == "/out/x.mp4"
         assert result.duration_ms == 1234
+        assert result.total_frames == 180
+
+    async def test_success_missing_total_frames_defaults_zero(self, mocker):
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200, json={"outputPath": "/out/x.mp4", "durationMs": 500}
+            )
+
+        _patch_transport(mocker, handler)
+        client = RenderWorkerClient("http://worker:3100/", 10)
+        result = await client.render(_request())
+        assert result.total_frames == 0
 
     async def test_payload_includes_task_id(self, mocker):
         captured: dict = {}
@@ -51,7 +63,7 @@ class TestRender:
 
             captured.update(json.loads(request.content))
             return httpx.Response(
-                200, json={"outputPath": "/out/x.mp4", "durationMs": 1}
+                200, json={"outputPath": "/out/x.mp4", "durationMs": 1, "totalFrames": 60}
             )
 
         _patch_transport(mocker, handler)

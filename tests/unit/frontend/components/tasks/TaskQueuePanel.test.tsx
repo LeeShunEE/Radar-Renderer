@@ -12,6 +12,7 @@ const { queueState, fetchOutputBlob } = vi.hoisted(() => ({
   queueState: {
     tasks: [] as any[],
     queueSize: 0,
+    avgFps: null as number | null,
     loading: false,
     error: null as string | null,
     refreshTasks: vi.fn(),
@@ -44,6 +45,7 @@ const task = (over: Partial<any> = {}) => ({
 beforeEach(() => {
   queueState.tasks = [];
   queueState.queueSize = 0;
+  queueState.avgFps = null;
   queueState.loading = false;
   queueState.error = null;
   queueState.refreshTasks = vi.fn();
@@ -82,10 +84,22 @@ describe("TaskQueuePanel", () => {
     expect(queueState.refreshTasks).toHaveBeenCalled();
   });
 
+  it("有 avgFps 时显示平均渲速", () => {
+    queueState.avgFps = 45.5;
+    render(<TaskQueuePanel />);
+    expect(screen.getByText(/平均渲速 45.5 帧\/秒/)).toBeInTheDocument();
+  });
+
+  it("无 avgFps 时显示统计中", () => {
+    render(<TaskQueuePanel />);
+    expect(screen.getByText("平均渲速 统计中")).toBeInTheDocument();
+  });
+
   it("done 任务含下载按钮，点击触发 fetchOutputBlob", async () => {
+    queueState.avgFps = 60;
     queueState.tasks = [task({ id: 5, codec: "gif" })];
     render(<TaskQueuePanel />);
-    // 按钮顺序：[刷新, 下载, 删除]
+    // 按钮顺序：[刷新, 下载, 删除]（刷新按钮在头部右侧，avgFps 后）
     fireEvent.click(screen.getAllByRole("button")[1]);
     await waitFor(() => {
       expect(fetchOutputBlob).toHaveBeenCalledWith(5);
