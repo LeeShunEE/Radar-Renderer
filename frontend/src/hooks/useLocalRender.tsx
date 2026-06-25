@@ -83,6 +83,12 @@ export function useLocalRender(): UseLocalRenderResult {
 
   /** 完成回调 */
   const handleDone = useCallback((result: { blob: Blob; ext: "mp4" | "webm"; durationMs: number }) => {
+    // 先保存请求信息，再清空 requestRef（避免 TypeScript 类型收窄为 never）
+    const req = requestRef.current;
+    const mode = req?.mode;
+    const props = req?.props;
+    const config = req?.config;
+
     setRendering(false);
     setProgress(100);
     setMp4Supported(result.ext === "mp4");
@@ -94,8 +100,6 @@ export function useLocalRender(): UseLocalRenderResult {
     a.href = blobUrl;
 
     // 文件名：从 props 取角色名或用 "radar"
-    const props = requestRef.current?.props;
-    const config = requestRef.current?.config;
     const name = mode === "single" && props
       ? props.characterName || "radar"
       : config?.pages.map((p) => p.characterName).join("-") || "multi";

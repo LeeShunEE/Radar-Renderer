@@ -91,3 +91,6 @@ jobs:
 
       - name: Vitest dev-integration (coverage gate in vitest config)
         run: pnpm test:integration
+
+      - name: Build (TypeScript type check)
+        run: pnpm build
