@@ -37,46 +37,34 @@
 
 ## 快速开始
 
+使用 Docker Compose 一键拉起整套服务（前端 + 后端 + 渲染工作器 + PostgreSQL）——
+改一次配置，一条命令部署。
+
 ### 前置要求
 
-- Node.js 20+ 与 [pnpm](https://pnpm.io/) 9
-- Python 3.11+ 与 [uv](https://docs.astral.sh/uv/)
+- Docker + Docker Compose v2
 
-### 前端
-
-```bash
-cd frontend
-pnpm install
-pnpm dev
-```
-
-### 后端
+### 1. 配置
 
 ```bash
-cd backend
-uv pip install -e ".[test,dev]"
-uv run uvicorn app.main:app --reload
+cp deploy/.env.example deploy/.env
 ```
 
-### Git hook（每个 clone 装一次）
+编辑 `deploy/.env`，至少填好以下必需密钥：
 
-安装本地 hook，让 `git commit` / `git push` 跑与 CI 相同的 lint + 测试。**Git hook
-不进版本控制**，因此每个新 clone（你的机器、CI、新同事）都必须手动跑一次：
+- `POSTGRES_PASSWORD` —— 数据库密码
+- `JWT_SECRET_STRING` —— 随机串，≥ 32 字符
+- `RENDER_CALLBACK_TOKEN` —— 随机串，≥ 32 字符
+
+### 2. 部署
 
 ```bash
-bash scripts/install-hooks.sh   # 轻量：只装 hook，不装依赖
-# 或一次性全量引导（hook + 前后端依赖）：bash scripts/init_env.sh
+cd deploy
+docker compose up -d --build
 ```
 
-### 环境变量
-
-复制模板并填入真实值（真实 `.env` 已被 git 忽略，**切勿提交任何密钥**）：
-
-```bash
-cp backend/.env.example  backend/.env
-cp frontend/.env.example frontend/.env
-cp deploy/.env.example   deploy/.env   # 仅容器化部署需要
-```
+生产反向代理 / Coolify 配置、端口暴露、完整变量清单与故障排查见
+[`deploy/README.md`](./deploy/README.md)。
 
 ## 目录结构
 

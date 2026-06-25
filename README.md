@@ -38,48 +38,34 @@ the backend is a FastAPI service (under development).
 
 ## Quick start
 
+Bring up the full stack (frontend + backend + render worker + PostgreSQL) with
+Docker Compose — configure once, then deploy with a single command.
+
 ### Prerequisites
 
-- Node.js 20+ and [pnpm](https://pnpm.io/) 9
-- Python 3.11+ and [uv](https://docs.astral.sh/uv/)
+- Docker + Docker Compose v2
 
-### Frontend
-
-```bash
-cd frontend
-pnpm install
-pnpm dev
-```
-
-### Backend
+### 1. Configure
 
 ```bash
-cd backend
-uv pip install -e ".[test,dev]"
-uv run uvicorn app.main:app --reload
+cp deploy/.env.example deploy/.env
 ```
 
-### Git hooks (run once per clone)
+Edit `deploy/.env` and set at least the required secrets:
 
-Install the local hooks so `git commit` / `git push` run the same lint + tests as
-CI. **Git hooks are not version-controlled**, so you must run this once on every
-new clone (your machine, CI, teammates):
+- `POSTGRES_PASSWORD` — database password
+- `JWT_SECRET_STRING` — random string, ≥ 32 chars
+- `RENDER_CALLBACK_TOKEN` — random string, ≥ 32 chars
+
+### 2. Deploy
 
 ```bash
-bash scripts/install-hooks.sh   # lightweight: only installs hooks, no deps
-# or the full bootstrap (hooks + frontend + backend deps): bash scripts/init_env.sh
+cd deploy
+docker compose up -d --build
 ```
 
-### Environment variables
-
-Copy the templates and fill in real values (the actual `.env` files are
-git-ignored — never commit secrets):
-
-```bash
-cp backend/.env.example  backend/.env
-cp frontend/.env.example frontend/.env
-cp deploy/.env.example   deploy/.env   # only for containerized deploy
-```
+For production reverse-proxy / Coolify setup, port exposure, the full variable
+reference, and troubleshooting, see [`deploy/README.md`](./deploy/README.md).
 
 ## Repository layout
 
