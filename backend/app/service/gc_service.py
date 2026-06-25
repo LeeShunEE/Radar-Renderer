@@ -1,8 +1,10 @@
 """渲染产物自动清理服务。
 
 清理策略（双维度）：
-1. 时间维度：删除 finished_at + gc_max_age_days < now 的产物
-2. 配额维度：若目录大小超 gc_max_size_bytes，按 finished_at 删除最老文件
+1. 时间维度：删除 finished_at + gc_max_age_days < now 的产物（按用户遍历）
+2. 配额维度：若全局 outputs 目录大小超过 gc_global_max_size_bytes，按 finished_at 删除最老文件
+
+全局 outputs 目录 = 所有用户的 storage_root/users/<uid>/outputs/ 总和。
 
 优雅停止：cancel + await（遵循 queue_service 模式）
 """
@@ -48,7 +50,7 @@ class OutputGCService:
         logger.info(
             f"GC 服务已启动：周期 {self._config.output_gc_interval_seconds}s，"
             f"保留 {self._config.output_gc_max_age_days} 天，"
-            f"单用户配额 {self._config.output_gc_max_size_bytes // 1024 // 1024}MB"
+            f"全局配额 {self._config.output_gc_global_max_size_bytes // 1024 // 1024 // 1024}GB"
         )
 
     async def stop(self) -> None:
@@ -73,34 +75,45 @@ class OutputGCService:
                 logger.exception("GC 周期执行异常")
 
     async def run_gc_cycle(self) -> None:
-        """遍历所有用户，执行清理。"""
-        async with self._session_factory() as session:
-            user_dao = UserDAO(session)
-            user_ids = await user_dao.list_all_ids()
-        logger.debug(f"GC 周期开始：共 {len(user_ids)} 用户")
+        """执行清理周期：时间维度 → 配额维度。"""
+        # 1. 时间维度：遍历所有用户，删除过期文件
+        time_deleted = await self._cleanup_expired_by_time()
 
-        total_deleted = 0
-        for user_id in user_ids:
-            deleted = await self.cleanup_user_outputs(user_id)
-            total_deleted += len(deleted)
+        # 2. 配额维度：检查全局 outputs 大小，超配额时删除最老文件
+        quota_deleted = await self._cleanup_by_global_quota()
 
-        logger.info(f"GC 周期完成：共删除 {total_deleted} 个产物文件")
+        total_deleted = len(time_deleted) + len(quota_deleted)
+        logger.info(
+            f"GC 周期完成：时间维度删除 {len(time_deleted)} 个，"
+            f"配额维度删除 {len(quota_deleted)} 个，"
+            f"共 {total_deleted} 个产物文件"
+        )
 
-    async def cleanup_user_outputs(self, user_id: int) -> list[int]:
-        """清理指定用户的产物目录，返回删除的任务 ID 列表。
+    async def _cleanup_expired_by_time(self) -> list[int]:
+        """时间维度清理：删除所有用户的过期产物。
 
-        清理顺序：
-        1. 先按时间维度删除过期文件（finished_at + max_age_days < now）
-        2. 再按配额维度删除最老文件（若 outputs 目录大小超过配额）
-
-        文件删除后 DB 记录保留（Task 记录不动，只删产物文件）。
+        过期判定：finished_at + max_age_days < now（UTC）。
         """
         deleted_ids: list[int] = []
 
         async with self._session_factory() as session:
-            dao = RenderTaskDAO(session)
+            user_dao = UserDAO(session)
+            user_ids = await user_dao.list_all_ids()
 
-            # 1. 时间维度：删除过期文件
+        logger.debug(f"GC 时间维度：共 {len(user_ids)} 用户")
+
+        for user_id in user_ids:
+            deleted = await self._cleanup_user_expired(user_id)
+            deleted_ids.extend(deleted)
+
+        return deleted_ids
+
+    async def _cleanup_user_expired(self, user_id: int) -> list[int]:
+        """清理单个用户的过期产物，返回删除的任务 ID 列表。"""
+        deleted_ids: list[int] = []
+
+        async with self._session_factory() as session:
+            dao = RenderTaskDAO(session)
             expired = await dao.list_expired_for_user(
                 user_id, self._config.output_gc_max_age_days
             )
@@ -111,28 +124,68 @@ class OutputGCService:
                     logger.debug(f"GC 删除过期产物：task_id={task.id}")
                     deleted_ids.append(task.id)
 
-            # 2. 配额维度：若 outputs 目录超配额，删除最老文件
-            outputs_dir = self._file_service.outputs_dir(user_id)
-            current_size = directory_size(outputs_dir)
-            max_size = self._config.output_gc_max_size_bytes
+        return deleted_ids
 
-            if current_size > max_size:
-                # 获取所有 done 任务（按 finished_at 升序，已删除的文件仍返回）
-                done_tasks = await dao.list_done_for_user(user_id)
-                # 过滤掉已删除的任务，只处理文件仍存在的
-                remaining = [t for t in done_tasks if Path(t.output_path).is_file()]
-                # 按 finished_at 升序删除最老文件，直到配额达标
-                for task in remaining:
-                    output_path = Path(task.output_path)
-                    if not output_path.is_file():
-                        continue
-                    file_size = output_path.stat().st_size
-                    output_path.unlink()
-                    current_size -= file_size
-                    deleted_ids.append(task.id)
-                    logger.debug(f"GC 删除超配额产物：task_id={task.id}")
-                    if current_size <= max_size:
-                        break
+    async def _cleanup_by_global_quota(self) -> list[int]:
+        """配额维度清理：若全局 outputs 超配额，删除最老文件直到达标。
+
+        全局 outputs = 所有用户 outputs 目录的总大小。
+        """
+        storage_root = self._file_service._storage_root
+        users_dir = storage_root / "users"
+
+        if not users_dir.exists():
+            return []
+
+        # 计算全局 outputs 总大小
+        global_size = 0
+        for user_dir in users_dir.iterdir():
+            if user_dir.is_dir():
+                outputs_dir = user_dir / "outputs"
+                if outputs_dir.exists():
+                    global_size += directory_size(outputs_dir)
+
+        max_size = self._config.output_gc_global_max_size_bytes
+
+        logger.debug(f"GC 配额维度：全局 outputs {global_size // 1024 // 1024}MB / {max_size // 1024 // 1024 // 1024}GB")
+
+        if global_size <= max_size:
+            return []
+
+        # 超配额：获取所有用户的 done 任务，按 finished_at 全局排序
+        all_done_tasks: list[tuple[int, int, str, datetime]] = []  # (user_id, task_id, output_path, finished_at)
+
+        async with self._session_factory() as session:
+            user_dao = UserDAO(session)
+            user_ids = await user_dao.list_all_ids()
+
+            task_dao = RenderTaskDAO(session)
+            for user_id in user_ids:
+                done_tasks = await task_dao.list_done_for_user(user_id)
+                for t in done_tasks:
+                    if t.finished_at is not None:
+                        # 确保 datetime 是 UTC aware（SQLite 存储可能丢失 tzinfo）
+                        finished_at = t.finished_at
+                        if finished_at.tzinfo is None:
+                            finished_at = finished_at.replace(tzinfo=UTC)
+                        all_done_tasks.append((user_id, t.id, t.output_path, finished_at))
+
+        # 按 finished_at 升序（最老在前）
+        all_done_tasks.sort(key=lambda x: x[3])
+
+        # 删除最老文件直到配额达标
+        deleted_ids: list[int] = []
+        for user_id, task_id, output_path_str, _ in all_done_tasks:
+            output_path = Path(output_path_str)
+            if not output_path.is_file():
+                continue
+            file_size = output_path.stat().st_size
+            output_path.unlink()
+            global_size -= file_size
+            deleted_ids.append(task_id)
+            logger.debug(f"GC 删除超配额产物：task_id={task_id}")
+            if global_size <= max_size:
+                break
 
         return deleted_ids
 
@@ -143,6 +196,10 @@ from app.core.database import async_session_factory
 
 output_gc = OutputGCService(
     session_factory=async_session_factory,
-    file_service=FileService(settings.storage_root, settings.max_user_storage_bytes),
+    file_service=FileService(
+        settings.storage_root,
+        settings.max_user_storage_bytes,
+        settings.max_user_upload_count,
+    ),
     config=settings,
 )

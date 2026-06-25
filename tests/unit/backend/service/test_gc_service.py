@@ -21,20 +21,20 @@ def _make_config(
     gc_enabled: bool = True,
     gc_interval: int = 3600,
     gc_max_age_days: int = 7,
-    gc_max_size_bytes: int = 500 * 1024 * 1024,
+    gc_global_max_size_bytes: int = 10 * 1024 * 1024 * 1024,  # 10GB
 ) -> Settings:
     """创建测试配置。"""
     return Settings(
         output_gc_enabled=gc_enabled,
         output_gc_interval_seconds=gc_interval,
         output_gc_max_age_days=gc_max_age_days,
-        output_gc_max_size_bytes=gc_max_size_bytes,
+        output_gc_global_max_size_bytes=gc_global_max_size_bytes,
     )
 
 
 def _make_file_service() -> FileService:
     """创建测试文件服务。"""
-    return FileService(Path("/tmp/test_storage"), 200 * 1024 * 1024)
+    return FileService(Path("/tmp/test_storage"), 200 * 1024 * 1024, 500)
 
 
 def _make_session_factory(mock_session: AsyncMock) -> AsyncMock:
@@ -98,19 +98,18 @@ class TestStartStop:
         await gc.stop()
 
 
-class TestCleanupUserOutputs:
-    """用户产物清理测试。"""
+class TestCleanupExpiredByTime:
+    """时间维度清理测试。"""
 
     async def test_cleanup_expired_files(self) -> None:
         """清理过期文件（时间维度）。"""
-        mock_session = AsyncMock()
-        session_factory = _make_session_factory(mock_session)
-        gc = _make_gc_service(
-            session_factory=session_factory,
-            config=_make_config(gc_max_age_days=7)
-        )
+        gc = _make_gc_service(config=_make_config(gc_max_age_days=7))
 
-        # Mock DAO 返回过期任务
+        # Mock UserDAO.list_all_ids 返回用户列表
+        mock_user_dao = MagicMock()
+        mock_user_dao.list_all_ids = AsyncMock(return_value=[1])
+
+        # Mock RenderTaskDAO.list_expired_for_user 返回过期任务
         now = datetime.now(tz=UTC)
         cutoff = now - timedelta(days=8)  # 超过 7 天
         expired_task = MagicMock()
@@ -118,36 +117,78 @@ class TestCleanupUserOutputs:
         expired_task.output_path = "/tmp/test_storage/users/1/outputs/video1.mp4"
         expired_task.finished_at = cutoff
 
-        # Mock RenderTaskDAO
-        mock_dao = MagicMock()
-        mock_dao.list_expired_for_user = AsyncMock(return_value=[expired_task])
-        mock_dao.list_done_for_user = AsyncMock(return_value=[])
+        mock_task_dao = MagicMock()
+        mock_task_dao.list_expired_for_user = AsyncMock(return_value=[expired_task])
 
         # Mock 文件存在
         output_path = MagicMock(spec=Path)
         output_path.is_file.return_value = True
         output_path.unlink = MagicMock()
 
-        with patch("app.service.gc_service.RenderTaskDAO", return_value=mock_dao):
-            with patch("app.service.gc_service.Path", return_value=output_path):
-                deleted = await gc.cleanup_user_outputs(1)
+        with patch("app.service.gc_service.UserDAO", return_value=mock_user_dao):
+            with patch("app.service.gc_service.RenderTaskDAO", return_value=mock_task_dao):
+                with patch("app.service.gc_service.Path", return_value=output_path):
+                    deleted = await gc._cleanup_expired_by_time()
 
         assert 1 in deleted
         output_path.unlink.assert_called()
 
-    async def test_cleanup_quota_exceeded(self) -> None:
-        """清理超配额文件（配额维度）。"""
-        mock_session = AsyncMock()
-        session_factory = _make_session_factory(mock_session)
+    async def test_skip_missing_files(self) -> None:
+        """跳过不存在的文件。"""
+        gc = _make_gc_service(config=_make_config(gc_max_age_days=7))
+
+        mock_user_dao = MagicMock()
+        mock_user_dao.list_all_ids = AsyncMock(return_value=[1])
+
+        mock_task_dao = MagicMock()
+        mock_task_dao.list_expired_for_user = AsyncMock(return_value=[
+            MagicMock(
+                id=1,
+                output_path="/tmp/test_storage/users/1/outputs/video1.mp4",
+                finished_at=datetime.now(tz=UTC) - timedelta(days=8),
+            )
+        ])
+
+        # Mock 文件不存在
+        output_path = MagicMock(spec=Path)
+        output_path.is_file.return_value = False
+        output_path.unlink = MagicMock()
+
+        with patch("app.service.gc_service.UserDAO", return_value=mock_user_dao):
+            with patch("app.service.gc_service.RenderTaskDAO", return_value=mock_task_dao):
+                with patch("app.service.gc_service.Path", return_value=output_path):
+                    deleted = await gc._cleanup_expired_by_time()
+
+        assert deleted == []
+        output_path.unlink.assert_not_called()
+
+
+class TestCleanupByGlobalQuota:
+    """全局配额维度清理测试。"""
+
+    async def test_no_cleanup_when_quota_ok(self) -> None:
+        """配额达标时不删除文件。"""
         gc = _make_gc_service(
-            session_factory=session_factory,
-            config=_make_config(gc_max_size_bytes=100)  # 100 bytes 配额
+            config=_make_config(gc_global_max_size_bytes=500)  # 500 bytes 配额
         )
 
-        # Mock DAO
-        mock_dao = MagicMock()
-        mock_dao.list_expired_for_user = AsyncMock(return_value=[])
-        # 返回两个 done 任务（按 finished_at 升序）
+        # Mock directory_size 返回正常大小
+        with patch("app.service.gc_service.directory_size", return_value=100):
+            deleted = await gc._cleanup_by_global_quota()
+
+        assert deleted == []
+
+    async def test_deletes_oldest_when_quota_exceeded(self) -> None:
+        """超配额时删除最老文件。"""
+        gc = _make_gc_service(
+            config=_make_config(gc_global_max_size_bytes=100)  # 100 bytes 配额
+        )
+
+        # Mock UserDAO.list_all_ids
+        mock_user_dao = MagicMock()
+        mock_user_dao.list_all_ids = AsyncMock(return_value=[1])
+
+        # Mock RenderTaskDAO.list_done_for_user 返回两个任务（按 finished_at 升序）
         task1 = MagicMock()
         task1.id = 1
         task1.output_path = "/outputs/video1.mp4"
@@ -158,11 +199,19 @@ class TestCleanupUserOutputs:
         task2.output_path = "/outputs/video2.mp4"
         task2.finished_at = datetime(2026, 1, 2, tzinfo=UTC)
 
-        mock_dao.list_done_for_user = AsyncMock(return_value=[task1, task2])
+        mock_task_dao = MagicMock()
+        mock_task_dao.list_done_for_user = AsyncMock(return_value=[task1, task2])
 
-        # Mock outputs_dir
-        outputs_dir = MagicMock(spec=Path)
-        gc._file_service.outputs_dir = MagicMock(return_value=outputs_dir)
+        # Mock users_dir 存在
+        users_dir = MagicMock(spec=Path)
+        users_dir.exists.return_value = True
+        users_dir.iterdir.return_value = [
+            MagicMock(is_dir=lambda: True, __truediv__=lambda self, x: MagicMock(exists=lambda: True))
+        ]
+
+        # Mock file_service._storage_root
+        gc._file_service._storage_root = MagicMock(spec=Path)
+        gc._file_service._storage_root.__truediv__ = lambda self, x: users_dir
 
         # Mock directory_size 返回超配额大小
         with patch("app.service.gc_service.directory_size", return_value=200):
@@ -172,80 +221,30 @@ class TestCleanupUserOutputs:
             output_path1.stat.return_value.st_size = 150
             output_path1.unlink = MagicMock()
 
-            output_path2 = MagicMock(spec=Path)
-            output_path2.is_file.return_value = True
-            output_path2.stat.return_value.st_size = 50
-            output_path2.unlink = MagicMock()
+            with patch("app.service.gc_service.UserDAO", return_value=mock_user_dao):
+                with patch("app.service.gc_service.RenderTaskDAO", return_value=mock_task_dao):
+                    with patch("app.service.gc_service.Path") as mock_path:
+                        def mock_path_func(arg):
+                            if "video1" in str(arg):
+                                return output_path1
+                            return MagicMock(spec=Path)
+                        mock_path.side_effect = mock_path_func
+                        deleted = await gc._cleanup_by_global_quota()
 
-            with patch("app.service.gc_service.RenderTaskDAO", return_value=mock_dao):
-                # Path 被多次调用：expired 的 output_path + outputs_dir 检查 + done 的 output_path
-                # 需要更精细的 mock：让 Path(task.output_path) 返回正确的 mock
-                def mock_path_func(arg):
-                    if "video1" in str(arg):
-                        return output_path1
-                    elif "video2" in str(arg):
-                        return output_path2
-                    return MagicMock(spec=Path)
-
-                with patch("app.service.gc_service.Path", side_effect=mock_path_func):
-                    deleted = await gc.cleanup_user_outputs(1)
-
-        # 应删除最老的文件（video1）以使配额达标
+        # 应删除最老的文件（task1）以使配额达标
         assert 1 in deleted
         output_path1.unlink.assert_called()
 
-    async def test_no_cleanup_when_quota_ok(self) -> None:
-        """配额达标时不删除文件。"""
-        mock_session = AsyncMock()
-        session_factory = _make_session_factory(mock_session)
-        gc = _make_gc_service(
-            session_factory=session_factory,
-            config=_make_config(gc_max_size_bytes=500)  # 500 bytes 配额
-        )
+    async def test_no_cleanup_when_users_dir_missing(self) -> None:
+        """用户目录不存在时不清理。"""
+        gc = _make_gc_service()
 
-        # Mock DAO
-        mock_dao = MagicMock()
-        mock_dao.list_expired_for_user = AsyncMock(return_value=[])
-        mock_dao.list_done_for_user = AsyncMock(return_value=[])
+        # Mock users_dir 不存在
+        users_dir = MagicMock(spec=Path)
+        users_dir.exists.return_value = False
 
-        outputs_dir = MagicMock(spec=Path)
-        gc._file_service.outputs_dir = MagicMock(return_value=outputs_dir)
+        gc._file_service._storage_root = MagicMock(spec=Path)
+        gc._file_service._storage_root.__truediv__ = lambda self, x: users_dir
 
-        # Mock directory_size 返回正常大小
-        with patch("app.service.gc_service.directory_size", return_value=100):
-            with patch("app.service.gc_service.RenderTaskDAO", return_value=mock_dao):
-                deleted = await gc.cleanup_user_outputs(1)
-
+        deleted = await gc._cleanup_by_global_quota()
         assert deleted == []
-
-    async def test_skip_missing_files(self) -> None:
-        """跳过不存在的文件。"""
-        mock_session = AsyncMock()
-        session_factory = _make_session_factory(mock_session)
-        gc = _make_gc_service(
-            session_factory=session_factory,
-            config=_make_config(gc_max_age_days=7)
-        )
-
-        mock_dao = MagicMock()
-        mock_dao.list_expired_for_user = AsyncMock(return_value=[
-            MagicMock(
-                id=1,
-                output_path="/tmp/test_storage/users/1/outputs/video1.mp4",
-                finished_at=datetime.now(tz=UTC) - timedelta(days=8),
-            )
-        ])
-        mock_dao.list_done_for_user = AsyncMock(return_value=[])
-
-        # Mock 文件不存在
-        output_path = MagicMock(spec=Path)
-        output_path.is_file.return_value = False
-        output_path.unlink = MagicMock()
-
-        with patch("app.service.gc_service.RenderTaskDAO", return_value=mock_dao):
-            with patch("app.service.gc_service.Path", return_value=output_path):
-                deleted = await gc.cleanup_user_outputs(1)
-
-        # 文件不存在，不应删除
-        assert deleted == []
-        output_path.unlink.assert_not_called()

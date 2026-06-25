@@ -1,8 +1,8 @@
 """GC 服务 dev-integration 测试。
 
 使用真实文件系统验证 GC 清理逻辑：
-1. 时间维度：删除过期文件
-2. 配额维度：删除超配额的最老文件
+1. 时间维度：删除过期文件（按用户遍历）
+2. 配额维度：全局 outputs 超配额时删除最老文件
 
 使用真实 SQLite 本地文件库（§4.1 允许）。
 """
@@ -62,7 +62,7 @@ def tmp_storage(tmp_path: Path) -> Path:
 @pytest.fixture
 def file_service(tmp_storage: Path) -> FileService:
     """文件服务实例。"""
-    return FileService(tmp_storage, 200 * 1024 * 1024)
+    return FileService(tmp_storage, 200 * 1024 * 1024, 500)
 
 
 @pytest.fixture
@@ -72,7 +72,7 @@ def gc_config() -> Settings:
         output_gc_enabled=True,
         output_gc_interval_seconds=3600,
         output_gc_max_age_days=7,
-        output_gc_max_size_bytes=100,  # 100 bytes 配额，方便测试
+        output_gc_global_max_size_bytes=100,  # 100 bytes 全局配额，方便测试
     )
 
 
@@ -95,7 +95,7 @@ async def gc_service(
     )
 
 
-class TestCleanupExpiredFiles:
+class TestCleanupExpiredByTime:
     """时间维度清理测试。"""
 
     async def test_deletes_expired_files(
@@ -113,7 +113,6 @@ class TestCleanupExpiredFiles:
         )
 
         task_dao = RenderTaskDAO(memory_session)
-        # 创建两个任务：一个过期、一个未过期
         outputs_dir = file_service.outputs_dir(user.id)
 
         # 过期任务（8 天前完成）
@@ -126,13 +125,12 @@ class TestCleanupExpiredFiles:
             input_props={},
             output_path=str(expired_file),
         )
-        # 手动设置为 done + finished_at 过期
         await task_dao.mark_done(
             expired_task.id,
             str(expired_file),
             duration_ms=100,
         )
-        # 直接修改 finished_at（通过 raw SQL）
+        # 直接修改 finished_at 为过期时间
         cutoff = datetime.now(tz=UTC) - timedelta(days=8)
         await memory_session.execute(
             text(
@@ -154,8 +152,8 @@ class TestCleanupExpiredFiles:
         )
         await task_dao.mark_done(fresh_task.id, str(fresh_file), duration_ms=100)
 
-        # 执行清理
-        deleted = await gc_service.cleanup_user_outputs(user.id)
+        # 执行时间维度清理
+        deleted = await gc_service._cleanup_expired_by_time()
 
         # 验证：过期文件被删除，未过期文件保留
         assert expired_task.id in deleted
@@ -164,17 +162,17 @@ class TestCleanupExpiredFiles:
         assert fresh_file.exists()
 
 
-class TestCleanupQuotaExceeded:
-    """配额维度清理测试。"""
+class TestCleanupByGlobalQuota:
+    """全局配额维度清理测试。"""
 
-    async def test_deletes_oldest_when_quota_exceeded(
+    async def test_no_cleanup_when_quota_ok(
         self,
         memory_session: AsyncSession,
         file_service: FileService,
         gc_service: OutputGCService,
         tmp_storage: Path,
     ) -> None:
-        """配额超限时删除最老文件。"""
+        """全局配额达标时不删除文件。"""
         # 创建用户
         user_dao = UserDAO(memory_session)
         user = await user_dao.create(
@@ -184,71 +182,9 @@ class TestCleanupQuotaExceeded:
         task_dao = RenderTaskDAO(memory_session)
         outputs_dir = file_service.outputs_dir(user.id)
 
-        # 创建三个文件，总大小超过 100 bytes 配额
-        # 最老文件（finished_at 最早）
-        oldest_file = outputs_dir / "oldest.mp4"
-        oldest_file.write_bytes(b"a" * 60)  # 60 bytes
-        oldest_task = await task_dao.create(
-            user_id=user.id,
-            mode=RenderMode.SINGLE,
-            codec=Codec.H264,
-            input_props={},
-            output_path=str(oldest_file),
-        )
-        await task_dao.mark_done(oldest_task.id, str(oldest_file), duration_ms=100)
-
-        # 中间文件
-        middle_file = outputs_dir / "middle.mp4"
-        middle_file.write_bytes(b"b" * 40)  # 40 bytes
-        middle_task = await task_dao.create(
-            user_id=user.id,
-            mode=RenderMode.SINGLE,
-            codec=Codec.H264,
-            input_props={},
-            output_path=str(middle_file),
-        )
-        await task_dao.mark_done(middle_task.id, str(middle_file), duration_ms=100)
-        # 手动设置 finished_at 比 oldest 晚
-        await memory_session.execute(
-            text(
-                "UPDATE render_tasks SET finished_at = :time WHERE id = :id"
-            ),
-            {
-                "time": datetime.now(tz=UTC) - timedelta(days=1),
-                "id": middle_task.id,
-            },
-        )
-        await memory_session.commit()
-
-        # 执行清理（总大小 100 bytes，配额 100 bytes，应该刚好不超）
-        # 但因为我们创建时 oldest + middle 已经超过配额（60+40=100，刚好到配额边界）
-        # 实际上 directory_size 会统计 outputs_dir 的全部内容
-        deleted = await gc_service.cleanup_user_outputs(user.id)
-
-        # 配额正好 100，总大小 100，不需要删除（<= 配额）
-        # 但如果再创建一个新文件就会超配额
-        assert len(deleted) == 0
-
-    async def test_deletes_until_quota_ok(
-        self,
-        memory_session: AsyncSession,
-        file_service: FileService,
-        gc_service: OutputGCService,
-        tmp_storage: Path,
-    ) -> None:
-        """超配额时持续删除最老文件直到配额达标。"""
-        # 创建用户
-        user_dao = UserDAO(memory_session)
-        user = await user_dao.create(
-            email="test@example.com", username="testuser2", is_verified=True
-        )
-
-        task_dao = RenderTaskDAO(memory_session)
-        outputs_dir = file_service.outputs_dir(user.id)
-
-        # 创建三个大文件，明显超配额
+        # 创建一个文件，大小未超全局配额（100 bytes）
         file1 = outputs_dir / "file1.mp4"
-        file1.write_bytes(b"a" * 80)  # 80 bytes
+        file1.write_bytes(b"a" * 50)  # 50 bytes
         task1 = await task_dao.create(
             user_id=user.id,
             mode=RenderMode.SINGLE,
@@ -257,7 +193,46 @@ class TestCleanupQuotaExceeded:
             output_path=str(file1),
         )
         await task_dao.mark_done(task1.id, str(file1), duration_ms=100)
-        # 设置 file1 的 finished_at 为最早（2 天前）
+
+        # 执行配额维度清理
+        deleted = await gc_service._cleanup_by_global_quota()
+
+        # 全局 50 bytes <= 100 bytes 配额，不需要删除
+        assert len(deleted) == 0
+        assert file1.exists()
+
+    async def test_deletes_oldest_when_global_quota_exceeded(
+        self,
+        memory_session: AsyncSession,
+        file_service: FileService,
+        gc_service: OutputGCService,
+        tmp_storage: Path,
+    ) -> None:
+        """全局超配额时删除最老文件。"""
+        # 创建两个用户
+        user_dao = UserDAO(memory_session)
+        user1 = await user_dao.create(
+            email="user1@example.com", username="user1", is_verified=True
+        )
+        user2 = await user_dao.create(
+            email="user2@example.com", username="user2", is_verified=True
+        )
+
+        task_dao = RenderTaskDAO(memory_session)
+
+        # 用户1：创建最老的文件
+        outputs_dir1 = file_service.outputs_dir(user1.id)
+        file1 = outputs_dir1 / "file1.mp4"
+        file1.write_bytes(b"a" * 60)  # 60 bytes
+        task1 = await task_dao.create(
+            user_id=user1.id,
+            mode=RenderMode.SINGLE,
+            codec=Codec.H264,
+            input_props={},
+            output_path=str(file1),
+        )
+        await task_dao.mark_done(task1.id, str(file1), duration_ms=100)
+        # 设置为最早完成（2 天前）
         await memory_session.execute(
             text(
                 "UPDATE render_tasks SET finished_at = :time WHERE id = :id"
@@ -269,8 +244,72 @@ class TestCleanupQuotaExceeded:
         )
         await memory_session.commit()
 
+        # 用户2：创建较新的文件
+        outputs_dir2 = file_service.outputs_dir(user2.id)
+        file2 = outputs_dir2 / "file2.mp4"
+        file2.write_bytes(b"b" * 50)  # 50 bytes
+        task2 = await task_dao.create(
+            user_id=user2.id,
+            mode=RenderMode.SINGLE,
+            codec=Codec.H264,
+            input_props={},
+            output_path=str(file2),
+        )
+        await task_dao.mark_done(task2.id, str(file2), duration_ms=100)
+        # 默认 finished_at 为 now，比 task1 晚
+
+        # 全局总大小 = 60 + 50 = 110 bytes > 100 bytes 配额
+        # 应删除最老的 task1（60 bytes），剩余 50 bytes <= 100
+        deleted = await gc_service._cleanup_by_global_quota()
+
+        assert task1.id in deleted  # 最老的被删除
+        assert task2.id not in deleted  # 较新的保留
+        assert not file1.exists()
+        assert file2.exists()
+
+    async def test_deletes_until_global_quota_ok(
+        self,
+        memory_session: AsyncSession,
+        file_service: FileService,
+        gc_service: OutputGCService,
+        tmp_storage: Path,
+    ) -> None:
+        """持续删除最老文件直到全局配额达标。"""
+        user_dao = UserDAO(memory_session)
+        user = await user_dao.create(
+            email="user@example.com", username="user", is_verified=True
+        )
+
+        task_dao = RenderTaskDAO(memory_session)
+        outputs_dir = file_service.outputs_dir(user.id)
+
+        # 创建三个大文件，总大小明显超配额
+        # 配额 100 bytes
+
+        file1 = outputs_dir / "file1.mp4"
+        file1.write_bytes(b"a" * 80)  # 80 bytes
+        task1 = await task_dao.create(
+            user_id=user.id,
+            mode=RenderMode.SINGLE,
+            codec=Codec.H264,
+            input_props={},
+            output_path=str(file1),
+        )
+        await task_dao.mark_done(task1.id, str(file1), duration_ms=100)
+        # 设置为最早（3 天前）
+        await memory_session.execute(
+            text(
+                "UPDATE render_tasks SET finished_at = :time WHERE id = :id"
+            ),
+            {
+                "time": datetime.now(tz=UTC) - timedelta(days=3),
+                "id": task1.id,
+            },
+        )
+        await memory_session.commit()
+
         file2 = outputs_dir / "file2.mp4"
-        file2.write_bytes(b"b" * 80)  # 80 bytes
+        file2.write_bytes(b"b" * 40)  # 40 bytes
         task2 = await task_dao.create(
             user_id=user.id,
             mode=RenderMode.SINGLE,
@@ -279,34 +318,53 @@ class TestCleanupQuotaExceeded:
             output_path=str(file2),
         )
         await task_dao.mark_done(task2.id, str(file2), duration_ms=100)
-        # file2 的 finished_at 为默认（now），比 file1 晚
+        # 设置为次早（2 天前）
+        await memory_session.execute(
+            text(
+                "UPDATE render_tasks SET finished_at = :time WHERE id = :id"
+            ),
+            {
+                "time": datetime.now(tz=UTC) - timedelta(days=2),
+                "id": task2.id,
+            },
+        )
+        await memory_session.commit()
 
-        # 总大小 160 bytes，配额 100 bytes
-        # 应删除最老的 file1（80 bytes），剩余 80 bytes <= 100
-        deleted = await gc_service.cleanup_user_outputs(user.id)
+        file3 = outputs_dir / "file3.mp4"
+        file3.write_bytes(b"c" * 30)  # 30 bytes
+        task3 = await task_dao.create(
+            user_id=user.id,
+            mode=RenderMode.SINGLE,
+            codec=Codec.H264,
+            input_props={},
+            output_path=str(file3),
+        )
+        await task_dao.mark_done(task3.id, str(file3), duration_ms=100)
+        # 默认 finished_at 为 now，最新
+
+        # 全局总大小 = 80 + 40 + 30 = 150 bytes > 100 bytes 配额
+        # 删除 task1（80 bytes）后剩余 70 bytes <= 100，达标
+        deleted = await gc_service._cleanup_by_global_quota()
 
         assert task1.id in deleted  # 最老的被删除
         assert task2.id not in deleted  # 较新的保留
+        assert task3.id not in deleted  # 最新的保留
         assert not file1.exists()
         assert file2.exists()
+        assert file3.exists()
 
 
 class TestNoCleanup:
     """不清理场景测试。"""
 
-    async def test_no_cleanup_when_no_tasks(
+    async def test_no_cleanup_when_no_users(
         self,
         memory_session: AsyncSession,
         file_service: FileService,
         gc_service: OutputGCService,
     ) -> None:
-        """无任务时不清理。"""
-        user_dao = UserDAO(memory_session)
-        user = await user_dao.create(
-            email="empty@example.com", username="emptyuser", is_verified=True
-        )
-
-        deleted = await gc_service.cleanup_user_outputs(user.id)
+        """无用户时不清理。"""
+        deleted = await gc_service._cleanup_expired_by_time()
         assert deleted == []
 
     async def test_no_cleanup_when_files_missing(
@@ -336,6 +394,6 @@ class TestNoCleanup:
         )
         await task_dao.mark_done(task.id, str(missing_file), duration_ms=100)
 
-        # 文件不存在，清理应跳过
-        deleted = await gc_service.cleanup_user_outputs(user.id)
+        # 文件不存在，时间维度清理应跳过
+        deleted = await gc_service._cleanup_expired_by_time()
         assert deleted == []
