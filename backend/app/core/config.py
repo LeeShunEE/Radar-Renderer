@@ -79,6 +79,12 @@ class Settings(BaseSettings):
     # 是否在应用启动时自动拉起队列消费协程（测试中关闭以保证确定性）
     render_queue_autostart: bool = True
 
+    # 渲染产物 GC（自动清理过期或超配额文件）
+    output_gc_enabled: bool = True  # 是否启用产物 GC（测试隔离用）
+    output_gc_interval_seconds: int = 3600  # GC 周期（秒），默认 1 小时
+    output_gc_max_age_days: int = 7  # 产物保留天数
+    output_gc_max_size_bytes: int = 500 * 1024 * 1024  # 单用户 outputs 目录最大大小（500MB）
+
     # 测试环境标识（启用测试端点，生产必须 false）
     testing: bool = False
 

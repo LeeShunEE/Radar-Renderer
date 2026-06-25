@@ -356,3 +356,33 @@ class TestGetCredentialsByEmail:
 
         creds = await dao.get_credentials_by_email("notfound@example.com")
         assert creds is None
+
+
+class TestListAllIds:
+    """list_all_ids 方法测试。"""
+
+    async def test_list_all_ids_returns_ids(
+        self, dao: UserDAO, mock_session: AsyncMock
+    ) -> None:
+        """list_all_ids 返回所有用户 ID 列表。"""
+        mock_result = MagicMock()
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = [1, 2, 3]
+        mock_result.scalars.return_value = mock_scalars
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        ids = await dao.list_all_ids()
+        assert ids == [1, 2, 3]
+
+    async def test_list_all_ids_returns_empty_when_none(
+        self, dao: UserDAO, mock_session: AsyncMock
+    ) -> None:
+        """list_all_ids 返回空列表当无用户。"""
+        mock_result = MagicMock()
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = []
+        mock_result.scalars.return_value = mock_scalars
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        ids = await dao.list_all_ids()
+        assert ids == []

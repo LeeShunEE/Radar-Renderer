@@ -4,7 +4,7 @@
 不带用户过滤，仅供后台协程使用。
 """
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import select, update
@@ -140,3 +140,36 @@ class RenderTaskDAO:
         if orm is not None:
             await self._session.delete(orm)
             await self._session.commit()
+
+    async def list_done_for_user(self, user_id: int) -> list[RenderTask]:
+        """返回用户所有 done 任务，按 finished_at 升序排序（GC 配额清理用）。"""
+        stmt = (
+            select(RenderTaskORM)
+            .where(
+                RenderTaskORM.user_id == user_id,
+                RenderTaskORM.status == RenderStatus.DONE.value,
+            )
+            .order_by(RenderTaskORM.finished_at.asc())
+        )
+        rows = (await self._session.execute(stmt)).scalars().all()
+        return [_to_domain(r) for r in rows]
+
+    async def list_expired_for_user(
+        self, user_id: int, max_age_days: int
+    ) -> list[RenderTask]:
+        """返回超过保留天数的 done 任务（GC 时间维度清理用）。
+
+        过期判定：finished_at + max_age_days < now（UTC）。
+        """
+        cutoff = _utcnow() - timedelta(days=max_age_days)
+        stmt = (
+            select(RenderTaskORM)
+            .where(
+                RenderTaskORM.user_id == user_id,
+                RenderTaskORM.status == RenderStatus.DONE.value,
+                RenderTaskORM.finished_at < cutoff,
+            )
+            .order_by(RenderTaskORM.finished_at.asc())
+        )
+        rows = (await self._session.execute(stmt)).scalars().all()
+        return [_to_domain(r) for r in rows]

@@ -3,6 +3,7 @@
  * useTaskQueue + api-client files 用 vi.hoisted 持有可变状态。
  * 图标按钮无 accessible name，按稳定 DOM 顺序定位：
  *   头部 1 个刷新按钮；每行任务按状态渲染 download(done) → delete。
+ * 删除按钮改为带确认 Dialog，需点击确认按钮才触发 deleteTask。
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
@@ -30,6 +31,20 @@ vi.stubGlobal("URL", {
   revokeObjectURL: vi.fn(),
 });
 
+// Mock ConfirmDialog 组件以避免 @base-ui/react/dialog 导入问题
+vi.mock("@/components/ui/dialog", () => ({
+  ConfirmDialog: ({ open, onOpenChange, title, description, confirmLabel, danger, onConfirm }: any) => (
+    open ? (
+      <div data-testid="confirm-dialog">
+        <h2 data-testid="dialog-title">{title}</h2>
+        <p data-testid="dialog-description">{description}</p>
+        <button data-testid="dialog-cancel" onClick={() => onOpenChange(false)}>取消</button>
+        <button data-testid="dialog-confirm" onClick={onConfirm}>{confirmLabel}</button>
+      </div>
+    ) : null
+  ),
+}));
+
 const task = (over: Partial<any> = {}) => ({
   id: 1,
   status: "done",
@@ -39,6 +54,8 @@ const task = (over: Partial<any> = {}) => ({
   eta_seconds: 0,
   position: 0,
   duration_ms: 1500,
+  file_expired: false,
+  output_exists: true,
   ...over,
 });
 
@@ -106,12 +123,35 @@ describe("TaskQueuePanel", () => {
     });
   });
 
-  it("failed 任务含删除按钮，点击触发 deleteTask", () => {
+  it("done 任务 output_exists=false 时不显示下载按钮", () => {
+    queueState.tasks = [task({ id: 5, status: "done", output_exists: false })];
+    render(<TaskQueuePanel />);
+    // 只有刷新按钮和删除按钮（没有下载按钮）
+    const buttons = screen.getAllByRole("button");
+    expect(buttons.length).toBe(2);
+  });
+
+  it("file_expired=true 时显示「产物已清理」提示", () => {
+    queueState.tasks = [task({ id: 5, status: "done", file_expired: true, output_exists: false })];
+    render(<TaskQueuePanel />);
+    expect(screen.getByText("产物已清理")).toBeInTheDocument();
+  });
+
+  it("failed 任务含删除按钮，点击打开 Dialog，确认后触发 deleteTask", async () => {
     queueState.tasks = [task({ id: 9, status: "failed" })];
     render(<TaskQueuePanel />);
     // 按钮顺序：[刷新, 删除]（failed 无下载按钮）
     fireEvent.click(screen.getAllByRole("button")[1]);
-    expect(queueState.deleteTask).toHaveBeenCalledWith(9);
+    // Dialog 打开
+    await waitFor(() => {
+      expect(screen.getByTestId("confirm-dialog")).toBeInTheDocument();
+    });
+    // 点击确认按钮（Dialog 内的删除按钮）
+    const confirmButton = screen.getByTestId("dialog-confirm");
+    fireEvent.click(confirmButton);
+    await waitFor(() => {
+      expect(queueState.deleteTask).toHaveBeenCalledWith(9);
+    });
   });
 
   it("running 任务显示进度条 + 帧数 + 剩余时间", () => {
