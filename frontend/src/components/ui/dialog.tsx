@@ -29,8 +29,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 bg-black/50 z-50" />
-        <Dialog.Positioner className="fixed inset-0 z-50 flex items-center justify-center">
-          <Dialog.Popup className="bg-card border border-unfocused-border-color rounded-lg shadow-lg p-4 max-w-sm w-full space-y-4">
+        <Dialog.Popup className="fixed inset-0 z-50 flex items-center justify-center bg-card border border-unfocused-border-color rounded-lg shadow-lg p-4 max-w-sm w-full space-y-4">
             <Dialog.Title className="text-sm font-semibold">
               {title}
             </Dialog.Title>
@@ -57,7 +56,6 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
               </Button>
             </div>
           </Dialog.Popup>
-        </Dialog.Positioner>
       </Dialog.Portal>
     </Dialog.Root>
   );
