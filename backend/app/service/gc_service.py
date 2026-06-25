@@ -12,7 +12,7 @@
 import asyncio
 import logging
 from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -126,18 +126,14 @@ class OutputGCService:
 
         return deleted_ids
 
-    async def _cleanup_by_global_quota(self) -> list[int]:
-        """配额维度清理：若全局 outputs 超配额，删除最老文件直到达标。
-
-        全局 outputs = 所有用户 outputs 目录的总大小。
-        """
+    def _calculate_global_outputs_size(self) -> int:
+        """计算全局 outputs 目录总大小。"""
         storage_root = self._file_service._storage_root
         users_dir = storage_root / "users"
 
         if not users_dir.exists():
-            return []
+            return 0
 
-        # 计算全局 outputs 总大小
         global_size = 0
         for user_dir in users_dir.iterdir():
             if user_dir.is_dir():
@@ -145,15 +141,14 @@ class OutputGCService:
                 if outputs_dir.exists():
                     global_size += directory_size(outputs_dir)
 
-        max_size = self._config.output_gc_global_max_size_bytes
+        return global_size
 
-        logger.debug(f"GC 配额维度：全局 outputs {global_size // 1024 // 1024}MB / {max_size // 1024 // 1024 // 1024}GB")
+    async def _collect_all_done_tasks(self) -> list[tuple[int, int, str, datetime]]:
+        """收集所有用户的 done 任务，返回按 finished_at 升序排序的列表。
 
-        if global_size <= max_size:
-            return []
-
-        # 超配额：获取所有用户的 done 任务，按 finished_at 全局排序
-        all_done_tasks: list[tuple[int, int, str, datetime]] = []  # (user_id, task_id, output_path, finished_at)
+        返回格式：(user_id, task_id, output_path, finished_at)
+        """
+        all_tasks: list[tuple[int, int, str, datetime]] = []
 
         async with self._session_factory() as session:
             user_dao = UserDAO(session)
@@ -168,25 +163,60 @@ class OutputGCService:
                         finished_at = t.finished_at
                         if finished_at.tzinfo is None:
                             finished_at = finished_at.replace(tzinfo=UTC)
-                        all_done_tasks.append((user_id, t.id, t.output_path, finished_at))
+                        all_tasks.append((user_id, t.id, t.output_path, finished_at))
 
         # 按 finished_at 升序（最老在前）
-        all_done_tasks.sort(key=lambda x: x[3])
+        all_tasks.sort(key=lambda x: x[3])
+        return all_tasks
 
-        # 删除最老文件直到配额达标
+    def _delete_until_quota_ok(
+        self,
+        tasks: list[tuple[int, int, str, datetime]],
+        current_size: int,
+        max_size: int,
+    ) -> tuple[list[int], int]:
+        """删除文件直到配额达标，返回（删除的任务 ID 列表, 最终大小）。"""
         deleted_ids: list[int] = []
-        for user_id, task_id, output_path_str, _ in all_done_tasks:
+
+        for user_id, task_id, output_path_str, _ in tasks:
             output_path = Path(output_path_str)
             if not output_path.is_file():
                 continue
             file_size = output_path.stat().st_size
             output_path.unlink()
-            global_size -= file_size
+            current_size -= file_size
             deleted_ids.append(task_id)
             logger.debug(f"GC 删除超配额产物：task_id={task_id}")
-            if global_size <= max_size:
+            if current_size <= max_size:
                 break
 
+        return deleted_ids, current_size
+
+    async def _cleanup_by_global_quota(self) -> list[int]:
+        """配额维度清理：若全局 outputs 超配额，删除最老文件直到达标。
+
+        全局 outputs = 所有用户 outputs 目录的总大小。
+        """
+        global_size = self._calculate_global_outputs_size()
+        max_size = self._config.output_gc_global_max_size_bytes
+
+        logger.debug(
+            f"GC 配额维度：全局 outputs {global_size // 1024 // 1024}MB "
+            f"/ {max_size // 1024 // 1024 // 1024}GB"
+        )
+
+        if global_size <= max_size:
+            return []
+
+        # 收集所有 done 任务并排序
+        all_done_tasks = await self._collect_all_done_tasks()
+
+        # 删除最老文件直到配额达标
+        deleted_ids, final_size = self._delete_until_quota_ok(
+            all_done_tasks, global_size, max_size
+        )
+
+        logger.debug(f"GC 配额维度清理完成：最终大小 {final_size // 1024 // 1024}MB")
         return deleted_ids
 
 
