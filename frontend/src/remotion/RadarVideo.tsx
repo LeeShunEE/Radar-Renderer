@@ -12,6 +12,7 @@ import {
   useVideoConfig,
 } from "remotion";
 import { BackgroundGradient } from "./Effects/BackgroundGradient";
+import { BackgroundAudio } from "./Effects/BackgroundAudio";
 import { BackgroundMedia } from "./Effects/BackgroundMedia";
 import { Vignette } from "./Effects/Vignette";
 import { selectBackgroundKind } from "./Effects/selectBackgroundKind";
@@ -340,6 +341,7 @@ export const RadarVideo: React.FC<RadarVideoFullProps> = (props) => {
           <>
             <BackgroundMedia type={background.type as "image" | "video"} media={background.media!} />
             <Vignette theme={theme} />
+            {background.type === "video" && <BackgroundAudio media={background.media!} />}
           </>
         )}
       </Sequence>
