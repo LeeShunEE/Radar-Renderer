@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PreviewPanel } from "./PreviewPanel";
 import { GlobalConfigEditor } from "./GlobalConfigEditor";
 import { ComparisonConfigPanel } from "./ComparisonConfigPanel";
@@ -13,6 +13,7 @@ import { TaskQueuePanel } from "../tasks/TaskQueuePanel";
 import { FieldFocusProvider } from "./FieldFocusContext";
 import { applyGlobalOverride } from "../../lib/global-override";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
+import { useAutoSave } from "../../hooks/useAutoSave";
 import type { MultiPageConfig, RadarVideoProps } from "../../types/radar";
 import { defaultMultiPageConfig, defaultRadarProps } from "../../types/constants";
 
@@ -22,6 +23,27 @@ export const RadarEditor: React.FC = () => {
   const [previewMode, setPreviewMode] = useState<"single" | "multi">("single");
   const [expandedMap, setExpandedMap] = useState<Record<number, boolean>>({ 0: true });
   const [activeTab, setActiveTab] = useState<string>("global");
+  const [autoSaveToast, setAutoSaveToast] = useState<string | null>(null);
+
+  const { saveAuto } = useAutoSave();
+  const lastSavedConfigRef = useRef<string>("");
+
+  // 自动保存逻辑：每分钟检查 config 是否变化，有变化则保存
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentJson = JSON.stringify(config);
+      if (currentJson !== lastSavedConfigRef.current) {
+        const success = saveAuto(config);
+        if (success) {
+          lastSavedConfigRef.current = currentJson;
+          setAutoSaveToast("已自动保存");
+          setTimeout(() => setAutoSaveToast(null), 1500);
+        }
+      }
+    }, 60000); // 1 分钟
+
+    return () => clearInterval(interval);
+  }, [config, saveAuto]);
 
   const setPageExpanded = useCallback((index: number, expanded: boolean) => {
     setExpandedMap((prev) => ({ ...prev, [index]: expanded }));
@@ -309,6 +331,15 @@ export const RadarEditor: React.FC = () => {
           </TabsContent>
         </Tabs>
       </div>
+      {/* 自动保存 toast 提示 */}
+      {autoSaveToast && (
+        <div
+          className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-md text-sm z-50"
+          style={{ animation: "fadeIn 0.2s ease-out" }}
+        >
+          {autoSaveToast}
+        </div>
+      )}
     </div>
     </FieldFocusProvider>
   );
