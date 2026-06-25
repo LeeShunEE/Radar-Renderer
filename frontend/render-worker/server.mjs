@@ -5,10 +5,15 @@
 //                      outputPath: <绝对路径>, inputProps: <图表配置> }
 // 响应：200 { outputPath, durationMs, totalFrames } | 4xx/5xx { error }
 //
+// 静态文件服务：GET /_user_media/* 与 GET /_render_tmp/*
+// Remotion bundle 在 bundle 时复制 public 文件夹，运行时新增文件不会被 serve。
+// 此静态端点让 worker 可以直接 serve 运行时上传的背景媒体与剪影临时文件。
+//
 // 启动：cd frontend && node render-worker/server.mjs   （或 pnpm worker）
 // 环境变量：WORKER_PORT（默认 3100）
 
 import http from "node:http";
+import fs from "node:fs";
 import path from "node:path";
 import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
@@ -54,6 +59,64 @@ async function readJson(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
   return JSON.parse(Buffer.concat(chunks).toString("utf-8"));
+}
+
+// 静态文件服务：serve _user_media 与 _render_tmp 目录下的文件。
+// Remotion bundle 在 bundle 时复制 public 文件夹，运行时新增文件不会被 serve。
+// 此端点让后端可以生成完整 URL（http://worker:3100/_user_media/users/...）
+// 供 Remotion 组件直接使用，绕过 staticFile 的 bundle 时复制限制。
+// urlPath: 已去掉 query string 的路径（如 /_user_media/users/62/uploads/sample-bg.png）
+function serveStaticFile(urlPath, res) {
+  // urlPath 已去掉 query string
+  const relPath = urlPath;
+
+  // 只允许 _user_media 与 _render_tmp 子目录
+  if (!relPath.startsWith("/_user_media/") && !relPath.startsWith("/_render_tmp/")) {
+    res.writeHead(403, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "forbidden: only _user_media and _render_tmp allowed" }));
+    return false;
+  }
+
+  const fullPath = path.join(PUBLIC_DIR, relPath);
+
+  // 安全检查：防止路径穿越（已由前缀限制，但双重保险）
+  const resolved = path.resolve(fullPath);
+  if (!resolved.startsWith(PUBLIC_DIR)) {
+    res.writeHead(403, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "forbidden: path traversal" }));
+    return false;
+  }
+
+  // 检查文件是否存在
+  if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) {
+    res.writeHead(404, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "not found" }));
+    return false;
+  }
+
+  // 简单 MIME 类型推断（图片/视频/二进制）
+  const ext = path.extname(resolved).toLowerCase();
+  const MIME_MAP = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    ".mp4": "video/mp4",
+    ".webm": "video/webm",
+    ".mp3": "audio/mpeg",
+    ".wav": "audio/wav",
+  };
+  const contentType = MIME_MAP[ext] || "application/octet-stream";
+
+  // 流式响应文件内容（CORS 允许 Remotion Chromium 跨域请求）
+  res.writeHead(200, {
+    "Content-Type": contentType,
+    "Access-Control-Allow-Origin": "*",
+    "Cache-Control": "no-store",  // 运行时文件，不缓存
+  });
+  fs.createReadStream(resolved).pipe(res);
+  return true;
 }
 
 // 节流上报渲染进度（fire-and-forget，失败绝不中断渲染）。
@@ -116,7 +179,9 @@ async function handleRender(body) {
     outputLocation: outputPath,
     inputProps,
     concurrency: null,
-    hardwareAcceleration: "if-possible",
+    // 容器内无 GPU：OffthreadVideo 视频背景抽帧若走硬件解码会令 Remotion 合成器
+    // SIGSEGV（图片/剪影不触发，因不经视频解码路径）。显式禁用硬解，纯软件解码稳定。
+    hardwareAcceleration: "disable",
     chromiumOptions,
     browserExecutable: BROWSER_EXECUTABLE,
     onProgress: reportProgress,
@@ -131,13 +196,22 @@ async function handleRender(body) {
 }
 
 const server = http.createServer(async (req, res) => {
-  if (req.method === "GET" && req.url === "/health") {
+  // 解析 URL（去掉 query string）
+  const urlPath = req.url.split("?")[0];
+
+  if (req.method === "GET" && urlPath === "/health") {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ ok: true }));
     return;
   }
 
-  if (req.method !== "POST" || req.url !== "/render") {
+  // 静态文件服务：_user_media 与 _render_tmp
+  if (req.method === "GET" && (urlPath.startsWith("/_user_media/") || urlPath.startsWith("/_render_tmp/"))) {
+    serveStaticFile(urlPath, res);
+    return;
+  }
+
+  if (req.method !== "POST" || urlPath !== "/render") {
     res.writeHead(404, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: "not found" }));
     return;

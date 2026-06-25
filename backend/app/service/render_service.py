@@ -38,6 +38,8 @@ class RenderService:
             user_id=user_id,
             file_service=self._files,
             public_dir=settings.public_assets_path,
+            use_mount=settings.worker_user_media_mount,
+            static_server_url=settings.worker_static_server_url,
         )
         ext = "gif" if codec is Codec.GIF else "mp4"
         output_path = self._files.outputs_dir(user_id) / f"{uuid.uuid4().hex}.{ext}"

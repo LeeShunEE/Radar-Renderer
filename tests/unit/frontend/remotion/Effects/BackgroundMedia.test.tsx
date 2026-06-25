@@ -3,22 +3,42 @@ import { render } from "@testing-library/react";
 import { BackgroundMedia } from "@/remotion/Effects/BackgroundMedia";
 import type { BackgroundMediaConfig } from "@/types/radar";
 
-// Remotion 的 Img/OffthreadVideo 在 jsdom 下需 mock 为简单标签
+// Remotion 的 Img/OffthreadVideo 在 jsdom 下需 mock 为简单标签。
+// 透传组件传入的 props（含真实 data-testid，供 e2e/单测共用同一标识）。
 vi.mock("remotion", async (orig) => {
   const actual = await orig<typeof import("remotion")>();
   return {
     ...actual,
-    Img: (p: Record<string, unknown>) => <img data-testid="bg-img" {...p} />,
+    Img: (p: Record<string, unknown>) => <img {...p} />,
     OffthreadVideo: (p: Record<string, unknown>) => (
       <video
-        data-testid="bg-video"
+        data-testid={p["data-testid"] as string}
         data-trimbefore={p.trimBefore as number}
         data-playbackrate={p.playbackRate as number}
         data-loop={String(p.loop)}
+        style={p.style as React.CSSProperties}
       />
     ),
     staticFile: (s: string) => `/static/${s}`,
     useVideoConfig: () => ({ fps: 30, width: 1920, height: 1080, durationInFrames: 300 }),
+    useRemotionEnvironment: () => ({ isRendering: false }),
+  };
+});
+
+// Mock @remotion/media 的 Video 组件（渲染时使用）
+vi.mock("@remotion/media", async (orig) => {
+  const actual = await orig<typeof import("@remotion/media")>();
+  return {
+    ...actual,
+    Video: (p: Record<string, unknown>) => (
+      <video
+        data-testid={p["data-testid"] as string}
+        data-startfrom={p.startFrom as number}
+        data-playbackrate={p.playbackRate as number}
+        data-loop={String(p.loop)}
+        style={p.style as React.CSSProperties}
+      />
+    ),
   };
 });
 
@@ -30,14 +50,14 @@ const media = (over: Partial<BackgroundMediaConfig> = {}): BackgroundMediaConfig
 describe("BackgroundMedia", () => {
   it("type=image 渲染 Img，应用 objectFit/position/opacity/blur", () => {
     const { getByTestId } = render(<BackgroundMedia type="image" media={media()} />);
-    const img = getByTestId("bg-img") as HTMLImageElement;
+    const img = getByTestId("background-media-image") as HTMLImageElement;
     expect(img.style.objectFit).toBe("contain");
     expect(img.style.objectPosition).toBe("top");
     expect(img.style.opacity).toBe("0.5");
     expect(img.style.filter).toContain("blur(4px)");
   });
 
-  it("type=video 渲染 OffthreadVideo，trimBefore 换算正确且 playbackRate 透传", () => {
+  it("type=video 渲染 OffthreadVideo（预览模式），trimBefore 换算正确且 playbackRate 透传", () => {
     // useVideoConfig 已 mock fps=30；startFrom=2000ms → trimBefore = round(2000/1000*30) = 60
     const { getByTestId } = render(
       <BackgroundMedia
@@ -45,7 +65,8 @@ describe("BackgroundMedia", () => {
         media={media({ src: "bg/c.mp4", videoOptions: { loop: true, muted: true, playbackRate: 2, startFrom: 2000 } })}
       />,
     );
-    const vid = getByTestId("bg-video");
+    const vid = getByTestId("background-media-video");
+    // 预览模式使用 OffthreadVideo（trimBefore prop）
     expect(vid.getAttribute("data-trimbefore")).toBe("60");
     expect(vid.getAttribute("data-playbackrate")).toBe("2");
     expect(vid.getAttribute("data-loop")).toBe("true");
@@ -58,12 +79,12 @@ describe("BackgroundMedia", () => {
 
   it("scale=fill 映射 objectFit:fill", () => {
     const { getByTestId } = render(<BackgroundMedia type="image" media={media({ scale: "fill" })} />);
-    expect((getByTestId("bg-img") as HTMLImageElement).style.objectFit).toBe("fill");
+    expect((getByTestId("background-media-image") as HTMLImageElement).style.objectFit).toBe("fill");
   });
 
   it("blur=0 时图片无 filter 样式", () => {
     const { getByTestId } = render(<BackgroundMedia type="image" media={media({ blur: 0 })} />);
-    const img = getByTestId("bg-img") as HTMLImageElement;
+    const img = getByTestId("background-media-image") as HTMLImageElement;
     expect(img.style.filter).toBe("");
   });
 });

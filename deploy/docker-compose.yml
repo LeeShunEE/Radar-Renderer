@@ -61,6 +61,15 @@ services:
       RENDER_CALLBACK_TOKEN_SECRET_STRING: ${RENDER_CALLBACK_TOKEN:-dev-only-render-callback-token}
       # Public assets path (frontend public directory mounted for asset listing)
       PUBLIC_ASSETS_PATH: /app/public_assets
+      # 背景媒体零拷贝（方案 B）：声明 worker 已将 backend_storage 只读挂载到其
+      # publicDir/_user_media（见下方 render-worker volumes）。backend 据此直接产出
+      # _user_media 相对路径而非复制进 _render_tmp。backend 与 worker 是不同容器，
+      # 该挂载只在 worker，故 backend 必须经此 env 显式得知（不靠探测本地文件系统）。
+      WORKER_USER_MEDIA_MOUNT: "true"
+      # 零拷贝时 worker 静态服务器 URL（用于 serve _user_media 与 _render_tmp）。
+      # Remotion bundle 在 bundle 时复制 public 文件夹，运行时新增文件不会被 serve。
+      # Worker 添加了静态端点，backend 生成完整 HTTP URL 供 Remotion 组件使用。
+      WORKER_STATIC_SERVER_URL: http://render-worker:3100
       # OAuth (optional)
       OAUTH_GOOGLE_CLIENT_ID: ${OAUTH_GOOGLE_CLIENT_ID:-}
       OAUTH_GOOGLE_CLIENT_SECRET_SECRET_STRING: ${OAUTH_GOOGLE_CLIENT_SECRET:-}
@@ -164,6 +173,9 @@ services:
       retries: 3
       start_period: 10s
     restart: unless-stopped
+    # Remotion 合成器（OffthreadVideo 抽帧）依赖共享内存，Docker 默认 /dev/shm 仅 64MB，
+    # 视频背景抽帧会击穿导致 Compositor SIGSEGV（图片/剪影渲染不触发）。放大到 1GB。
+    shm_size: ${RENDER_WORKER_SHM_SIZE:-1gb}
     # 资源限制（渲染吃内存，默认给大些；Coolify/部署环境覆盖，不填走默认）
     mem_limit: ${RENDER_WORKER_MEMORY_LIMIT:-2g}
     cpus: ${RENDER_WORKER_CPUS:-2.0}

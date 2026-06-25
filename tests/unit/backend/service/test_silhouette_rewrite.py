@@ -1,4 +1,4 @@
-"""silhouette_rewrite 单元测试：uploads URL → staticFile 相对路径改写 + 清理。"""
+"""silhouette_rewrite 单元测试：uploads URL → worker 可加载 URL 改写 + 清理。"""
 
 import shutil
 from pathlib import Path
@@ -14,6 +14,8 @@ from app.service.silhouette_rewrite import (
 
 # 匹配 api-client.ts 的 downloadUpload 格式。
 UPLOADS_URL = "http://localhost:8000/api/v1/files/uploads/hero.png"
+# 默认静态服务器 URL（测试用）
+STATIC_SERVER_URL = "http://localhost:3100"
 
 
 @pytest.fixture
@@ -154,27 +156,33 @@ class TestRewriteBackgroundMedia:
 
 
 class TestMountZeroCopy:
-    def test_uses_mount_path_when_mount_present(self, file_service: FileService, public_dir: Path) -> None:
-        # 模拟 worker 已挂载 backend_storage 到 publicDir/_user_media
-        (public_dir / "_user_media").mkdir()
+    """零拷贝由 use_mount 标志（部署配置）控制，而非探测本地文件系统。
+
+    backend 与 worker 是不同容器，_user_media 挂载只存在于 worker；backend 靠
+    配置 worker_user_media_mount 得知该挂载是否存在（见 silhouette_rewrite._try_rewrite）。
+    use_mount=True 时生成 worker 静态服务器完整 HTTP URL（绕过 staticFile 的 bundle 时复制限制）。
+    """
+
+    def test_uses_mount_http_url_when_use_mount_true(self, file_service: FileService, public_dir: Path) -> None:
         props = {"silhouetteSrc": UPLOADS_URL}
         rewritten, tmp_files = rewrite_uploaded_silhouettes(
             props, user_id=1, file_service=file_service, public_dir=public_dir,
+            use_mount=True, static_server_url=STATIC_SERVER_URL,
         )
-        assert rewritten["silhouetteSrc"] == "_user_media/users/1/uploads/hero.png"
+        assert rewritten["silhouetteSrc"] == "http://localhost:3100/_user_media/users/1/uploads/hero.png"
         assert tmp_files == []  # 零拷贝，无临时文件
 
-    def test_background_media_uses_mount_path(self, file_service: FileService, public_dir: Path) -> None:
-        (public_dir / "_user_media").mkdir()
+    def test_background_media_uses_mount_http_url(self, file_service: FileService, public_dir: Path) -> None:
         props = {"background": {"media": {"src": UPLOADS_URL}}}
         rewritten, tmp_files = rewrite_uploaded_silhouettes(
             props, user_id=1, file_service=file_service, public_dir=public_dir,
+            use_mount=True, static_server_url=STATIC_SERVER_URL,
         )
-        assert rewritten["background"]["media"]["src"] == "_user_media/users/1/uploads/hero.png"
+        assert rewritten["background"]["media"]["src"] == "http://localhost:3100/_user_media/users/1/uploads/hero.png"
         assert tmp_files == []
 
-    def test_falls_back_to_copy_without_mount(self, file_service: FileService, public_dir: Path) -> None:
-        # 无 _user_media 挂载（本地开发）→ 回退 copy
+    def test_falls_back_to_copy_when_use_mount_false(self, file_service: FileService, public_dir: Path) -> None:
+        # 无挂载（本地裸进程开发，use_mount 默认 False）→ 回退 copy，生成相对路径
         props = {"silhouetteSrc": UPLOADS_URL}
         rewritten, tmp_files = rewrite_uploaded_silhouettes(
             props, user_id=1, file_service=file_service, public_dir=public_dir,
@@ -186,22 +194,21 @@ class TestMountZeroCopy:
     def test_mount_path_still_validates_file_exists(self, file_service: FileService, public_dir: Path) -> None:
         # 即使走挂载零拷贝路径，get_upload_path 也会对不存在的文件抛 StoredFileNotFoundError。
         # 这保证零拷贝路径不低于 copy 路径的安全性。
-        (public_dir / "_user_media").mkdir()
         bad = "http://localhost:8000/api/v1/files/uploads/nonexistent.png"
         props = {"silhouetteSrc": bad}
         with pytest.raises(Exception):
             rewrite_uploaded_silhouettes(
                 props, user_id=1, file_service=file_service, public_dir=public_dir,
+                use_mount=True, static_server_url=STATIC_SERVER_URL,
             )
 
     def test_cleanup_noop_for_mount_paths(self, file_service: FileService, public_dir: Path) -> None:
-        # 挂载路径（_user_media/...）不在 _collect_tmp_tokens 扫描范围内，cleanup 是 no-op。
-        (public_dir / "_user_media").mkdir()
+        # 挂载路径（http://localhost:3100/_user_media/...）不在 _collect_tmp_tokens 扫描范围内，cleanup 是 no-op。
         props = {"silhouetteSrc": UPLOADS_URL}
         rewritten, tmp_files = rewrite_uploaded_silhouettes(
             props, user_id=1, file_service=file_service, public_dir=public_dir,
+            use_mount=True, static_server_url=STATIC_SERVER_URL,
         )
         assert tmp_files == []
-        # cleanup 不应抛异常，也不应删除 _user_media 目录
+        # cleanup 不应抛异常（挂载 HTTP URL 不被当作 tmp 清理）
         cleanup_render_tmp(rewritten, public_dir)
-        assert (public_dir / "_user_media").is_dir()  # 挂载目录未被清理

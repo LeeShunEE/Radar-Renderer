@@ -1,3 +1,5 @@
+import path from "node:path";
+import { Module } from "node:module";
 import { defineConfig, devices } from "@playwright/test";
 
 /**
@@ -7,6 +9,19 @@ import { defineConfig, devices } from "@playwright/test";
  * baseURL 与库 seed 由测试系统通过环境变量注入，本文件不硬编码连接信息；
  * 仅在本地缺省时回退到 http://localhost:13000，方便开发本地运行。
  */
+
+// e2e spec 位于仓库根 tests/ 树下（§2.6），而依赖装在 frontend/node_modules。
+// Node 从 spec 所在目录向上解析找不到 frontend 的依赖（无 workspace 提升），
+// 故把 frontend/node_modules 注入模块搜索路径，让 spec 的 `@playwright/test`
+// 等 import 可解析。这样文档约定的 `cd frontend && pnpm exec playwright test`
+// 无需额外环境变量即可开箱运行。
+process.env.NODE_PATH = [
+  path.join(__dirname, "node_modules"),
+  process.env.NODE_PATH,
+]
+  .filter(Boolean)
+  .join(path.delimiter);
+(Module as unknown as { _initPaths: () => void })._initPaths();
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:13000";
 
 export default defineConfig({

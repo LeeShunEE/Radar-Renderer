@@ -27,8 +27,10 @@ _UPLOADS_URL_RE = re.compile(r"/api/v1/files/uploads/([^/?#]+)$")
 _TMP_PREFIX = "_render_tmp"
 
 # worker publicDir 下的挂载子目录名（Task 6.2 compose mount 的挂载点）。
-# Docker 下 backend_storage 以只读方式挂载到 publicDir/_user_media，
+# Docker 下 backend_storage 以只读方式挂载到 worker 的 publicDir/_user_media，
 # 存储布局与 FileService 一致：_user_media/users/<uid>/uploads/<name>。
+# 注意：该挂载在 **worker** 容器，backend 容器无此目录；backend 是否走零拷贝由
+# 配置 worker_user_media_mount 决定，不靠探测本地文件系统（见 _try_rewrite）。
 _MOUNT_SUBDIR = "_user_media"
 
 
@@ -38,17 +40,27 @@ def rewrite_uploaded_silhouettes(
     user_id: int,
     file_service: FileService,
     public_dir: Path,
+    use_mount: bool = False,
+    static_server_url: str = "http://localhost:3100",
 ) -> tuple[dict, list[Path]]:
-    """递归遍历 input_props，将 uploads URL 改写为 staticFile 相对路径。
+    """递归遍历 input_props，将 uploads URL 改写为 worker 可加载的 URL。
 
     返回 (改写后的深拷贝, 需清理的临时路径列表)。
     不修改原始 input_props。
+
+    use_mount: worker 是否已只读挂载 backend_storage 到 publicDir/_user_media
+        （部署事实，由调用方经配置传入；见 Settings.worker_user_media_mount）。
+        为 true 时零拷贝，改写为 worker 静态服务器完整 HTTP URL；
+        为 false 回退复制进 _render_tmp 并生成相对路径（供 staticFile 解析）。
+    static_server_url: worker 静态服务器 URL（用于 serve _user_media 与 _render_tmp）。
+        默认 http://localhost:3100（本地开发），Docker 部署应传入 worker 内网地址。
     """
     rewritten = copy.deepcopy(input_props)
     token = uuid.uuid4().hex
     tmp_files: list[Path] = []
     _walk_and_rewrite(rewritten, user_id=user_id, file_service=file_service,
-                      public_dir=public_dir, token=token, tmp_files=tmp_files)
+                      public_dir=public_dir, token=token, tmp_files=tmp_files,
+                      use_mount=use_mount, static_server_url=static_server_url)
     return rewritten, tmp_files
 
 
@@ -74,11 +86,13 @@ def _walk_and_rewrite(
     public_dir: Path,
     token: str,
     tmp_files: list[Path],
+    use_mount: bool,
+    static_server_url: str,
 ) -> None:
     """递归遍历 dict/list，就地改写所有值为 uploads URL 的字段。
 
     按值而非键名匹配：任意键名下的 string 值，只要匹配 uploads URL 模式
-    （_UPLOADS_URL_RE），就复制文件并改写为 staticFile 可解析的相对路径。
+    （_UPLOADS_URL_RE），就复制文件并改写为可加载的 URL。
     非 uploads URL 的 string（内置路径、颜色值等）由 _try_rewrite 返回 None，
     保持原值不变。
     """
@@ -88,6 +102,7 @@ def _walk_and_rewrite(
                 new_val = _try_rewrite(
                     value, user_id=user_id, file_service=file_service,
                     public_dir=public_dir, token=token, tmp_files=tmp_files,
+                    use_mount=use_mount, static_server_url=static_server_url,
                 )
                 if new_val is not None:
                     obj[key] = new_val
@@ -95,12 +110,14 @@ def _walk_and_rewrite(
                 _walk_and_rewrite(
                     value, user_id=user_id, file_service=file_service,
                     public_dir=public_dir, token=token, tmp_files=tmp_files,
+                    use_mount=use_mount, static_server_url=static_server_url,
                 )
     elif isinstance(obj, list):
         for item in obj:
             _walk_and_rewrite(
                 item, user_id=user_id, file_service=file_service,
                 public_dir=public_dir, token=token, tmp_files=tmp_files,
+                use_mount=use_mount, static_server_url=static_server_url,
             )
 
 
@@ -112,12 +129,15 @@ def _try_rewrite(
     public_dir: Path,
     token: str,
     tmp_files: list[Path],
+    use_mount: bool,
+    static_server_url: str,
 ) -> str | None:
     """若 url 匹配 uploads URL 则改写，否则返回 None。
 
-    方案 B 零拷贝：当 worker publicDir 下存在 ``_user_media`` 挂载目录时，
-    直接将 URL 改写为挂载相对路径，不复制文件、不写入 tmp_files。
-    未挂载时（本地开发）回退为复制进 ``_render_tmp``。
+    方案 B 零拷贝：当 ``use_mount`` 为 true（worker 已将 backend_storage 只读挂载到
+    其 publicDir/_user_media，部署事实由配置传入）时，生成 worker 静态服务器完整 HTTP URL，
+    不复制文件、不写入 tmp_files。否则（本地裸进程开发，无挂载）回退复制进 ``_render_tmp``
+    并生成相对路径（供 staticFile 解析）。
     无论哪条路径，都通过 ``get_upload_path`` 做文件名校验 + 存在性检查。
     """
     m = _UPLOADS_URL_RE.search(url)
@@ -129,11 +149,13 @@ def _try_rewrite(
     # 保证零拷贝路径不低于 copy 路径的安全性。
     src_path = file_service.get_upload_path(user_id, name)
 
-    mount_dir = public_dir / _MOUNT_SUBDIR
-    if mount_dir.is_dir():
-        # worker 已挂载 backend_storage → 零拷贝，直接改写为挂载相对路径。
+    if use_mount:
+        # worker 已挂载 backend_storage → 零拷贝。
         # 存储布局与 FileService 一致：users/<uid>/uploads/<name>。
-        return f"{_MOUNT_SUBDIR}/users/{user_id}/uploads/{name}"
+        # 生成 worker 静态服务器完整 HTTP URL，供 Remotion 组件直接使用，
+        # 绕过 staticFile 的 bundle 时复制限制。
+        rel_path = f"{_MOUNT_SUBDIR}/users/{user_id}/uploads/{name}"
+        return f"{static_server_url}/{rel_path}"
 
     # 回退：本地开发无挂载，复制进 _render_tmp 临时目录。
     rel = f"{_TMP_PREFIX}/{token}/{name}"

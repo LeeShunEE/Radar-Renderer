@@ -1,5 +1,6 @@
 import React from "react";
-import { AbsoluteFill, Img, OffthreadVideo, staticFile, useVideoConfig } from "remotion";
+import { AbsoluteFill, Img, OffthreadVideo, staticFile, useVideoConfig, useRemotionEnvironment } from "remotion";
+import { Video } from "@remotion/media";
 import type { BackgroundMediaConfig } from "../../types/radar";
 import { isRemoteSilhouetteSrc } from "../CharacterSilhouette/Silhouette";
 
@@ -30,6 +31,9 @@ function resolveSrc(src: string): string {
 /**
  * 纯视觉背景媒体组件，支持图片与视频背景（无音轨）。
  *
+ * 预览时使用 OffthreadVideo（性能更好）；渲染时使用 @remotion/media 的 Video 组件
+ * （绕过 compositor 崩溃问题，使用浏览器解码）。
+ *
  * OffthreadVideo 无音轨；声音由 musicUrl/独立 Audio 负责（阶段 7）。
  *
  * Args:
@@ -42,6 +46,7 @@ function resolveSrc(src: string): string {
 export const BackgroundMedia: React.FC<BackgroundMediaProps> = ({ type, media }) => {
   // fps 仅用于 video 分支的 trimBefore 换算，但 Hook 必须在顶层调用（Rules of Hooks），不能移入 video 分支内。
   const { fps } = useVideoConfig();
+  const env = useRemotionEnvironment();
 
   if (!media.src) return null;
 
@@ -56,21 +61,34 @@ export const BackgroundMedia: React.FC<BackgroundMediaProps> = ({ type, media })
 
   const src = resolveSrc(media.src);
 
+  // 预览时使用 OffthreadVideo，渲染时使用 @remotion/media 的 Video
+  // 这避免了 compositor 在处理某些视频格式时崩溃的问题
+  const videoComponent = env.isRendering ? (
+    <Video
+      data-testid="background-media-video"
+      src={src}
+      muted
+      loop={media.videoOptions.loop}
+      playbackRate={media.videoOptions.playbackRate}
+      startFrom={Math.round((media.videoOptions.startFrom / 1000) * fps)}
+      style={commonStyle}
+    />
+  ) : (
+    <OffthreadVideo
+      data-testid="background-media-video"
+      src={src}
+      muted
+      loop={media.videoOptions.loop}
+      playbackRate={media.videoOptions.playbackRate}
+      trimBefore={Math.round((media.videoOptions.startFrom / 1000) * fps)}
+      style={commonStyle}
+    />
+  );
+
   return (
     <AbsoluteFill>
-      {type === "video" ? (
-        // OffthreadVideo 本身无音轨，此 muted 仅为语义占位（恒静音）。
-        // 背景视频出声在阶段 7 通过并行 <Audio> 实现，由 videoOptions.muted 控制，不走此 prop。
-        <OffthreadVideo
-          src={src}
-          muted
-          loop={media.videoOptions.loop}
-          playbackRate={media.videoOptions.playbackRate}
-          trimBefore={Math.round((media.videoOptions.startFrom / 1000) * fps)}
-          style={commonStyle}
-        />
-      ) : (
-        <Img src={src} style={commonStyle} />
+      {type === "video" ? videoComponent : (
+        <Img data-testid="background-media-image" src={src} style={commonStyle} />
       )}
     </AbsoluteFill>
   );
