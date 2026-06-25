@@ -142,3 +142,9 @@ class UserDAO:
         await self._session.commit()
         await self._session.refresh(orm)
         return _to_user(orm)
+
+    async def list_all_ids(self) -> list[int]:
+        """返回所有用户 ID 列表（GC 遍历用）。"""
+        stmt = select(UserORM.id)
+        rows = (await self._session.execute(stmt)).scalars().all()
+        return list(rows)

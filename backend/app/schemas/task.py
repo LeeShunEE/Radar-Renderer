@@ -1,6 +1,7 @@
 """任务查询接口契约（接口层 Response）。"""
 
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -30,10 +31,20 @@ class TaskResponse(BaseModel):
     total_frames: int | None = None
     # 全局队列规模（排队 + 运行中），排队态展示「共 N 个」。
     queue_size: int = 0
+    # 文件状态（运行时计算，不从 DB 读取）
+    file_expired: bool = False   # 文件是否已被 GC 删除
+    output_exists: bool = True   # 文件是否存在（用于下载按钮状态）
 
     @classmethod
     def from_domain(cls, view: TaskView) -> "TaskResponse":
         t = view.task
+        output_path = Path(t.output_path)
+        output_exists = output_path.is_file()
+        file_expired = (
+            t.status == RenderStatus.DONE
+            and not output_exists
+            and t.finished_at is not None
+        )
         return cls(
             id=t.id,
             mode=t.mode,
@@ -51,6 +62,8 @@ class TaskResponse(BaseModel):
             rendered_frames=view.rendered_frames,
             total_frames=view.total_frames,
             queue_size=view.queue_size,
+            file_expired=file_expired,
+            output_exists=output_exists,
         )
 
 

@@ -59,6 +59,12 @@ def _isolate_queue(monkeypatch: pytest.MonkeyPatch) -> None:
     render_queue.reset()
 
 
+@pytest.fixture(autouse=True)
+def _isolate_gc(monkeypatch: pytest.MonkeyPatch) -> None:
+    """关闭 GC 自动启动（dev-integration 不触发自动清理）。"""
+    monkeypatch.setattr(settings, "output_gc_enabled", False)
+
+
 @pytest.fixture
 def captured_codes(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     """绕开 Resend，捕获 send-code 实际生成的验证码。

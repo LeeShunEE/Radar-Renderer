@@ -22,6 +22,8 @@ class StorageUsage(BaseModel):
 
     used_bytes: int
     limit_bytes: int
+    upload_count: int = 0  # 当前上传文件数量
+    upload_limit: int = 500  # 上传文件数量限制
 
     @computed_field  # type: ignore[prop-decorator]
     @property
