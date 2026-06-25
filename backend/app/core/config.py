@@ -7,7 +7,7 @@ testenv 等环境通过环境变量注入连接配置（见 CLAUDE.md §3.3.1）
 import os
 from pathlib import Path
 
-from pydantic import SecretStr
+from pydantic import SecretStr, model_validator
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -22,7 +22,14 @@ class Settings(BaseSettings):
     """全局配置项。"""
 
     # 数据库
-    database_url: str = "sqlite+aiosqlite:///./data.db"
+    # 支持环境变量 POSTGRES_* 构造 PostgreSQL URL，否则走 SQLite 本地开发默认
+    postgres_user: str = "radar"
+    postgres_password_secret_string: SecretStr = SecretStr("radar_dev_password")
+    postgres_db: str = "radar_chart"
+    postgres_host: str = "localhost"
+    postgres_port: int = 5432
+    # 若 DATABASE_URL 环境变量存在则直接用；否则按 POSTGRES_* 拼接；无则 SQLite
+    database_url: str | None = None
 
     # API
     api_prefix: str = "/api/v1"
@@ -93,6 +100,26 @@ class Settings(BaseSettings):
         extra="ignore",
         env_file=_BACKEND_ROOT / ".env",
     )
+
+    @model_validator(mode="after")
+    def _resolve_database_url(self) -> "Settings":
+        """动态构造 database_url。
+
+        优先级：
+        1. 已显式设置的 database_url（来自环境变量或 .env）→ 直接用
+        2. 按 POSTGRES_* 字段拼接 PostgreSQL URL
+        3. 无则 fallback 到 SQLite 本地开发
+        """
+        if self.database_url:
+            return self
+        # 构造 PostgreSQL URL
+        password = self.postgres_password_secret_string.get_secret_value()
+        pg_url = (
+            f"postgresql+asyncpg://{self.postgres_user}:{password}"
+            f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+        )
+        self.database_url = pg_url
+        return self
 
     @classmethod
     def settings_customise_sources(
