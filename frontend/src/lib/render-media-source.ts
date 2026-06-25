@@ -7,7 +7,6 @@
  * - / 开头 → 原样（已是绝对路径）
  * - 相对路径 → 前置 /
  */
-import type { AudioBuffer } from "@types/web";
 
 /**
  * 解析音乐 URL，统一处理相对/绝对/远程路径。

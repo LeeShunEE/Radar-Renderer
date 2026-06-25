@@ -17,7 +17,6 @@ import { RadarVideo } from "@/remotion/RadarVideo";
 import { MultiPageVideo } from "@/remotion/MultiPageVideo";
 import { resolveMusicUrl, fetchAndDecodeAudio } from "@/lib/render-media-source";
 import { renderInBrowser } from "@/lib/browser-render";
-import type { AudioBuffer } from "@types/web";
 
 export type LocalRenderMode = "single" | "multi";
 
