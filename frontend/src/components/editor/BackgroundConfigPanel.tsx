@@ -237,6 +237,24 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
                   step={100}
                 />
               </div>
+
+              {/* 声音（默认静音，开启后仅服务端渲染有效） */}
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">声音</Label>
+                <Switch
+                  data-testid="video-muted-switch"
+                  checked={!media.videoOptions.muted}
+                  onCheckedChange={(v) => updateVideoOptions({ muted: !v })}
+                />
+              </div>
+              {!media.videoOptions.muted && (
+                <p
+                  data-testid="client-export-audio-notice"
+                  className="text-xs rounded border border-yellow-400/50 bg-yellow-50/10 px-2 py-1.5 text-yellow-600 dark:text-yellow-400 leading-relaxed"
+                >
+                  ⚠ 背景视频声音仅在<strong>服务端渲染成片</strong>中生效；浏览器即时导出不含背景视频声音（音乐轨道不受影响）。
+                </p>
+              )}
             </div>
           )}
         </div>

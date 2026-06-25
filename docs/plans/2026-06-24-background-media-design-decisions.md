@@ -125,6 +125,39 @@ issue 风险表要求体积 + 1080p 上限。用户总配额 `max_user_storage_b
 
 ---
 
+#### 问题 9 最终落地决策（Task 7 实施后更新，2026-06-25）
+
+**采用 Option B：服务端渲染支持背景视频出声；客户端/浏览器即时导出不含背景视频音轨（留后续 PR）。**
+
+##### 决策依据
+
+客户端导出实现背景视频音轨存在以下阻力，评估后决定拆出：
+
+1. **视频音频鉴权复杂**：客户端 `fetchAndDecodeAudio` 需 Bearer Token 获取视频文件，而目前 music URL 无鉴权，两路逻辑差异大。
+2. **`decodeAudioData` 兼容性不保证**：对视频容器（`.mp4`/`.webm`）调用 `decodeAudioData` 的行为不在 Web Audio API 规范中明确保证，部分视频无音轨时须做静默回落。
+3. **多页混音复杂度**：每页背景视频各有自己的 src、`startFrom` 时间偏移，客户端须在 `OfflineAudioContext` 时间轴上按帧精确对齐混 N 路视频音轨 + musicUrl，约需 2 天 / 中高风险。
+4. **服务端路径省力**：`<Audio src={bgVideoSrc}>` 与现有 `<Audio src={musicSrc}>` 并列，Remotion 自动多轨混音，约 1.5 小时完成，已在 Task 7.1 实施完毕。
+
+##### 用户侧行为
+
+- **`videoOptions.muted`**（默认 `true`，即静音）控制背景视频是否出声。
+- 用户在 `BackgroundConfigPanel` 中将「声音」开关打开（`muted → false`）时，UI 立即显示以下明示提示：
+
+  > ⚠ 背景视频声音仅在**服务端渲染成片**中生效；浏览器即时导出不含背景视频声音（音乐轨道不受影响）。
+
+- 客户端导出（WebCodecs AAC 路径）始终忽略背景视频音轨；musicUrl 音乐轨道两端均有效。
+
+##### 两路输出音频行为汇总
+
+| 场景 | `muted=true`（静音，默认）| `muted=false`（开声音）|
+| - | - | - |
+| **服务端渲染** | 背景视频无声，仅含 musicUrl | 背景视频有声（`<Audio>` 并行混轨），含 musicUrl |
+| **浏览器即时导出** | 背景视频无声，仅含 musicUrl | 背景视频**仍无声**（UI 已明示）；仅含 musicUrl |
+
+> 客户端背景视频音轨支持作为独立 PR 延后实施，届时删除 UI 明示提示。
+
+---
+
 ## 验证记录：方案 A/B 基础验证（2026-06-24）
 
 ### 验证对象
