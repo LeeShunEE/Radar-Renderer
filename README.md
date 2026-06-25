@@ -115,6 +115,11 @@ Contributions are welcome! Please read [`CONTRIBUTING.md`](./CONTRIBUTING.md)
 first — note that all commits must be **signed off** (DCO, `git commit -s`).
 By participating, you agree to abide by the [`Code of Conduct`](./CODE_OF_CONDUCT.md).
 
+Opening an issue? Use the templates under
+[`.github/ISSUE_TEMPLATE/`](./.github/ISSUE_TEMPLATE/) —
+[🐛 Bug report](./.github/ISSUE_TEMPLATE/bug_report.yml) or
+[✨ Feature request](./.github/ISSUE_TEMPLATE/feature_request.yml).
+
 ## License
 
 This project is licensed under the **GNU General Public License v3.0** —

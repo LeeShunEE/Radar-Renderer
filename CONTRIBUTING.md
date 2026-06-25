@@ -49,11 +49,17 @@ This appends a `Signed-off-by: Your Name <you@example.com>` trailer. The
 Fix a missing sign-off with `git commit --amend -s` or
 `git rebase --signoff <base>`.
 
-### 3. Branching & PRs
+### 3. Issues & PRs
 
-- Branch off `main`; never push WIP directly to `main`.
+- **Opening an issue**: use the templates under
+  [`.github/ISSUE_TEMPLATE/`](./.github/ISSUE_TEMPLATE/) — pick
+  [🐛 Bug report](./.github/ISSUE_TEMPLATE/bug_report.yml) or
+  [✨ Feature request](./.github/ISSUE_TEMPLATE/feature_request.yml). For usage
+  questions or security reports, follow the links shown on the "New issue" page
+  (Discussions / Security policy) instead of opening a blank issue.
+- **Branching**: branch off `main`; never push WIP directly to `main`.
 - Keep PRs focused; link issues with `Closes #123`.
-- Fill in the PR template checklist.
+- Fill in the [PR template](./.github/PULL_REQUEST_TEMPLATE.md) checklist.
 - CI (lint + unit + dev-integration + coverage) must be green before merge.
 
 ### 4. Commit message convention
@@ -192,11 +198,15 @@ git commit -s -m "feat(api): ..."
 这会追加 `Signed-off-by: 你的名字 <you@example.com>` 尾注。`DCO` CI 会拒绝
 缺少匹配作者签名的 PR。补签：`git commit --amend -s` 或 `git rebase --signoff <base>`。
 
-### 3. 分支与 PR
+### 3. Issue 与 PR
 
-- 从 `main` 切分支，**禁止**把 WIP 直接推到 `main`。
+- **开 issue**：请使用 [`.github/ISSUE_TEMPLATE/`](./.github/ISSUE_TEMPLATE/) 下的模板
+  —— 选 [🐛 Bug 报告](./.github/ISSUE_TEMPLATE/bug_report.yml) 或
+  [✨ 功能请求](./.github/ISSUE_TEMPLATE/feature_request.yml)。用法提问或安全报告请走
+  "New issue" 页上的外链（Discussions / 安全策略），不要开空白 issue。
+- **分支**：从 `main` 切分支，**禁止**把 WIP 直接推到 `main`。
 - PR 聚焦单一主题；用 `Closes #123` 关联 issue。
-- 填写 PR 模板检查清单。
+- 填写 [PR 模板](./.github/PULL_REQUEST_TEMPLATE.md)检查清单。
 - 合并前 CI（lint + 单元 + dev-integration + 覆盖率）必须全绿。
 
 ### 4. Commit message 规范
