@@ -47,11 +47,13 @@ test.describe("服务端渲染任务旅程", () => {
     await submitMp4Render(page);
     await downloadPromise; // 等渲染完成
 
-    await page.getByRole("tab", { name: "任务" }).click();
-    await expect(page.getByText("完成")).toBeVisible({ timeout: 10_000 });
+    // PR #40：TaskQueuePanel 已并入「导出」Tab 的「渲染队列」卡片，无需切 Tab。
+    // 用 exact 匹配任务状态徽章「完成」，避免与 ExportPanel 的「下载完成」文案冲突。
+    await expect(page.getByText("完成", { exact: true })).toBeVisible({ timeout: 10_000 });
 
-    // 删除该完成任务（无 confirm 对话框，直接删）。
+    // 删除该完成任务：点 trash 后弹 ConfirmDialog，点「删除」确认。
     await page.locator("button:has(.lucide-trash-2)").first().click();
-    await expect(page.getByText("完成")).toHaveCount(0, { timeout: 10_000 });
+    await page.getByRole("button", { name: "删除", exact: true }).click();
+    await expect(page.getByText("完成", { exact: true })).toHaveCount(0, { timeout: 10_000 });
   });
 });

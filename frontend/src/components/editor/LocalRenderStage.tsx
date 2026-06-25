@@ -63,6 +63,25 @@ function calcMultiTotalDuration(config: MultiPageConfig): number {
   return Math.max(1, t);
 }
 
+/**
+ * testenv 低负载覆盖入口：CI e2e 通过 window.__LOCAL_RENDER_OVERRIDE__ 注入更低
+ * 分辨率/帧数，避免 1080p 全帧逐帧编码超时。仅测试用，生产无注入走默认值。
+ */
+type LocalRenderOverride = {
+  width?: number;
+  height?: number;
+  durationInFrames?: number;
+};
+
+function readRenderOverride(): LocalRenderOverride {
+  if (typeof window === "undefined") return {};
+  const raw = (
+    window as unknown as { __LOCAL_RENDER_OVERRIDE__?: unknown }
+  ).__LOCAL_RENDER_OVERRIDE__;
+  if (raw && typeof raw === "object") return raw as LocalRenderOverride;
+  return {};
+}
+
 export const LocalRenderStage: React.FC<LocalRenderStageProps> = (stageProps) => {
   const { mode, props, config, musicUrl, onProgress, onDone, onError, signal } = stageProps;
 
@@ -70,24 +89,29 @@ export const LocalRenderStage: React.FC<LocalRenderStageProps> = (stageProps) =>
   const containerRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
 
-  // 计算渲染参数
+  const override = useMemo(() => readRenderOverride(), []);
+
+  // 计算渲染参数（durationInFrames 可被 testenv 覆盖入口压缩）
   const renderParams = useMemo(() => {
     if (mode === "single" && props) {
       return {
         component: RadarVideo as React.FC<Record<string, unknown>>,
         inputProps: props as Record<string, unknown>,
-        durationInFrames: calculateDuration(props.animation),
+        durationInFrames: override.durationInFrames ?? calculateDuration(props.animation),
       };
     }
     if (mode === "multi" && config) {
       return {
         component: MultiPageVideo as React.FC<Record<string, unknown>>,
         inputProps: { config },
-        durationInFrames: calcMultiTotalDuration(config),
+        durationInFrames: override.durationInFrames ?? calcMultiTotalDuration(config),
       };
     }
     return null;
-  }, [mode, props, config]);
+  }, [mode, props, config, override]);
+
+  const renderWidth = override.width ?? VIDEO_WIDTH;
+  const renderHeight = override.height ?? VIDEO_HEIGHT;
 
   // Player 挂载就绪后触发渲染
   useEffect(() => {
@@ -117,8 +141,8 @@ export const LocalRenderStage: React.FC<LocalRenderStageProps> = (stageProps) =>
           captureEl,
           durationInFrames: renderParams.durationInFrames,
           fps: VIDEO_FPS,
-          width: VIDEO_WIDTH,
-          height: VIDEO_HEIGHT,
+          width: renderWidth,
+          height: renderHeight,
           audioBuffer,
           onProgress,
           signal,
@@ -156,8 +180,8 @@ export const LocalRenderStage: React.FC<LocalRenderStageProps> = (stageProps) =>
         position: "fixed",
         left: -99999,
         top: 0,
-        width: VIDEO_WIDTH,
-        height: VIDEO_HEIGHT,
+        width: renderWidth,
+        height: renderHeight,
         overflow: "hidden",
         zIndex: -9999,
         pointerEvents: "none",
@@ -169,9 +193,9 @@ export const LocalRenderStage: React.FC<LocalRenderStageProps> = (stageProps) =>
         inputProps={renderParams.inputProps}
         durationInFrames={renderParams.durationInFrames}
         fps={VIDEO_FPS}
-        compositionWidth={VIDEO_WIDTH}
-        compositionHeight={VIDEO_HEIGHT}
-        style={{ width: VIDEO_WIDTH, height: VIDEO_HEIGHT }}
+        compositionWidth={renderWidth}
+        compositionHeight={renderHeight}
+        style={{ width: renderWidth, height: renderHeight }}
         loop={false}
         clickToPlay={false}
         showPosterWhenPaused={false}

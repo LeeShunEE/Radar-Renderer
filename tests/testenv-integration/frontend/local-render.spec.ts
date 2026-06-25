@@ -8,8 +8,22 @@
  * 而该 class 此前未挂到任何元素上，querySelector 返回 null → 立即抛"找不到 Player 容器元素"，
  * 本地渲染完全不可用。本用例以"下载必触发且不报该错误"守门。
  */
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { registerAndLanding } from "./auth-helpers";
+
+/**
+ * testenv 降负载：注入 240p + 10 帧覆盖，避免 CI 上 1080p 全帧逐帧编码超时。
+ * 对应 LocalRenderStage 的 window.__LOCAL_RENDER_OVERRIDE__ 覆盖入口。
+ */
+async function injectLowLoadOverride(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    (window as unknown as { __LOCAL_RENDER_OVERRIDE__?: unknown }).__LOCAL_RENDER_OVERRIDE__ = {
+      width: 426,
+      height: 240,
+      durationInFrames: 10,
+    };
+  });
+}
 
 // 浏览器内逐帧截图编码较慢，放宽超时。
 test.setTimeout(120_000);
@@ -23,7 +37,10 @@ test.describe("本地浏览器渲染旅程", () => {
     await page.getByRole("tab", { name: "导出" }).click();
     await page.getByRole("button", { name: "本地浏览器" }).click();
 
-    const downloadPromise = page.waitForEvent("download", { timeout: 110_000 });
+    // testenv 降负载：注入 240p + 10 帧，避免 CI 上 1080p 全帧逐帧编码超时。
+    await injectLowLoadOverride(page);
+
+    const downloadPromise = page.waitForEvent("download", { timeout: 60_000 });
     await page.getByRole("button", { name: "导出当前页 MP4（本地）" }).click();
 
     // 渲染中文案出现（证明已进入渲染而非立即报错）。
@@ -58,10 +75,13 @@ test.describe("本地浏览器渲染旅程", () => {
     await page.getByRole("tab", { name: "导出" }).click();
     await page.getByRole("button", { name: "本地浏览器" }).click();
 
+    // testenv 降负载：注入 240p + 10 帧，避免 CI 上 1080p 全帧逐帧编码超时。
+    await injectLowLoadOverride(page);
+
     // 确认多页按钮存在
     await expect(page.getByRole("button", { name: "导出全部 MP4（本地）" })).toBeVisible();
 
-    const downloadPromise = page.waitForEvent("download", { timeout: 180_000 });
+    const downloadPromise = page.waitForEvent("download", { timeout: 90_000 });
     await page.getByRole("button", { name: "导出全部 MP4（本地）" }).click();
 
     // 渲染中文案
