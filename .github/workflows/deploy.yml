@@ -18,7 +18,7 @@ jobs:
     name: Trigger Coolify redeploy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4 # release 事件默认 checkout tag 指向的 commit
+      - uses: actions/checkout@v7 # release 事件默认 checkout tag 指向的 commit
 
       # 仅 release 触发时校验；workflow_dispatch 手动兜底不校验
       - name: 校验 tag 与 frontend/package.json 版本一致
