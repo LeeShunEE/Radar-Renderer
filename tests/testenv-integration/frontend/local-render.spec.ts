@@ -8,8 +8,22 @@
  * 而该 class 此前未挂到任何元素上，querySelector 返回 null → 立即抛"找不到 Player 容器元素"，
  * 本地渲染完全不可用。本用例以"下载必触发且不报该错误"守门。
  */
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { registerAndLanding } from "./auth-helpers";
+
+/**
+ * testenv 降负载：注入 240p + 10 帧覆盖，避免 CI 上 1080p 全帧逐帧编码超时。
+ * 对应 LocalRenderStage 的 window.__LOCAL_RENDER_OVERRIDE__ 覆盖入口。
+ */
+async function injectLowLoadOverride(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    (window as unknown as { __LOCAL_RENDER_OVERRIDE__?: unknown }).__LOCAL_RENDER_OVERRIDE__ = {
+      width: 426,
+      height: 240,
+      durationInFrames: 10,
+    };
+  });
+}
 
 // 浏览器内逐帧截图编码较慢，放宽超时。
 test.setTimeout(120_000);
@@ -23,13 +37,16 @@ test.describe("本地浏览器渲染旅程", () => {
     await page.getByRole("tab", { name: "导出" }).click();
     await page.getByRole("button", { name: "本地浏览器" }).click();
 
-    const downloadPromise = page.waitForEvent("download", { timeout: 110_000 });
+    // testenv 降负载：注入 240p + 10 帧，避免 CI 上 1080p 全帧逐帧编码超时。
+    await injectLowLoadOverride(page);
+
+    const downloadPromise = page.waitForEvent("download", { timeout: 60_000 });
     await page.getByRole("button", { name: "导出当前页 MP4（本地）" }).click();
 
     // 渲染中文案出现（证明已进入渲染而非立即报错）。
     await expect(page.getByText(/本地渲染中/)).toBeVisible({ timeout: 10_000 });
-    // 回归：绝不能出现"找不到 Player 容器元素"。
-    await expect(page.getByText("找不到 Player 容器元素")).toHaveCount(0);
+    // 回归：绝不能出现"无法找到 Player 内层容器"（选择器失效会让本地渲染完全不可用）。
+    await expect(page.getByText("无法找到 Player 内层容器")).toHaveCount(0);
 
     const download = await downloadPromise;
     // 断言扩展名：Chromium 支持 WebCodecs → MP4
@@ -49,25 +66,29 @@ test.describe("本地浏览器渲染旅程", () => {
   });
 
   test("多页本地 MP4 渲染：导出全部页面", async ({ page }) => {
-    // 先添加第二页
-    await page.getByRole("tab", { name: "页面" }).click();
+    // 先添加第二页（「添加页面」入口在「全局」Tab 的 GlobalConfigEditor）
+    await page.getByRole("tab", { name: "全局" }).click();
     await page.getByRole("button", { name: "添加页面" }).click();
-    await expect(page.getByText("角色2")).toBeVisible();
+    // 「全局」Tab 内汇总行（页2（角色2）…）也含「角色2」文本，用 button 精确匹配页面列表项避免歧义
+    await expect(page.getByRole("button", { name: "角色2" })).toBeVisible();
 
     // 切到导出面板
     await page.getByRole("tab", { name: "导出" }).click();
     await page.getByRole("button", { name: "本地浏览器" }).click();
 
+    // testenv 降负载：注入 240p + 10 帧，避免 CI 上 1080p 全帧逐帧编码超时。
+    await injectLowLoadOverride(page);
+
     // 确认多页按钮存在
     await expect(page.getByRole("button", { name: "导出全部 MP4（本地）" })).toBeVisible();
 
-    const downloadPromise = page.waitForEvent("download", { timeout: 180_000 });
+    const downloadPromise = page.waitForEvent("download", { timeout: 90_000 });
     await page.getByRole("button", { name: "导出全部 MP4（本地）" }).click();
 
     // 渲染中文案
     await expect(page.getByText(/本地渲染中/)).toBeVisible({ timeout: 10_000 });
-    // 回归
-    await expect(page.getByText("找不到 Player 容器元素")).toHaveCount(0);
+    // 回归：同上，绝不能出现"无法找到 Player 内层容器"。
+    await expect(page.getByText("无法找到 Player 内层容器")).toHaveCount(0);
 
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/\.mp4$/);

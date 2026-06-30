@@ -25,6 +25,8 @@ class QuotaResponse(BaseModel):
     used_bytes: int
     limit_bytes: int
     available_bytes: int
+    upload_count: int  # 当前上传文件数量
+    upload_limit: int  # 上传文件数量限制
 
     @classmethod
     def from_domain(cls, usage: StorageUsage) -> "QuotaResponse":
@@ -32,6 +34,8 @@ class QuotaResponse(BaseModel):
             used_bytes=usage.used_bytes,
             limit_bytes=usage.limit_bytes,
             available_bytes=usage.available_bytes,
+            upload_count=usage.upload_count,
+            upload_limit=usage.upload_limit,
         )
 
 

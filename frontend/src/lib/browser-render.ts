@@ -10,7 +10,6 @@
 import { toCanvas } from "html-to-image";
 import { isMp4RenderSupported, createMp4Encoder } from "@/lib/mp4-encoder";
 import type { PlayerRef } from "@remotion/player";
-import type { AudioBuffer } from "@types/web";
 import { VIDEO_FPS, VIDEO_WIDTH, VIDEO_HEIGHT } from "@/types/constants";
 
 export interface BrowserRenderOptions {

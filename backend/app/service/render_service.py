@@ -19,7 +19,9 @@ class RenderService:
         self._dao = RenderTaskDAO(session)
         self._queue = queue
         self._files = FileService(
-            settings.storage_root, settings.max_user_storage_bytes
+            settings.storage_root,
+            settings.max_user_storage_bytes,
+            settings.max_user_upload_count,
         )
 
     async def submit(

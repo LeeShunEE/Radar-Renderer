@@ -20,7 +20,11 @@ router = APIRouter(prefix="/files", tags=["files"])
 
 
 def _service() -> FileService:
-    return FileService(settings.storage_root, settings.max_user_storage_bytes)
+    return FileService(
+        settings.storage_root,
+        settings.max_user_storage_bytes,
+        settings.max_user_upload_count,
+    )
 
 
 @router.get("", response_model=FileListResponse)

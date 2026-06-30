@@ -9,17 +9,6 @@
  * 不支持 WebCodecs 的浏览器应回退到 WebM/MediaRecorder。
  */
 import { Muxer, ArrayBufferTarget } from "mp4-muxer";
-import type {
-  VideoEncoder,
-  AudioEncoder,
-  VideoFrame,
-  AudioData,
-  EncodedVideoChunk,
-  EncodedAudioChunk,
-  EncodedVideoChunkMetadata,
-  EncodedAudioChunkMetadata,
-  AudioBuffer,
-} from "@types/web";
 
 export interface Mp4EncoderOptions {
   /** 输出视频宽度（像素） */

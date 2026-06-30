@@ -7,7 +7,7 @@ testenv 等环境通过环境变量注入连接配置（见 CLAUDE.md §3.3.1）
 import os
 from pathlib import Path
 
-from pydantic import SecretStr
+from pydantic import SecretStr, model_validator
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -22,7 +22,14 @@ class Settings(BaseSettings):
     """全局配置项。"""
 
     # 数据库
-    database_url: str = "sqlite+aiosqlite:///./data.db"
+    # 支持环境变量 POSTGRES_* 构造 PostgreSQL URL，否则走 SQLite 本地开发默认
+    postgres_user: str = "radar"
+    postgres_password_secret_string: SecretStr = SecretStr("radar_dev_password")
+    postgres_db: str = "radar_chart"
+    postgres_host: str = "localhost"
+    postgres_port: int = 5432
+    # 若 DATABASE_URL 环境变量存在则直接用；否则按 POSTGRES_* 拼接；无则 SQLite
+    database_url: str | None = None
 
     # API
     api_prefix: str = "/api/v1"
@@ -60,7 +67,8 @@ class Settings(BaseSettings):
 
     # 文件存储
     storage_root: Path = _BACKEND_ROOT / "storage"
-    max_user_storage_bytes: int = 200 * 1024 * 1024
+    max_user_storage_bytes: int = 200 * 1024 * 1024  # 单用户上传文件大小配额（200MB）
+    max_user_upload_count: int = 500  # 单用户上传文件数量限制
 
     # 渲染
     render_concurrency: int = 2
@@ -93,6 +101,12 @@ class Settings(BaseSettings):
     # 是否在应用启动时自动拉起队列消费协程（测试中关闭以保证确定性）
     render_queue_autostart: bool = True
 
+    # 渲染产物 GC（自动清理过期或超全局配额文件）
+    output_gc_enabled: bool = True  # 是否启用产物 GC（测试隔离用）
+    output_gc_interval_seconds: int = 3600  # GC 周期（秒），默认 1 小时
+    output_gc_max_age_days: int = 7  # 产物保留天数
+    output_gc_global_max_size_bytes: int = 10 * 1024 * 1024 * 1024  # 全局 outputs 目录最大大小（10GB）
+
     # 测试环境标识（启用测试端点，生产必须 false）
     testing: bool = False
 
@@ -100,6 +114,26 @@ class Settings(BaseSettings):
         extra="ignore",
         env_file=_BACKEND_ROOT / ".env",
     )
+
+    @model_validator(mode="after")
+    def _resolve_database_url(self) -> "Settings":
+        """动态构造 database_url。
+
+        优先级：
+        1. 已显式设置的 database_url（来自环境变量或 .env）→ 直接用
+        2. 按 POSTGRES_* 字段拼接 PostgreSQL URL
+        3. 无则 fallback 到 SQLite 本地开发
+        """
+        if self.database_url:
+            return self
+        # 构造 PostgreSQL URL
+        password = self.postgres_password_secret_string.get_secret_value()
+        pg_url = (
+            f"postgresql+asyncpg://{self.postgres_user}:{password}"
+            f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+        )
+        self.database_url = pg_url
+        return self
 
     @classmethod
     def settings_customise_sources(

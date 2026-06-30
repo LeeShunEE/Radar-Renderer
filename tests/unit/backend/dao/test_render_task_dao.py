@@ -1,7 +1,7 @@
 """RenderTaskDAO 单元测试。"""
 
 import pytest
-from datetime import datetime, UTC
+from datetime import datetime, UTC, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
 from app.dao.render_task_dao import RenderTaskDAO, _to_domain
@@ -346,3 +346,115 @@ class TestDelete:
         mock_session.get.assert_called_once()
         mock_session.delete.assert_not_called()
         mock_session.commit.assert_not_called()
+
+
+class TestListDoneForUser:
+    """list_done_for_user 方法测试。"""
+
+    async def test_list_done_for_user_returns_done_tasks(
+        self, dao: RenderTaskDAO, mock_session: AsyncMock
+    ) -> None:
+        """list_done_for_user 返回用户所有 done 任务，按 finished_at 升序。"""
+        orm1 = MagicMock()
+        orm1.id = 1
+        orm1.user_id = 1
+        orm1.mode = "single"
+        orm1.codec = "h264"
+        orm1.status = "done"
+        orm1.input_props = {}
+        orm1.output_path = "/output/1.mp4"
+        orm1.error = None
+        orm1.duration_ms = 100
+        orm1.created_at = datetime(2026, 1, 1, tzinfo=UTC)
+        orm1.started_at = datetime(2026, 1, 2, tzinfo=UTC)
+        orm1.finished_at = datetime(2026, 1, 3, tzinfo=UTC)
+
+        orm2 = MagicMock()
+        orm2.id = 2
+        orm2.user_id = 1
+        orm2.mode = "single"
+        orm2.codec = "h264"
+        orm2.status = "done"
+        orm2.input_props = {}
+        orm2.output_path = "/output/2.mp4"
+        orm2.error = None
+        orm2.duration_ms = 200
+        orm2.created_at = datetime(2026, 1, 1, tzinfo=UTC)
+        orm2.started_at = datetime(2026, 1, 2, tzinfo=UTC)
+        orm2.finished_at = datetime(2026, 1, 4, tzinfo=UTC)
+
+        mock_result = MagicMock()
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = [orm1, orm2]  # 按 finished_at 升序
+        mock_result.scalars.return_value = mock_scalars
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        tasks = await dao.list_done_for_user(1)
+        assert len(tasks) == 2
+        assert tasks[0].id == 1  # finished_at 更早
+        assert tasks[1].id == 2
+        assert all(t.status == RenderStatus.DONE for t in tasks)
+
+    async def test_list_done_for_user_returns_empty_when_none(
+        self, dao: RenderTaskDAO, mock_session: AsyncMock
+    ) -> None:
+        """list_done_for_user 返回空列表当用户无 done 任务。"""
+        mock_result = MagicMock()
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = []
+        mock_result.scalars.return_value = mock_scalars
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        tasks = await dao.list_done_for_user(999)
+        assert tasks == []
+
+
+class TestListExpiredForUser:
+    """list_expired_for_user 方法测试。"""
+
+    async def test_list_expired_for_user_returns_expired_tasks(
+        self, dao: RenderTaskDAO, mock_session: AsyncMock
+    ) -> None:
+        """list_expired_for_user 返回超过保留天数的 done 任务。"""
+        # 创建一个过期任务（finished_at + max_age_days < now）
+        now = datetime(2026, 6, 25, tzinfo=UTC)
+        max_age_days = 7
+        cutoff = now - timedelta(days=max_age_days)
+
+        orm1 = MagicMock()
+        orm1.id = 1
+        orm1.user_id = 1
+        orm1.mode = "single"
+        orm1.codec = "h264"
+        orm1.status = "done"
+        orm1.input_props = {}
+        orm1.output_path = "/output/1.mp4"
+        orm1.error = None
+        orm1.duration_ms = 100
+        orm1.created_at = datetime(2026, 1, 1, tzinfo=UTC)
+        orm1.started_at = datetime(2026, 1, 2, tzinfo=UTC)
+        orm1.finished_at = cutoff - timedelta(days=1)  # 早于 cutoff，已过期
+
+        mock_result = MagicMock()
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = [orm1]
+        mock_result.scalars.return_value = mock_scalars
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        tasks = await dao.list_expired_for_user(1, max_age_days)
+        assert len(tasks) == 1
+        assert tasks[0].id == 1
+        assert tasks[0].status == RenderStatus.DONE
+
+    async def test_list_expired_for_user_returns_empty_when_none_expired(
+        self, dao: RenderTaskDAO, mock_session: AsyncMock
+    ) -> None:
+        """list_expired_for_user 返回空列表当无过期任务。"""
+        mock_result = MagicMock()
+        mock_scalars = MagicMock()
+        mock_scalars.all.return_value = []
+        mock_result.scalars.return_value = mock_scalars
+        mock_session.execute = AsyncMock(return_value=mock_result)
+
+        tasks = await dao.list_expired_for_user(1, 7)
+        assert tasks == []

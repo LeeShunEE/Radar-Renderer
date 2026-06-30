@@ -3,17 +3,23 @@
  */
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { ConfirmDialog } from "@/components/ui/dialog";
 import { useTaskQueue } from "@/hooks/useTaskQueue";
 import { TaskStatusBadge } from "./TaskStatusBadge";
 import { TaskEtaDisplay } from "./TaskEtaDisplay";
-import { RefreshCw, Trash2, Download, Clock, Gauge } from "lucide-react";
-import { files } from "@/lib/api-client";
+import { RefreshCw, Trash2, Download, Clock, Gauge, AlertTriangle } from "lucide-react";
+import { files, TaskResponse } from "@/lib/api-client";
 import { formatEtaSeconds } from "@/lib/format";
 
 export function TaskQueuePanel() {
   const { tasks, queueSize, avgFps, loading, error, refreshTasks, deleteTask } = useTaskQueue();
+
+  // 删除确认 Dialog 状态
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<TaskResponse | null>(null);
 
   const handleDownload = async (taskId: number, codec: string) => {
     // 产物端点需鉴权：先带 token 拉 Blob，再用 blob URL 触发保存。
@@ -26,6 +32,38 @@ export function TaskQueuePanel() {
     a.download = `render-${taskId}.${ext}`;
     a.click();
     URL.revokeObjectURL(blobUrl);
+  };
+
+  const handleDeleteClick = (task: TaskResponse) => {
+    setTaskToDelete(task);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (taskToDelete) {
+      deleteTask(taskToDelete.id);
+      setTaskToDelete(null);
+    }
+  };
+
+  const getDeleteDialogTitle = (task: TaskResponse) => {
+    if (task.file_expired) {
+      return "删除任务记录";
+    }
+    if (task.status === "done" && task.output_exists) {
+      return "删除任务及产物";
+    }
+    return "删除任务";
+  };
+
+  const getDeleteDialogDescription = (task: TaskResponse) => {
+    if (task.file_expired) {
+      return "产物已被清理，确定删除任务记录？";
+    }
+    if (task.status === "done" && task.output_exists) {
+      return "确定删除任务及其渲染产物？产物将被永久删除。";
+    }
+    return "确定删除此任务？";
   };
 
   // 按创建时间倒序
@@ -107,6 +145,14 @@ export function TaskQueuePanel() {
                 })}
               </span>
 
+              {/* 过期提示 */}
+              {task.file_expired && (
+                <div className="flex items-center gap-1 text-xs text-geist-error shrink-0">
+                  <AlertTriangle className="w-3 h-3" />
+                  <span>产物已清理</span>
+                </div>
+              )}
+
               {/* ETA */}
               {task.status === "queued" && (
                 <TaskEtaDisplay etaSeconds={task.eta_seconds} position={task.position} />
@@ -143,8 +189,8 @@ export function TaskQueuePanel() {
 
               {/* 操作按钮 */}
               <div className="flex items-center gap-1 ml-auto shrink-0">
-                {/* 下载按钮（仅已完成） */}
-                {task.status === "done" && (
+                {/* 下载按钮（仅已完成且文件存在） */}
+                {task.status === "done" && task.output_exists && (
                   <Button
                     onClick={() => handleDownload(task.id, task.codec)}
                     variant="ghost"
@@ -158,7 +204,7 @@ export function TaskQueuePanel() {
                 {/* 删除按钮 */}
                 {(task.status === "queued" || task.status === "done" || task.status === "failed" || task.status === "canceled") && (
                   <Button
-                    onClick={() => deleteTask(task.id)}
+                    onClick={() => handleDeleteClick(task)}
                     variant="ghost"
                     size="sm"
                     className="h-6 w-6 p-0"
@@ -170,6 +216,19 @@ export function TaskQueuePanel() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* 删除确认 Dialog */}
+      {taskToDelete && (
+        <ConfirmDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title={getDeleteDialogTitle(taskToDelete)}
+          description={getDeleteDialogDescription(taskToDelete)}
+          confirmLabel="删除"
+          danger={taskToDelete.status === "done" && taskToDelete.output_exists}
+          onConfirm={handleConfirmDelete}
+        />
       )}
     </div>
   );

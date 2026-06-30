@@ -328,4 +328,7 @@ export interface TaskResponse {
   rendered_frames: number | null;
   total_frames: number | null;
   queue_size: number;
+  // 文件状态（运行时计算）
+  file_expired: boolean;   // 文件是否已被 GC 删除
+  output_exists: boolean;  // 文件是否存在
 }

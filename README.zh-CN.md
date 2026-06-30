@@ -111,6 +111,10 @@ cd frontend && pnpm test:unit && pnpm test:integration
 必须带 **DCO 签名**（`git commit -s`）。参与本项目即表示同意遵守
 [`行为准则`](./CODE_OF_CONDUCT.md)。
 
+开 issue 请使用 [`.github/ISSUE_TEMPLATE/`](./.github/ISSUE_TEMPLATE/) 下的模板——
+[🐛 Bug 报告](./.github/ISSUE_TEMPLATE/bug_report.yml) 或
+[✨ 功能请求](./.github/ISSUE_TEMPLATE/feature_request.yml)。
+
 ## 许可证
 
 本项目采用 **GNU General Public License v3.0**，见 [`LICENSE`](./LICENSE)。

@@ -15,8 +15,9 @@ test.describe("编辑器与预览旅程", () => {
     await registerAndLanding(page);
   });
 
-  test("编辑器加载且 8 个功能 Tab 均存在", async ({ page }) => {
-    for (const name of ["配置", "全局", "对比", "数值", "页面", "素材", "任务", "导出"]) {
+  test("编辑器加载且 7 个功能 Tab 均存在", async ({ page }) => {
+    // PR #40 将「任务」Tab 并入「导出」Tab 的「渲染队列」卡片，功能 Tab 由 8 减为 7。
+    for (const name of ["配置", "全局", "对比", "数值", "页面", "素材", "导出"]) {
       await expect(page.getByRole("tab", { name })).toBeVisible();
     }
   });
