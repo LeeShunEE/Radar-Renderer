@@ -57,6 +57,22 @@ describe("useTaskQueue（集成）", () => {
     expect(result.current.error).toBeNull();
   });
 
+  it("deleteTask 失败时设置 error", async () => {
+    mswServer.use(
+      http.delete(`${API_BASE}/api/v1/tasks/:taskId`, () =>
+        HttpResponse.json({ error: "删除失败", code: "server_error" }, { status: 500 }),
+      ),
+    );
+    const { result } = renderHook(() => useTaskQueue());
+    await waitFor(() => expect(result.current.tasks.length).toBe(1));
+
+    await act(async () => {
+      await result.current.deleteTask(1);
+    });
+
+    await waitFor(() => expect(result.current.error).toBeTruthy());
+  });
+
   it("加载失败时设置 error", async () => {
     mswServer.use(
       http.get(`${API_BASE}/api/v1/tasks`, () =>

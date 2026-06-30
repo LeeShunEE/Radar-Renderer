@@ -187,20 +187,25 @@ export const LocalRenderStage: React.FC<LocalRenderStageProps> = (stageProps) =>
         pointerEvents: "none",
       }}
     >
-      <Player
-        ref={playerRef}
-        component={renderParams.component}
-        inputProps={renderParams.inputProps}
-        durationInFrames={renderParams.durationInFrames}
-        fps={VIDEO_FPS}
-        compositionWidth={renderWidth}
-        compositionHeight={renderHeight}
+      <div
+        className="remotion-player-container"
         style={{ width: renderWidth, height: renderHeight }}
-        loop={false}
-        clickToPlay={false}
-        showPosterWhenPaused={false}
-        numberOfSharedAudioTags={0}
-      />
+      >
+        <Player
+          ref={playerRef}
+          component={renderParams.component}
+          inputProps={renderParams.inputProps}
+          durationInFrames={renderParams.durationInFrames}
+          fps={VIDEO_FPS}
+          compositionWidth={renderWidth}
+          compositionHeight={renderHeight}
+          style={{ width: renderWidth, height: renderHeight }}
+          loop={false}
+          clickToPlay={false}
+          showPosterWhenPaused={false}
+          numberOfSharedAudioTags={0}
+        />
+      </div>
     </div>
   );
 };

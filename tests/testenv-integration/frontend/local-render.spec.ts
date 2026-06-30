@@ -45,8 +45,8 @@ test.describe("本地浏览器渲染旅程", () => {
 
     // 渲染中文案出现（证明已进入渲染而非立即报错）。
     await expect(page.getByText(/本地渲染中/)).toBeVisible({ timeout: 10_000 });
-    // 回归：绝不能出现"找不到 Player 容器元素"。
-    await expect(page.getByText("找不到 Player 容器元素")).toHaveCount(0);
+    // 回归：绝不能出现"无法找到 Player 内层容器"（选择器失效会让本地渲染完全不可用）。
+    await expect(page.getByText("无法找到 Player 内层容器")).toHaveCount(0);
 
     const download = await downloadPromise;
     // 断言扩展名：Chromium 支持 WebCodecs → MP4
@@ -66,10 +66,11 @@ test.describe("本地浏览器渲染旅程", () => {
   });
 
   test("多页本地 MP4 渲染：导出全部页面", async ({ page }) => {
-    // 先添加第二页
-    await page.getByRole("tab", { name: "页面" }).click();
+    // 先添加第二页（「添加页面」入口在「全局」Tab 的 GlobalConfigEditor）
+    await page.getByRole("tab", { name: "全局" }).click();
     await page.getByRole("button", { name: "添加页面" }).click();
-    await expect(page.getByText("角色2")).toBeVisible();
+    // 「全局」Tab 内汇总行（页2（角色2）…）也含「角色2」文本，用 button 精确匹配页面列表项避免歧义
+    await expect(page.getByRole("button", { name: "角色2" })).toBeVisible();
 
     // 切到导出面板
     await page.getByRole("tab", { name: "导出" }).click();
@@ -86,8 +87,8 @@ test.describe("本地浏览器渲染旅程", () => {
 
     // 渲染中文案
     await expect(page.getByText(/本地渲染中/)).toBeVisible({ timeout: 10_000 });
-    // 回归
-    await expect(page.getByText("找不到 Player 容器元素")).toHaveCount(0);
+    // 回归：同上，绝不能出现"无法找到 Player 内层容器"。
+    await expect(page.getByText("无法找到 Player 内层容器")).toHaveCount(0);
 
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/\.mp4$/);
