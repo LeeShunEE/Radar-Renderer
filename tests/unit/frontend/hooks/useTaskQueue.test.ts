@@ -253,7 +253,7 @@ describe("useTaskQueue", () => {
       vi.useFakeTimers();
     });
 
-    it("有活动任务时自动轮询", async () => {
+    it("mount 后每 5s 持续刷新列表", async () => {
       const activeTask: TaskResponse = {
         id: 1,
         mode: "single",
@@ -270,31 +270,25 @@ describe("useTaskQueue", () => {
         eta_seconds: 30,
       };
 
-      // 初始加载返回活动任务
-      vi.mocked(tasks.list)
-        .mockResolvedValueOnce({ queue_size: 1, avg_fps: null, tasks: [activeTask] })
-        .mockResolvedValueOnce({ queue_size: 1, avg_fps: null, tasks: [activeTask] });
+      vi.mocked(tasks.list).mockResolvedValue({ queue_size: 1, avg_fps: null, tasks: [activeTask] });
 
       const { result } = renderHook(() => useTaskQueue());
 
-      // 等待初始加载完成（需要等待 Promise）
-      await act(async () => {
-        await vi.runAllTimersAsync();
-      });
-
-      expect(result.current.tasks).toHaveLength(1);
-      expect(tasks.list).toHaveBeenCalledTimes(1);
-
-      // 推进时间触发轮询（5s）
+      // 推进 5s：flush 初始加载（第 1 次）+ 第一次轮询（第 2 次）
       await act(async () => {
         await vi.advanceTimersByTimeAsync(5000);
       });
-
-      // 轮询应该触发第二次调用
       expect(tasks.list).toHaveBeenCalledTimes(2);
+      expect(result.current.tasks).toHaveLength(1);
+
+      // 再推进 5s → 第二次轮询（第 3 次）
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000);
+      });
+      expect(tasks.list).toHaveBeenCalledTimes(3);
     });
 
-    it("全部终态任务时停止轮询", async () => {
+    it("全终态时仍持续轮询（提交后队列及时更新）", async () => {
       const doneTask: TaskResponse = {
         id: 1,
         mode: "single",
@@ -311,25 +305,15 @@ describe("useTaskQueue", () => {
         eta_seconds: null,
       };
 
-      // 初始加载返回终态任务
-      vi.mocked(tasks.list).mockResolvedValueOnce({ queue_size: 0, avg_fps: 45.5, tasks: [doneTask] });
+      vi.mocked(tasks.list).mockResolvedValue({ queue_size: 0, avg_fps: 45.5, tasks: [doneTask] });
 
-      const { result } = renderHook(() => useTaskQueue());
+      renderHook(() => useTaskQueue());
 
-      // 等待初始加载完成
-      await act(async () => {
-        await vi.runAllTimersAsync();
-      });
-
-      expect(result.current.tasks).toHaveLength(1);
-
-      // 推进时间 - 应该不会触发新的轮询
+      // 推进 10s：初始加载 + 持续轮询至少 1 次（不因终态停止）
       await act(async () => {
         await vi.advanceTimersByTimeAsync(10000);
       });
-
-      // 仍然只有 1 次调用（初始加载）
-      expect(tasks.list).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(tasks.list).mock.calls.length).toBeGreaterThanOrEqual(2);
     });
   });
 });

@@ -63,25 +63,20 @@ export function useTaskQueue(): UseTaskQueueResult {
     refreshTasks();
   }, [refreshTasks]);
 
-  /** 自动轮询：有活动任务时每 5s 刷新，全部终态时停止。 */
+  /**
+   * 自动轮询：每 5s 持续刷新任务列表。
+   * 不因列表全终态而停止——提交渲染由兄弟组件的 useServerRender 发起，本 hook 无法
+   * 感知提交时机，持续轮询才能让新任务（含完成态）及时出现在队列面板。
+   */
   useEffect(() => {
-    const hasActiveTasks = taskList.some(
-      (t) => t.status === "queued" || t.status === "running",
-    );
-
-    if (hasActiveTasks) {
-      intervalRef.current = setInterval(refreshTasks, POLL_INTERVAL_MS);
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-
+    intervalRef.current = setInterval(refreshTasks, POLL_INTERVAL_MS);
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
-  }, [taskList, refreshTasks]);
+  }, [refreshTasks]);
 
   return {
     tasks: taskList,
