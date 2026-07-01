@@ -1,6 +1,6 @@
 /**
  * 资源选择器：合并公共资源 + 用户上传资源。
- * 用于 silhouette 和 music 选择。
+ * 用于 silhouette、music、backgrounds 选择。
  */
 "use client";
 
@@ -10,8 +10,27 @@ import { usePublicAssets } from "@/hooks/usePublicAssets";
 import { useFileManagement } from "@/hooks/useFileManagement";
 import { useUploadObjectUrls } from "@/hooks/useUploadObjectUrls";
 import { RefreshCw, Upload } from "lucide-react";
+import { checkBackgroundVideo } from "@/lib/media-guard";
 
-type AssetCategory = "silhouettes" | "music";
+/** 读取视频文件的宽高（异步，jsdom 中会走 onerror 分支，回退 0×0）。 */
+async function readVideoMeta(file: File): Promise<{ width: number; height: number }> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const v = document.createElement("video");
+    v.preload = "metadata";
+    v.onloadedmetadata = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: v.videoWidth, height: v.videoHeight });
+    };
+    v.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: 0, height: 0 });
+    };
+    v.src = url;
+  });
+}
+
+type AssetCategory = "silhouettes" | "music" | "backgrounds";
 
 interface AssetOption {
   name: string;
@@ -26,6 +45,14 @@ interface AssetSelectorProps {
   /** 是否显示播放按钮（仅 music 有效） */
   showPlayButton?: boolean;
 }
+
+/** 文件名扩展名过滤正则 */
+const SIL_EXT_RE = /\.(png|jpg|jpeg|gif|webp|svg)$/i;
+const MUSIC_EXT_RE = /\.(mp3|wav|ogg|m4a|aac)$/i;
+const BG_EXT_RE = /\.(png|jpg|jpeg|gif|webp|svg|mp4|webm|mov)$/i;
+
+/** 判断文件名是否为视频 */
+const isVideoName = (name: string) => /\.(mp4|webm|mov)$/i.test(name);
 
 export function AssetSelector({
   category,
@@ -54,15 +81,23 @@ export function AssetSelector({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [playing, setPlaying] = useState(false);
   const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
+  // 背景视频上传软警告（决策 Q7）：仅提示，不拦截上传
+  const [bgWarnings, setBgWarnings] = useState<string[]>([]);
 
   // 合并公共资源和用户上传资源
-  const publicAssets = category === "silhouettes" ? silhouettes : music;
+  // backgrounds 无公共资源（仅用户上传）
+  const publicAssets =
+    category === "silhouettes" ? silhouettes : category === "music" ? music : [];
+
+  const extRe =
+    category === "silhouettes"
+      ? SIL_EXT_RE
+      : category === "music"
+        ? MUSIC_EXT_RE
+        : BG_EXT_RE;
+
   const userAssets = userFiles
-    .filter((f) =>
-      category === "silhouettes"
-        ? f.name.match(/\.(png|jpg|jpeg|gif|webp|svg)$/i)
-        : f.name.match(/\.(mp3|wav|ogg|m4a|aac)$/i)
-    )
+    .filter((f) => f.name.match(extRe))
     .map((f) => ({
       name: f.name,
       path: getDownloadUrl(f.name), // 用户上传文件需要完整 URL
@@ -82,6 +117,32 @@ export function AssetSelector({
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // 清空上次警告
+    setBgWarnings([]);
+    // 背景视频软警告（Q7）：并行读元数据 + 上传，不因读取失败而阻塞
+    if (category === "backgrounds" && (file.type.startsWith("video/") || /\.(mp4|webm|mov)$/i.test(file.name))) {
+      // 并行：上传不等读取完成
+      const metaPromise = readVideoMeta(file).then(({ width, height }) => {
+        const warns = checkBackgroundVideo({ width, height, sizeBytes: file.size });
+        if (warns.length > 0) setBgWarnings(warns);
+      }).catch(() => {
+        // 读取失败时仅按体积检查
+        const warns = checkBackgroundVideo({ width: 0, height: 0, sizeBytes: file.size });
+        if (warns.length > 0) setBgWarnings(warns);
+      });
+      // 上传与元数据读取并行进行
+      try {
+        await upload(file);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      } catch {
+        // 错误已在 hook 中处理
+      }
+      // 等元数据读完（通常在上传完成前早已就绪）
+      await metaPromise;
+      return;
+    }
     try {
       await upload(file);
       if (fileInputRef.current) {
@@ -123,12 +184,29 @@ export function AssetSelector({
     };
   }, [audioRef]);
 
+  /** 是否使用网格布局（silhouettes / backgrounds 用网格，music 用列表）。 */
+  const useGridLayout = category === "silhouettes" || category === "backgrounds";
+
+  /** accept 属性 */
+  const acceptAttr =
+    category === "silhouettes"
+      ? "image/*"
+      : category === "music"
+        ? "audio/*"
+        : "image/*,video/*";
+
+  /** header 标签文字 */
+  const headerLabel =
+    category === "silhouettes"
+      ? "剪影图片"
+      : category === "music"
+        ? "背景音乐"
+        : "背景媒体";
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">
-          {category === "silhouettes" ? "剪影图片" : "背景音乐"}
-        </span>
+        <span className="text-xs text-muted-foreground">{headerLabel}</span>
         <div className="flex items-center gap-1">
           <Button
             onClick={refreshAssets}
@@ -151,12 +229,23 @@ export function AssetSelector({
           <input
             ref={fileInputRef}
             type="file"
-            accept={category === "silhouettes" ? "image/*" : "audio/*"}
+            accept={acceptAttr}
             onChange={handleUpload}
             className="hidden"
           />
         </div>
       </div>
+
+      {/* 背景视频上传软警告（Q7）：不拦截上传，仅提示 */}
+      {bgWarnings.length > 0 && (
+        <div className="rounded-md border border-yellow-400/50 bg-yellow-50/10 px-2 py-1.5 space-y-0.5">
+          {bgWarnings.map((w, i) => (
+            <p key={i} className="text-xs text-yellow-600 dark:text-yellow-400">
+              ⚠ {w}
+            </p>
+          ))}
+        </div>
+      )}
 
       {loading && allOptions.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-2">加载中...</p>
@@ -172,7 +261,7 @@ export function AssetSelector({
               <div className="px-2 py-1 text-xs text-muted-foreground bg-muted/30">
                 公共资源
               </div>
-              {category === "silhouettes" ? (
+              {useGridLayout ? (
                 <div className="grid grid-cols-5 gap-1 p-1">
                   {publicAssets.map((asset) => {
                     const selected = value === asset.path;
@@ -242,7 +331,7 @@ export function AssetSelector({
               <div className="px-2 py-1 text-xs text-muted-foreground bg-muted/30">
                 我的上传
               </div>
-              {category === "silhouettes" ? (
+              {useGridLayout ? (
                 <div className="grid grid-cols-5 gap-1 p-1">
                   {userAssets.map((asset) => {
                     const selected = value === asset.path;
@@ -259,13 +348,23 @@ export function AssetSelector({
                         title={asset.name}
                       >
                         {/* 用户上传文件需鉴权，走 objectURL（裸 http src 会 401）。 */}
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={getObjectUrl(asset.name) ?? asset.path}
-                          alt={asset.name}
-                          className="mx-auto max-h-12 object-contain"
-                          loading="lazy"
-                        />
+                        {category === "backgrounds" && isVideoName(asset.name) ? (
+                          // 视频首帧作缩略图，不自动播放、静音
+                          <video
+                            src={getObjectUrl(asset.name) ?? asset.path}
+                            className="mx-auto max-h-12 object-contain"
+                            muted
+                            preload="metadata"
+                          />
+                        ) : (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={getObjectUrl(asset.name) ?? asset.path}
+                            alt={asset.name}
+                            className="mx-auto max-h-12 object-contain"
+                            loading="lazy"
+                          />
+                        )}
                       </button>
                     );
                   })}

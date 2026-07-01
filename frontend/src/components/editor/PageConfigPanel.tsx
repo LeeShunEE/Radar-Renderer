@@ -6,6 +6,7 @@ import { CharacterConfig } from "./CharacterConfig";
 import { LayoutEditor } from "./LayoutEditor";
 import { AttributeEditor } from "./AttributeEditor";
 import { ThemeEditor } from "./ThemeEditor";
+import { BackgroundConfigPanel } from "./BackgroundConfigPanel";
 import { AnimationConfigEditor } from "./AnimationConfig";
 import { FontSizeEditor } from "./FontSizeEditor";
 import { FontFamilyEditor } from "./FontFamilyEditor";
@@ -265,6 +266,12 @@ export const PageConfigPanel: React.FC<PageConfigPanelProps> = ({
             theme={page.theme}
             onChange={(theme) => onUpdate({ theme })}
             importMenu={menu(importTheme)}
+          />
+          <Separator />
+          <BackgroundConfigPanel
+            background={page.background}
+            theme={page.theme}
+            onChange={onUpdate}
           />
           <Separator />
           <div className="grid grid-cols-2 gap-3">

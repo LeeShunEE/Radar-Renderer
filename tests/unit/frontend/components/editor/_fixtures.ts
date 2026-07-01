@@ -6,6 +6,7 @@
  *
  * 文件名无 .test 后缀，不会被 vitest 当作测试；位于 tests/ 不计入覆盖率。
  */
+import { defaultBackground } from "@/types/radar";
 import type {
   MultiPageConfig,
   RadarVideoProps,
@@ -114,6 +115,7 @@ export function makePage(overrides: Partial<RadarVideoProps> = {}): RadarVideoPr
     font: { ...baseFont },
     layout: { ...baseLayout },
     overrideIgnored: {},
+    background: defaultBackground,
     ...overrides,
   };
 }

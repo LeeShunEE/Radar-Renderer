@@ -129,6 +129,34 @@ export const defaultSlug: SlugConfig = {
   fadeOffsetFrames: 10,
 };
 
+export const BackgroundMediaSchema = z.object({
+  src: z.string().default(""),
+  opacity: z.number().min(0).max(1).default(1),
+  blur: z.number().min(0).max(50).default(0),
+  scale: z.enum(["cover", "contain", "fill"]).default("cover"),
+  position: z.enum(["center", "top", "bottom", "left", "right"]).default("center"),
+  videoOptions: z
+    .object({
+      loop: z.boolean().default(true),
+      muted: z.boolean().default(true),
+      playbackRate: z.number().min(0.25).max(4).default(1),
+      startFrom: z.number().min(0).default(0), // 毫秒；渲染时按 fps 换算为帧
+    })
+    .default({ loop: true, muted: true, playbackRate: 1, startFrom: 0 }),
+});
+
+export const BackgroundSchema = z
+  .object({
+    type: z.enum(["gradient", "image", "video"]).default("gradient"),
+    media: BackgroundMediaSchema.optional(),
+  })
+  .default({ type: "gradient" });
+
+export type BackgroundConfig = z.infer<typeof BackgroundSchema>;
+export type BackgroundMediaConfig = z.infer<typeof BackgroundMediaSchema>;
+
+export const defaultBackground: BackgroundConfig = { type: "gradient" };
+
 export const RadarVideoSchema = z.object({
   characterName: z.string(),
   characterNameAlign: z.enum(["left", "center", "right"]).default("center"),
@@ -189,6 +217,7 @@ export const RadarVideoSchema = z.object({
   }),
   layout: LayoutSchema,
   overrideIgnored: z.record(z.string(), z.boolean()).default({}),
+  background: BackgroundSchema,
 });
 
 export type RadarVideoProps = z.infer<typeof RadarVideoSchema>;

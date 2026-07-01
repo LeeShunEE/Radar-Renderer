@@ -12,6 +12,10 @@ import {
   useVideoConfig,
 } from "remotion";
 import { BackgroundGradient } from "./Effects/BackgroundGradient";
+import { BackgroundAudio } from "./Effects/BackgroundAudio";
+import { BackgroundMedia } from "./Effects/BackgroundMedia";
+import { Vignette } from "./Effects/Vignette";
+import { selectBackgroundKind } from "./Effects/selectBackgroundKind";
 import { Silhouette } from "./CharacterSilhouette/Silhouette";
 import { RadarChart } from "./RadarChart/RadarChart";
 import { HighValueGlow } from "./Effects/HighValueGlow";
@@ -252,7 +256,7 @@ type RadarVideoFullProps = RadarVideoProps & {
 
 export const RadarVideo: React.FC<RadarVideoFullProps> = (props) => {
   const frame = useCurrentFrame();
-  const { characterName, silhouetteSrc, attributes, theme, animation, font, layout, comparison } = props;
+  const { characterName, silhouetteSrc, attributes, theme, animation, font, layout, comparison, background } = props;
 
   const fontDeps = [
     font.characterNameFamily,
@@ -331,7 +335,15 @@ export const RadarVideo: React.FC<RadarVideoFullProps> = (props) => {
   return (
     <AbsoluteFill>
       <Sequence>
-        <BackgroundGradient theme={theme} />
+        {selectBackgroundKind(background) === "gradient" ? (
+          <BackgroundGradient theme={theme} />
+        ) : (
+          <>
+            <BackgroundMedia type={background.type as "image" | "video"} media={background.media!} />
+            <Vignette theme={theme} />
+            {background.type === "video" && <BackgroundAudio media={background.media!} />}
+          </>
+        )}
       </Sequence>
 
       <Sequence from={animation.silhouetteDelay}>

@@ -64,6 +64,8 @@ export default defineConfig({
       { find: /^react-dom$/, replacement: path.resolve(__dirname, "./node_modules/react-dom") },
       // remotion：测试文件在 frontend/ 外时需显式指向 node_modules（同 react）
       { find: /^remotion$/, replacement: path.resolve(__dirname, "./node_modules/remotion") },
+      // @remotion/media：同上，且保证 vi.mock("@remotion/media") 命中被测源码解析的同一模块路径
+      { find: /^@remotion\/media$/, replacement: path.resolve(__dirname, "./node_modules/@remotion/media") },
     ],
   },
   server: {

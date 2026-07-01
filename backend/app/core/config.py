@@ -84,6 +84,20 @@ class Settings(BaseSettings):
         os.getenv("PUBLIC_ASSETS_PATH", str(_BACKEND_ROOT / ".." / "frontend" / "public"))
     )
 
+    # 背景媒体零拷贝（方案 B）：worker 是否已将 backend_storage 只读挂载到其
+    # publicDir/_user_media。这是**部署事实**，必须由 backend 经配置得知——backend
+    # 与 worker 是不同容器，backend 无法靠探测自身文件系统判断 worker 的挂载是否存在
+    # （挂载在 worker 的 /app/public/_user_media，不在 backend 的 public_assets_path）。
+    # 为 true 时改写直接产出完整 HTTP URL（零拷贝）；为 false（本地裸进程开发，
+    # 无 Docker 挂载）回退复制进 _render_tmp。Docker 部署经 env WORKER_USER_MEDIA_MOUNT 置 true。
+    worker_user_media_mount: bool = False
+    # 零拷贝时使用的 worker 静态服务器 URL（用于 serve _user_media 与 _render_tmp）。
+    # Remotion bundle 在 bundle 时复制 public 文件夹，运行时新增文件不会被 serve。
+    # Worker 添加了静态端点 GET /_user_media/* 与 GET /_render_tmp/*，
+    # backend 需知道此 URL 以生成完整 HTTP URL 供 Remotion 组件使用。
+    # Docker 部署经 env WORKER_STATIC_SERVER_URL 覆盖（默认同 worker_base_url）。
+    worker_static_server_url: str = "http://localhost:3100"
+
     # 是否在应用启动时自动拉起队列消费协程（测试中关闭以保证确定性）
     render_queue_autostart: bool = True
 
