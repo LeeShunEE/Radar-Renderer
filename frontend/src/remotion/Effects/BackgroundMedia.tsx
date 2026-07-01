@@ -63,6 +63,11 @@ export const BackgroundMedia: React.FC<BackgroundMediaProps> = ({ type, media })
 
   // 预览时使用 OffthreadVideo，渲染时使用 @remotion/media 的 Video
   // 这避免了 compositor 在处理某些视频格式时崩溃的问题
+  //
+  // 两套组件的视频裁剪 prop 同为 trimBefore（单位：帧），均无 startFrom；
+  // 换算公式 round(startFrom_ms / 1000 * fps) 两支一致。
+  // loop 仅 @remotion/media 的 Video 支持；Remotion 的 OffthreadVideo 不支持循环
+  // （Remotion 限制），故预览不循环，循环行为仅在服务端渲染产物（Video）中生效。
   const videoComponent = env.isRendering ? (
     <Video
       data-testid="background-media-video"
@@ -70,7 +75,7 @@ export const BackgroundMedia: React.FC<BackgroundMediaProps> = ({ type, media })
       muted
       loop={media.videoOptions.loop}
       playbackRate={media.videoOptions.playbackRate}
-      startFrom={Math.round((media.videoOptions.startFrom / 1000) * fps)}
+      trimBefore={Math.round((media.videoOptions.startFrom / 1000) * fps)}
       style={commonStyle}
     />
   ) : (
@@ -78,7 +83,6 @@ export const BackgroundMedia: React.FC<BackgroundMediaProps> = ({ type, media })
       data-testid="background-media-video"
       src={src}
       muted
-      loop={media.videoOptions.loop}
       playbackRate={media.videoOptions.playbackRate}
       trimBefore={Math.round((media.videoOptions.startFrom / 1000) * fps)}
       style={commonStyle}
