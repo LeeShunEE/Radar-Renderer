@@ -110,6 +110,12 @@ class Settings(BaseSettings):
     # 测试环境标识（启用测试端点，生产必须 false）
     testing: bool = False
 
+    # 测试环境常驻账户：仅当 testing=True 时由启动钩子幂等 seed（生产绝不创建）。
+    # 便于本地/测试环境直接用固定账户登录，无需走邮箱验证码注册流程。
+    dev_seed_username: str = "dev"
+    dev_seed_email: str = "dev@test.com"
+    dev_seed_password_secret_string: SecretStr = SecretStr("dev12345")
+
     model_config = SettingsConfigDict(
         extra="ignore",
         env_file=_BACKEND_ROOT / ".env",
