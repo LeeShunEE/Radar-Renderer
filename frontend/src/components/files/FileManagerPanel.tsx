@@ -3,11 +3,19 @@
  */
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useFileManagement } from "@/hooks/useFileManagement";
-import { Upload, Trash2, RefreshCw, FileIcon, AlertCircle } from "lucide-react";
+import {
+  Upload,
+  Trash2,
+  RefreshCw,
+  FileIcon,
+  AlertCircle,
+  ClipboardPaste,
+} from "lucide-react";
+import { extractPastedImage, pastedImageName } from "@/lib/clipboard-image";
 
 export function FileManagerPanel() {
   const {
@@ -26,6 +34,7 @@ export function FileManagerPanel() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [pasteHint, setPasteHint] = useState<string | null>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -39,6 +48,32 @@ export function FileManagerPanel() {
       // 错误已在 hook 中处理
     }
   };
+
+  /** 监听全局 Ctrl+V / Cmd+V 粘贴图片，自动触发上传。 */
+  const handlePaste = useCallback(
+    async (e: ClipboardEvent) => {
+      const image = extractPastedImage(e.clipboardData);
+      if (!image) return;
+      // 配额耗尽或正在上传时不处理，避免与文件选择上传竞争
+      if (uploading || (quota?.available_bytes ?? Infinity) <= 0) return;
+      e.preventDefault();
+      const name = pastedImageName(image);
+      setPasteHint(`已粘贴图片，正在上传 ${name}…`);
+      try {
+        await upload(new File([image], name, { type: image.type }));
+        setPasteHint(`已上传粘贴图片 ${name}`);
+      } catch {
+        // 错误已在 hook 中处理并展示
+        setPasteHint(null);
+      }
+    },
+    [upload, uploading, quota],
+  );
+
+  useEffect(() => {
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
+  }, [handlePaste]);
 
   const handleDelete = async (name: string) => {
     if (!confirm(`确定删除 "${name}"？`)) return;
@@ -101,6 +136,12 @@ export function FileManagerPanel() {
           className="hidden"
         />
       </div>
+
+      {/* 粘贴提示：告知用户可直接 Ctrl+V / Cmd+V 粘贴图片上传 */}
+      <p className="text-xs text-muted-foreground flex items-center gap-1">
+        <ClipboardPaste className="w-3 h-3 shrink-0" />
+        {pasteHint ?? "支持 Ctrl+V（Mac 为 ⌘V）直接粘贴图片上传"}
+      </p>
 
       {/* 错误提示 */}
       {error && (

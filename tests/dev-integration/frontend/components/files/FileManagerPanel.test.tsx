@@ -5,10 +5,21 @@
  * 验证文件列表/配额出现、上传→列表刷新、删除→列表更新全链路。
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
 import React from "react";
 import { FileManagerPanel } from "@/components/files/FileManagerPanel";
 import { seedAuth, resetAuth } from "../../_helpers";
+
+/** 派发带图片 clipboardData 的 paste 事件到 document。 */
+function firePasteImage(file: File) {
+  const event = new Event("paste", { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "clipboardData", {
+    value: { files: [file], items: [] },
+  });
+  act(() => {
+    document.dispatchEvent(event);
+  });
+}
 
 const mockAnchorClick = vi.fn();
 const originalCreateElement = document.createElement.bind(document);
@@ -49,6 +60,17 @@ describe("FileManagerPanel（集成）", () => {
 
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [new File(["d"], "my.png", { type: "image/png" })] } });
+
+    await waitFor(() => {
+      expect(screen.getByText("uploaded.png")).toBeInTheDocument();
+    });
+  });
+
+  it("Ctrl+V 粘贴图片后列表刷新（新增 uploaded.png）", async () => {
+    render(<FileManagerPanel />);
+    await waitFor(() => expect(screen.getByText("silhouette.png")).toBeInTheDocument());
+
+    firePasteImage(new File(["d"], "shot.png", { type: "image/png" }));
 
     await waitFor(() => {
       expect(screen.getByText("uploaded.png")).toBeInTheDocument();
