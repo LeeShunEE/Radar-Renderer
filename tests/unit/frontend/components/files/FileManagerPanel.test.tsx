@@ -3,8 +3,23 @@
  * useFileManagement 用 vi.hoisted 持有可变状态。
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { FileManagerPanel } from "@/components/files/FileManagerPanel";
+
+/** 构造带 clipboardData 的 paste 事件并派发到 document。 */
+function firePaste(opts: { files?: File[]; items?: any[] }) {
+  const event = new Event("paste", { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "clipboardData", {
+    value: { files: opts.files ?? [], items: opts.items ?? [] },
+  });
+  act(() => {
+    document.dispatchEvent(event);
+  });
+  return event;
+}
+
+const imageFile = (name = "shot.png", type = "image/png") =>
+  new File(["x"], name, { type });
 
 const fm = vi.hoisted(() => ({
   state: {
@@ -95,5 +110,58 @@ describe("FileManagerPanel", () => {
     const buttons = screen.getAllByRole("button");
     fireEvent.click(buttons[buttons.length - 1]);
     expect(fm.state.refresh).toHaveBeenCalled();
+  });
+
+  describe("粘贴上传（Ctrl+V）", () => {
+    it("默认展示粘贴提示文案", () => {
+      render(<FileManagerPanel />);
+      expect(
+        screen.getByText(/支持 Ctrl\+V（Mac 为 ⌘V）直接粘贴图片上传/),
+      ).toBeInTheDocument();
+    });
+
+    it("粘贴图片（files）触发 upload", async () => {
+      fm.state.upload = vi.fn().mockResolvedValue(undefined);
+      render(<FileManagerPanel />);
+      firePaste({ files: [imageFile("a.png")] });
+      await waitFor(() => expect(fm.state.upload).toHaveBeenCalledTimes(1));
+      expect(fm.state.upload.mock.calls[0][0]).toBeInstanceOf(File);
+    });
+
+    it("粘贴截图（items blob）触发 upload", async () => {
+      fm.state.upload = vi.fn().mockResolvedValue(undefined);
+      const blob = imageFile("image.png");
+      render(<FileManagerPanel />);
+      firePaste({
+        items: [{ kind: "file", type: "image/png", getAsFile: () => blob }],
+      });
+      await waitFor(() => expect(fm.state.upload).toHaveBeenCalledTimes(1));
+      // image.png 视为无名截图，重命名为 pasted-<ts>.png
+      expect(fm.state.upload.mock.calls[0][0].name).toMatch(/^pasted-\d+\.png$/);
+    });
+
+    it("粘贴非图片不触发 upload", () => {
+      fm.state.upload = vi.fn();
+      render(<FileManagerPanel />);
+      firePaste({ files: [new File(["t"], "note.txt", { type: "text/plain" })] });
+      expect(fm.state.upload).not.toHaveBeenCalled();
+    });
+
+    it("配额耗尽时粘贴不触发 upload", () => {
+      fm.state.upload = vi.fn();
+      fm.state.quota = { used_bytes: 1000, limit_bytes: 1000, available_bytes: 0 };
+      render(<FileManagerPanel />);
+      firePaste({ files: [imageFile("a.png")] });
+      expect(fm.state.upload).not.toHaveBeenCalled();
+    });
+
+    it("粘贴上传中展示进行态文案", async () => {
+      fm.state.upload = vi.fn().mockResolvedValue(undefined);
+      render(<FileManagerPanel />);
+      firePaste({ files: [imageFile("a.png")] });
+      await waitFor(() =>
+        expect(screen.getByText(/已上传粘贴图片/)).toBeInTheDocument(),
+      );
+    });
   });
 });
