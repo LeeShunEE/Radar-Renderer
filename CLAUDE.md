@@ -181,6 +181,21 @@ cd frontend && pnpm exec playwright test tests/testenv-integration/frontend/
 
 前提：测试系统已注入 baseURL（真实后端地址）与 DB seed（见 §3.3.1、§6.1）。
 
+#### 3.3.5 CI e2e 与本地镜像隔离
+
+`docker-compose.dev.yml` 为中国开发者本地优化，硬编码了阿里云 PyPI 镜像（`PIP_INDEX`）和 Alpine 镜像（`ALPINE_MIRROR`）。但 **CI runner 在欧洲/美国**，访问中国镜像网络不稳定，曾导致 backend 构建时下载 `coverage` 包超时（128s 后 3 次重试失败）。
+
+**铁律**：`.github/workflows/e2e.yml` 的所有 `docker compose` 步骤必须设置 `PIP_INDEX: ''`，覆盖 dev-override 的硬编码值，让 CI 走官方 PyPI（pypi.org）。
+
+```yaml
+env:
+  POSTGRES_PASSWORD: devpass
+  JWT_SECRET_STRING: ci-test-secret-not-for-production
+  PIP_INDEX: ''  # CI 用官方 PyPI，不走阿里云镜像
+```
+
+**为什么不删 `docker-compose.dev.yml` 的镜像配置**：本地开发在中国，阿里云镜像加速明显；CI 与本地场景不同，用环境变量覆盖实现隔离。
+
 ---
 
 ## 4. 网络边界规则
