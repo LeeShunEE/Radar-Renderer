@@ -4,13 +4,14 @@
  */
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { usePublicAssets } from "@/hooks/usePublicAssets";
 import { useFileManagement } from "@/hooks/useFileManagement";
 import { useUploadObjectUrls } from "@/hooks/useUploadObjectUrls";
-import { RefreshCw, Upload } from "lucide-react";
+import { RefreshCw, Upload, ClipboardPaste } from "lucide-react";
 import { checkBackgroundVideo } from "@/lib/media-guard";
+import { extractPastedImage, pastedImageName } from "@/lib/clipboard-image";
 
 /** 读取视频文件的宽高（异步，jsdom 中会走 onerror 分支，回退 0×0）。 */
 async function readVideoMeta(file: File): Promise<{ width: number; height: number }> {
@@ -83,6 +84,10 @@ export function AssetSelector({
   const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
   // 背景视频上传软警告（决策 Q7）：仅提示，不拦截上传
   const [bgWarnings, setBgWarnings] = useState<string[]>([]);
+  // 粘贴上传：仅图片类别（剪影/背景）支持；用 hover 限定作用域，避免多个选择器同时响应同一次 Ctrl+V
+  const acceptsImagePaste = category === "silhouettes" || category === "backgrounds";
+  const hoveredRef = useRef(false);
+  const [pasteHint, setPasteHint] = useState<string | null>(null);
 
   // 合并公共资源和用户上传资源
   // backgrounds 无公共资源（仅用户上传）
@@ -153,6 +158,34 @@ export function AssetSelector({
     }
   };
 
+  /** 监听全局 Ctrl+V / Cmd+V：仅当鼠标悬停在本选择器上时，粘贴图片并自动选中。 */
+  const handlePaste = useCallback(
+    async (e: ClipboardEvent) => {
+      if (!acceptsImagePaste || !hoveredRef.current || uploading) return;
+      const image = extractPastedImage(e.clipboardData);
+      if (!image) return;
+      e.preventDefault();
+      const name = pastedImageName(image);
+      setPasteHint(`已粘贴图片，正在上传 ${name}…`);
+      try {
+        await upload(new File([image], name, { type: image.type }));
+        // 上传成功后自动选中该资源（用户上传文件需完整 URL）
+        onChange(getDownloadUrl(name));
+        setPasteHint(`已上传并选中 ${name}`);
+      } catch {
+        // 错误已在 hook 中处理
+        setPasteHint(null);
+      }
+    },
+    [acceptsImagePaste, uploading, upload, onChange, getDownloadUrl],
+  );
+
+  useEffect(() => {
+    if (!acceptsImagePaste) return;
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
+  }, [acceptsImagePaste, handlePaste]);
+
   const togglePlay = (filePath: string, isUserUpload?: boolean, fileName?: string) => {
     if (playing && audioRef) {
       audioRef.pause();
@@ -204,7 +237,15 @@ export function AssetSelector({
         : "背景媒体";
 
   return (
-    <div className="space-y-2">
+    <div
+      className="space-y-2"
+      onMouseEnter={() => {
+        hoveredRef.current = true;
+      }}
+      onMouseLeave={() => {
+        hoveredRef.current = false;
+      }}
+    >
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted-foreground">{headerLabel}</span>
         <div className="flex items-center gap-1">
@@ -235,6 +276,14 @@ export function AssetSelector({
           />
         </div>
       </div>
+
+      {/* 粘贴提示：鼠标悬停本区域时可直接 Ctrl+V 粘贴图片上传并自动选中 */}
+      {acceptsImagePaste && (
+        <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <ClipboardPaste className="w-3 h-3 shrink-0" />
+          {pasteHint ?? "悬停此处按 Ctrl+V（⌘V）可粘贴图片"}
+        </p>
+      )}
 
       {/* 背景视频上传软警告（Q7）：不拦截上传，仅提示 */}
       {bgWarnings.length > 0 && (

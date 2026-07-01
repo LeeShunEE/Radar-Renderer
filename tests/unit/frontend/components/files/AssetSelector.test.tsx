@@ -3,8 +3,19 @@
  * mock 三个 hooks + lucide 图标（便于按 testid 定位图标按钮）+ window.Audio（jsdom 无 audio 实现）。
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { AssetSelector } from "@/components/files/AssetSelector";
+
+/** 派发带 clipboardData 的 paste 事件到 document。 */
+function firePaste(files: File[]) {
+  const event = new Event("paste", { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "clipboardData", { value: { files, items: [] } });
+  act(() => {
+    document.dispatchEvent(event);
+  });
+}
+
+const imageFile = (name = "shot.png") => new File(["x"], name, { type: "image/png" });
 
 // 可变 hook 返回状态（hoisted 便于在测试内调整 loading / 资源列表）
 const assets = vi.hoisted(() => ({
@@ -197,6 +208,54 @@ describe("AssetSelector", () => {
     fileMgmt.files = [];
     render(<AssetSelector category="silhouettes" value="" onChange={vi.fn()} />);
     expect(screen.getByText(/暂无资源/)).toBeInTheDocument();
+  });
+
+  describe("粘贴上传（Ctrl+V）", () => {
+    it("silhouettes 类别显示粘贴提示", () => {
+      render(<AssetSelector category="silhouettes" value="" onChange={vi.fn()} />);
+      expect(screen.getByText(/悬停此处按 Ctrl\+V/)).toBeInTheDocument();
+    });
+
+    it("music 类别不显示粘贴提示（非图片）", () => {
+      render(<AssetSelector category="music" value="" onChange={vi.fn()} />);
+      expect(screen.queryByText(/悬停此处按 Ctrl\+V/)).toBeNull();
+    });
+
+    it("悬停时粘贴图片 → upload + 自动选中", async () => {
+      const upload = vi.fn().mockResolvedValue(undefined);
+      fileMgmt.upload = upload;
+      const onChange = vi.fn();
+      const { container } = render(
+        <AssetSelector category="silhouettes" value="" onChange={onChange} />,
+      );
+      fireEvent.mouseEnter(container.firstChild as Element);
+      firePaste([imageFile("a.png")]);
+      await waitFor(() => expect(upload).toHaveBeenCalledTimes(1));
+      // getDownloadUrl mock 回 http://cdn/<name>，自动选中该 URL
+      await waitFor(() =>
+        expect(onChange).toHaveBeenCalledWith("http://cdn/a.png"),
+      );
+    });
+
+    it("未悬停时粘贴不触发 upload", () => {
+      const upload = vi.fn();
+      fileMgmt.upload = upload;
+      render(<AssetSelector category="silhouettes" value="" onChange={vi.fn()} />);
+      // 不触发 mouseEnter
+      firePaste([imageFile("a.png")]);
+      expect(upload).not.toHaveBeenCalled();
+    });
+
+    it("music 类别悬停粘贴也不触发（非图片类别不监听）", () => {
+      const upload = vi.fn();
+      fileMgmt.upload = upload;
+      const { container } = render(
+        <AssetSelector category="music" value="" onChange={vi.fn()} />,
+      );
+      fireEvent.mouseEnter(container.firstChild as Element);
+      firePaste([imageFile("a.png")]);
+      expect(upload).not.toHaveBeenCalled();
+    });
   });
 
   describe("backgrounds 类别", () => {
