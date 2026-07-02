@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { RadarVideoSchema, MultiPageSchema, ComparisonPairSchema, defaultBackground } from "./radar";
+import type { ComparisonPairConfig, OverlayHighlightConfig } from "./radar";
 
 export const COMP_NAME = "RadarChartVideo";
 export const VIDEO_FPS = 30;
@@ -131,6 +132,25 @@ export const defaultMultiPageConfig: z.infer<typeof MultiPageSchema> = {
   },
 };
 
+// 与 radar.ts 里 ComparisonPairSchema.overlay 的 .default() 字面量保持一致
+// （radar.ts 不能 import 本文件，双份字面量由 radar.test.ts 深比较守卫）
+export const defaultOverlayHighlightConfig: OverlayHighlightConfig = {
+  highlightOrder: "left-first",
+  delayAfterFill: 18,
+  transitionFrames: 14,
+  holdFrames: 42,
+  holdTailFrames: 70,
+  dimOpacity: 0.15,
+  glowRadius: 16,
+  arrowSize: 24,
+  arrowSideOffset: 92,
+  arrowOffsetY: 0,
+  nameSideOffset: 665,
+  silhouetteBaseOpacity: 0.4,
+  silhouetteEmphasisOpacity: 0.85,
+  silhouetteDimOpacity: 0.1,
+};
+
 export const defaultComparisonConfig: z.infer<typeof ComparisonPairSchema> = {
   firstPageIndex: 0,
   secondPageIndex: 1,
@@ -149,6 +169,8 @@ export const defaultComparisonConfig: z.infer<typeof ComparisonPairSchema> = {
   legendDotRadius: 6,
   dualRatingSlideFrames: 10,
   dualRatingFadeFrames: 10,
+  layout: "transition",
+  overlay: defaultOverlayHighlightConfig,
 };
 
 export const LABEL_START_FRAME = 10;
@@ -188,11 +210,58 @@ export function calculateDuration(
   return Math.max(1, end - start);
 }
 
+/** 顶点圆点从 fill 结束到全部弹出落定的帧数（overlay 高亮编排的起算点） */
+export const OVERLAY_DOTS_SETTLE_FRAMES = 30;
+
+export type OverlayPhases = {
+  /** 顶点弹出全部落定 */
+  dotsSettled: number;
+  /** p1→p2 首方渐入高亮，p2→p3 停留，p3→p4 换边，p4→p5 停留，p5→p6 恢复常态 */
+  p1: number;
+  p2: number;
+  p3: number;
+  p4: number;
+  p5: number;
+  p6: number;
+  /** 含尾部停留与负偏移保护的总帧数 */
+  total: number;
+};
+
+/**
+ * overlay 布局的高亮编排关键帧：双方八边形共用同一节奏、同时绘制，
+ * animation 取对比的**左页**（右页 animation 时序按设计忽略）。
+ * 同时供 calculateComparisonDuration 与 ComparisonOverlay 组件使用。
+ */
+export function computeOverlayPhases(
+  animation: z.infer<typeof RadarVideoSchema>["animation"],
+  overlay: OverlayHighlightConfig,
+): OverlayPhases {
+  const p = computePhaseStarts(animation);
+  const dotsSettled = p.fillEnd + OVERLAY_DOTS_SETTLE_FRAMES;
+  const p1 = dotsSettled + overlay.delayAfterFill;
+  const p2 = p1 + overlay.transitionFrames;
+  const p3 = p2 + overlay.holdFrames;
+  const p4 = p3 + overlay.transitionFrames;
+  const p5 = p4 + overlay.holdFrames;
+  const p6 = p5 + overlay.transitionFrames;
+  // 负偏移保护：fillStartOffset（默认 -10）等可使阶段起点 < 0，与
+  // calculateDuration 同样把负向前导并入总长
+  const negativeLead = Math.min(0, p.labelStart, p.fillStart);
+  const total = Math.max(1, p6 + overlay.holdTailFrames - negativeLead);
+  return { dotsSettled, p1, p2, p3, p4, p5, p6, total };
+}
+
 export function calculateComparisonDuration(
   left: z.infer<typeof RadarVideoSchema>,
   right: z.infer<typeof RadarVideoSchema>,
-  comparisonConfig: z.infer<typeof ComparisonPairSchema>,
+  comparisonConfig: ComparisonPairConfig,
 ): number {
+  // transition/overlay 的时长分支只在此处做，6 个调用点（Root / MultiPageVideo /
+  // PreviewPanel / ExportPanel / LocalRenderStage / GlobalConfigEditor）自动生效
+  if ((comparisonConfig.layout ?? "transition") === "overlay") {
+    const overlay = comparisonConfig.overlay ?? defaultOverlayHighlightConfig;
+    return computeOverlayPhases(left.animation, overlay).total;
+  }
   const leftEnd = calculateDuration(left.animation);
   const rightStart = leftEnd + comparisonConfig.delayFrames;
   const rightLen = calculateDuration(right.animation);
