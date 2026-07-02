@@ -106,3 +106,35 @@ describe("Silhouette 组件 src 解析回归", () => {
     expect(Img.mock.calls[0][0]).toMatchObject({ src: `__STATIC__/${rel}` });
   });
 });
+
+describe("Silhouette side 半屏定位（叠加高亮对比用）", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("默认 side 定位左半屏：left 起点为 0、宽度 50%", () => {
+    const { container } = render(
+      <Silhouette src="silhouettes/hero.png" opacity={1} delay={0} fadeInDuration={30} />,
+    );
+    const root = container.firstChild as HTMLElement;
+
+    expect(root.style.left).toBe("0px");
+    expect(root.style.width).toBe("50%");
+  });
+
+  it('side="right" 定位右半屏：left 起点 50%', () => {
+    const { container } = render(
+      <Silhouette
+        src="silhouettes/hero.png"
+        opacity={1}
+        delay={0}
+        fadeInDuration={30}
+        side="right"
+      />,
+    );
+    const root = container.firstChild as HTMLElement;
+
+    expect(root.style.left).toBe("50%");
+    expect(root.style.width).toBe("50%");
+  });
+});

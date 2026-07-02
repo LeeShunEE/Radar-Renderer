@@ -8,9 +8,9 @@ import { getRadarLabelAnchor } from "../../lib/math";
 import { calculateRating, getRatingColor } from "../../lib/rating";
 import type { ComparisonArrowStyle, RadarVideoProps } from "../../types/radar";
 import { RADAR_MAX_RADIUS } from "../../types/constants";
+import { DiffBadge, DIFF_DOUBLE_THRESHOLD } from "./DiffBadge";
 
 const MAX_RADIUS = RADAR_MAX_RADIUS;
-const DIFF_DOUBLE_THRESHOLD = 25;
 const ARROW_CHAR = "➜";
 
 function measureTextWidth(text: string, fontSize: number, fontFamily: string): number {
@@ -20,40 +20,6 @@ function measureTextWidth(text: string, fontSize: number, fontFamily: string): n
   ctx.font = `bold ${fontSize}px ${fontFamily}`;
   return ctx.measureText(text).width;
 }
-
-type DiffBadgeProps = {
-  cx: number;
-  cy: number;
-  size: number;
-  isUp: boolean;
-  isBig: boolean;
-  color: string;
-};
-
-const DiffBadge: React.FC<DiffBadgeProps> = ({ cx, cy, size, isUp, isBig, color }) => {
-  const halfW = size * 0.5;
-  const halfH = size * 0.55;
-  const triangle = (centerX: number) => {
-    const tipY = isUp ? cy - halfH : cy + halfH;
-    const baseY = isUp ? cy + halfH : cy - halfH;
-    return `M ${centerX - halfW} ${baseY} L ${centerX + halfW} ${baseY} L ${centerX} ${tipY} Z`;
-  };
-  const gap = size * 0.2;
-  const sideOffset = (size + gap) / 2;
-
-  return (
-    <g>
-      {isBig ? (
-        <>
-          <path d={triangle(cx - sideOffset)} fill={color} />
-          <path d={triangle(cx + sideOffset)} fill={color} />
-        </>
-      ) : (
-        <path d={triangle(cx)} fill={color} />
-      )}
-    </g>
-  );
-};
 
 type DualRatingLabelProps = {
   cx: number;
