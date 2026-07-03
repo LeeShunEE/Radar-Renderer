@@ -54,11 +54,15 @@ const CENTER_Y = 500;
 const MAX_RADIUS = RADAR_MAX_RADIUS * CHART_SCALE;
 /** 侧边角色名 */
 const NAME_FONT_SIZE = 56;
+/** 角色名 y：置于画面下方，对齐普通模式 RadarVideo（paddingBottom 120 + flex-end）的视觉 */
+const NAME_BOTTOM_Y = VIDEO_HEIGHT - 120 - NAME_FONT_SIZE / 2;
 const NAME_DIM_OPACITY = 0.3;
 const NAME_EMPHASIS_SCALE = 1.12;
 /** 剪影 */
 const SILHOUETTE_FADE_IN_FRAMES = 25;
 const SILHOUETTE_OFFSET_Y = -40;
+/** 剪影向屏幕外缘推进（左剪影向左、右剪影向右），默认比半屏居中更靠边 */
+const SILHOUETTE_EDGE_OFFSET = 180;
 const SILHOUETTE_EMPHASIS_SCALE = 1.06;
 /** slug 距画面左/右、上边缘的距离 */
 const SLUG_EDGE_OFFSET = 80;
@@ -114,7 +118,7 @@ const SideName: React.FC<PageSideProps> = ({
       style={{
         position: "absolute",
         left: centerX,
-        top: CENTER_Y,
+        top: NAME_BOTTOM_Y,
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
@@ -311,7 +315,9 @@ export const ComparisonOverlayLayer: React.FC<ComparisonOverlayLayerProps> = ({
             opacity={silhouetteOpacity(side === "left" ? stateL : stateR)}
             delay={0}
             fadeInDuration={SILHOUETTE_FADE_IN_FRAMES}
-            offsetX={0}
+            offsetX={
+              side === "left" ? -SILHOUETTE_EDGE_OFFSET : SILHOUETTE_EDGE_OFFSET
+            }
             offsetY={SILHOUETTE_OFFSET_Y}
             scaleMultiplier={
               page.layout.silhouetteScale *
