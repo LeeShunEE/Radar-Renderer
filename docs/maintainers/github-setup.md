@@ -67,7 +67,7 @@ When the backend MVP and docs land:
 ```bash
 git tag -a v0.1.0 -m "v0.1.0"
 git push origin v0.1.0
-gh release create v0.1.0 --generate-notes
+python scripts/gen-release-notes.py > pr-list.md
+# Summarize pr-list.md with LLM → release-notes.md
+gh release create v0.1.0 --notes-file release-notes.md --title "v0.1.0"
 ```
-
-Update `CHANGELOG.md` (`[Unreleased]` → `[0.1.0] - <date>`) in the same PR.

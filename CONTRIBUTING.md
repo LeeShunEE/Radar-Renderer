@@ -147,15 +147,22 @@ This project follows [Semantic Versioning](https://semver.org/). Releases are
 cut by maintainers:
 
 ```bash
-# First bump frontend/package.json `version` to the target version — the deploy
-# workflow guards that the release tag matches it (and the footer version derives
-# from it), so a missed bump fails the release.
+# 1. Bump frontend/package.json `version` to target version — the deploy workflow
+#    guards that the release tag matches it (and the footer version derives from
+#    it), so a missed bump fails the release.
+# 2. Generate merged PR list for LLM summarization:
+python scripts/gen-release-notes.py --from-tag <prev-tag> > pr-list.md
+#    For first release (no prev-tag), omit --from-tag:
+#    python scripts/gen-release-notes.py > pr-list.md
+# 3. Summarize pr-list.md with LLM → release-notes.md (group by type: Features,
+#    Bug Fixes, Documentation, etc.; format as Keep a Changelog).
+# 4. Tag and push:
 git tag -a v0.1.0 -m "v0.1.0" && git push origin v0.1.0
-gh release create v0.1.0 --generate-notes
+# 5. Create release with summarized notes:
+gh release create v0.1.0 --notes-file release-notes.md --title "v0.1.0"
 ```
 
-Move `CHANGELOG.md` entries from `[Unreleased]` to the new version in the same
-PR. See [`docs/maintainers/github-setup.md`](./docs/maintainers/github-setup.md)
+See [`docs/maintainers/github-setup.md`](./docs/maintainers/github-setup.md)
 for the full repo setup checklist.
 
 ---
@@ -285,11 +292,18 @@ cd frontend && pnpm test:unit && pnpm test:integration
 本项目遵循[语义化版本](https://semver.org/lang/zh-CN/)。由维护者发布：
 
 ```bash
-# 先把 frontend/package.json 的 `version` bump 到目标版本——deploy workflow 会校验
-# release tag 与之一致（页脚版本号也由它派生），漏 bump 会让发版失败。
+# 1. 先把 frontend/package.json 的 `version` bump 到目标版本——deploy workflow 会校验
+#    release tag 与之一致（页脚版本号也由它派生），漏 bump 会让发版失败。
+# 2. 生成 merged PR 列表供 LLM 总结：
+python scripts/gen-release-notes.py --from-tag <上一个tag> > pr-list.md
+#    首个版本（无上一个tag）时省略 --from-tag：
+#    python scripts/gen-release-notes.py > pr-list.md
+# 3. 用 LLM 总结 pr-list.md → release-notes.md（按类型分组：Features、Bug Fixes、
+#    Documentation 等；格式参考 Keep a Changelog）。
+# 4. 打 tag 并推送：
 git tag -a v0.1.0 -m "v0.1.0" && git push origin v0.1.0
-gh release create v0.1.0 --generate-notes
+# 5. 用总结后的 notes 创建 release：
+gh release create v0.1.0 --notes-file release-notes.md --title "v0.1.0"
 ```
 
-同一 PR 内把 `CHANGELOG.md` 的 `[Unreleased]` 条目移到新版本。完整仓库设置清单见
-[`docs/maintainers/github-setup.md`](./docs/maintainers/github-setup.md)。
+完整仓库设置清单见 [`docs/maintainers/github-setup.md`](./docs/maintainers/github-setup.md)。
