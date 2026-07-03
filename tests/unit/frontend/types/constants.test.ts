@@ -1,22 +1,33 @@
 /**
- * types/constants.ts 单元测试：overlay 高亮编排的时长数学 + 对比时长分支。
+ * types/constants.ts 单元测试：overlay 高亮编排的时长数学 + 对比时长分支 +
+ * 视频页/重叠统一时长。
  *
  * 时长关键数学全部集中在 constants.ts（computeOverlayPhases /
- * calculateComparisonDuration），组件只消费关键帧，保证纯函数可测。
+ * calculateComparisonDuration / calculateMultiPageTotalFrames），
+ * 组件只消费关键帧，保证纯函数可测。
  */
 import { describe, it, expect } from "vitest";
 import {
   calculateComparisonDuration,
   calculateDuration,
   computeOverlayPhases,
+  defaultVideoPage,
+  calculatePageDuration,
+  calculateVideoOverlapDuration,
+  calculateMultiPageTotalFrames,
   defaultComparisonConfig,
   defaultOverlayHighlightConfig,
   defaultRadarProps,
 } from "@/types/constants";
-import type { ComparisonPairConfig } from "@/types/radar";
-import { makePage } from "../components/editor/_fixtures";
+import { isVideoPage } from "@/types/radar";
+import type { ComparisonPairConfig, MultiPageConfig, VideoPageConfig } from "@/types/radar";
+import { makePage, makeMultiPageConfig } from "../components/editor/_fixtures";
 
 const defaultAnimation = defaultRadarProps.animation;
+
+function makeVideoPage(overrides: Partial<VideoPageConfig> = {}): VideoPageConfig {
+  return { ...defaultVideoPage, src: "uploads/a.mp4", ...overrides };
+}
 
 describe("computeOverlayPhases", () => {
   it("默认 animation + 默认 overlay 的关键帧逐值正确", () => {
@@ -106,5 +117,115 @@ describe("calculateComparisonDuration", () => {
     expect(calculateComparisonDuration(left, right, config)).toBe(
       computeOverlayPhases(left.animation, defaultOverlayHighlightConfig).total,
     );
+  });
+});
+
+describe("defaultVideoPage", () => {
+  it("是合法的视频页配置", () => {
+    expect(isVideoPage(defaultVideoPage)).toBe(true);
+    expect(defaultVideoPage.src).toBe("");
+    expect(defaultVideoPage.durationInFrames).toBe(150);
+    expect(defaultVideoPage.chromaKey.enabled).toBe(false);
+  });
+});
+
+describe("calculatePageDuration", () => {
+  it("雷达页走动画时长", () => {
+    const page = makePage();
+    expect(calculatePageDuration(page)).toBe(calculateDuration(page.animation));
+  });
+
+  it("视频页直接取 durationInFrames", () => {
+    expect(calculatePageDuration(makeVideoPage({ durationInFrames: 240 }))).toBe(240);
+  });
+});
+
+describe("calculateVideoOverlapDuration", () => {
+  it("offset + dur2 更长时取第二段末尾", () => {
+    expect(calculateVideoOverlapDuration(100, 200, { offsetFrames: 60 })).toBe(260);
+  });
+
+  it("第一段更长时取第一段末尾", () => {
+    expect(calculateVideoOverlapDuration(300, 100, { offsetFrames: 60 })).toBe(300);
+  });
+
+  it("offset 超过 dur1 留空档也合法", () => {
+    expect(calculateVideoOverlapDuration(100, 100, { offsetFrames: 150 })).toBe(250);
+  });
+});
+
+describe("calculateMultiPageTotalFrames", () => {
+  const radarFrames = (cfg: MultiPageConfig, i: number) => {
+    const page = cfg.pages[i];
+    if (isVideoPage(page)) throw new Error("fixture 应为雷达页");
+    return calculateDuration(page.animation);
+  };
+
+  it("纯雷达页无配对时为各页之和（回归）", () => {
+    const cfg = makeMultiPageConfig(2);
+    expect(calculateMultiPageTotalFrames(cfg)).toBe(radarFrames(cfg, 0) + radarFrames(cfg, 1));
+  });
+
+  it("纯雷达页 + 配对与现状 calculateComparisonDuration 一致（回归）", () => {
+    const cfg = makeMultiPageConfig(2);
+    cfg.comparisons = [{ ...defaultComparisonConfig, firstPageIndex: 0, secondPageIndex: 1 }];
+    const expected =
+      Math.max(
+        radarFrames(cfg, 0),
+        radarFrames(cfg, 0) + defaultComparisonConfig.delayFrames + radarFrames(cfg, 1),
+      );
+    expect(calculateMultiPageTotalFrames(cfg)).toBe(expected);
+  });
+
+  it("[radar, video(240), radar] 为三段之和", () => {
+    const cfg = makeMultiPageConfig(2);
+    cfg.pages = [cfg.pages[0], makeVideoPage({ durationInFrames: 240 }), cfg.pages[1]];
+    expect(calculateMultiPageTotalFrames(cfg)).toBe(
+      radarFrames(cfg, 0) + 240 + radarFrames(cfg, 2),
+    );
+  });
+
+  it("[radar, video] + 配对(0,1) 时配对被忽略，两段之和", () => {
+    const cfg = makeMultiPageConfig(1);
+    cfg.pages = [cfg.pages[0], makeVideoPage({ durationInFrames: 100 })];
+    cfg.comparisons = [{ ...defaultComparisonConfig, firstPageIndex: 0, secondPageIndex: 1 }];
+    expect(calculateMultiPageTotalFrames(cfg)).toBe(radarFrames(cfg, 0) + 100);
+  });
+
+  it("[video(100), video(200)] + 重叠(0,1,offset=60) 总长 260", () => {
+    const cfg = makeMultiPageConfig(0);
+    cfg.pages = [
+      makeVideoPage({ durationInFrames: 100 }),
+      makeVideoPage({ durationInFrames: 200 }),
+    ];
+    cfg.videoOverlaps = [
+      { firstPageIndex: 0, secondPageIndex: 1, offsetFrames: 60, topLayer: "second" },
+    ];
+    expect(calculateMultiPageTotalFrames(cfg)).toBe(260);
+  });
+
+  it("[radar, video(100), video(200), radar] + 重叠(1,2,offset=60) 为 radar + 260 + radar", () => {
+    const cfg = makeMultiPageConfig(2);
+    cfg.pages = [
+      cfg.pages[0],
+      makeVideoPage({ durationInFrames: 100 }),
+      makeVideoPage({ durationInFrames: 200 }),
+      cfg.pages[1],
+    ];
+    cfg.videoOverlaps = [
+      { firstPageIndex: 1, secondPageIndex: 2, offsetFrames: 60, topLayer: "second" },
+    ];
+    expect(calculateMultiPageTotalFrames(cfg)).toBe(
+      radarFrames(cfg, 0) + 260 + radarFrames(cfg, 3),
+    );
+  });
+
+  it("[radar, video] + 重叠(0,1) 任一侧非视频页时被忽略", () => {
+    const cfg = makeMultiPageConfig(1);
+    cfg.pages = [cfg.pages[0], makeVideoPage({ durationInFrames: 100 })];
+    cfg.videoOverlaps = [
+      { firstPageIndex: 0, secondPageIndex: 1, offsetFrames: 60, topLayer: "second" },
+    ];
+    expect(calculateMultiPageTotalFrames(cfg)).toBe(radarFrames(cfg, 0) + 100);
   });
 });

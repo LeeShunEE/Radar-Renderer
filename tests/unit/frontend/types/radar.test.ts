@@ -6,6 +6,10 @@ import {
   MultiPageSchema,
   OverlayHighlightSchema,
   defaultBackground,
+  VideoPageSchema,
+  PageSchema,
+  isVideoPage,
+  VideoOverlapPairSchema,
 } from "@/types/radar";
 import {
   defaultComparisonConfig,
@@ -135,5 +139,72 @@ describe("ComparisonPairSchema overlay 兼容", () => {
       firstPageIndex: 0,
       secondPageIndex: 1,
     });
+  });
+});
+
+describe("VideoPageSchema", () => {
+  it("解析最小视频页配置并填默认值", () => {
+    const parsed = VideoPageSchema.parse({ pageType: "video", src: "/api/v1/files/uploads/a.mp4" });
+    expect(parsed.durationInFrames).toBe(150);
+    expect(parsed.fit).toBe("contain");
+    expect(parsed.audio).toEqual({ muted: false, volume: 1 });
+    expect(parsed.chromaKey.enabled).toBe(false);
+    expect(parsed.chromaKey.keyColor).toBe("#00ff00");
+    expect(parsed.chromaKey.similarity).toBe(0.18);
+    expect(parsed.chromaKey.smoothness).toBe(0.08);
+    expect(parsed.chromaKey.spillSuppression).toBe(0.25);
+    expect(parsed.background.type).toBe("gradient");
+  });
+
+  it("色键参数越界被拒绝", () => {
+    expect(() =>
+      VideoPageSchema.parse({ pageType: "video", src: "a.mp4", chromaKey: { similarity: 1.5 } }),
+    ).toThrow();
+  });
+
+  it("durationInFrames 非正整数被拒绝", () => {
+    expect(() => VideoPageSchema.parse({ pageType: "video", src: "a.mp4", durationInFrames: 0 })).toThrow();
+    expect(() => VideoPageSchema.parse({ pageType: "video", src: "a.mp4", durationInFrames: 1.5 })).toThrow();
+  });
+});
+
+describe("PageSchema union 向后兼容", () => {
+  it("无 pageType 的旧雷达页解析为雷达页", () => {
+    const parsed = PageSchema.parse(makePage());
+    expect(isVideoPage(parsed)).toBe(false);
+  });
+
+  it("pageType=video 解析为视频页", () => {
+    const parsed = PageSchema.parse({ pageType: "video", src: "a.mp4" });
+    expect(isVideoPage(parsed)).toBe(true);
+  });
+
+  it("MultiPageSchema 接受雷达页与视频页混排", () => {
+    const cfg = MultiPageSchema.parse({
+      pages: [makePage(), { pageType: "video", src: "a.mp4" }],
+      musicUrl: "",
+    });
+    expect(cfg.pages).toHaveLength(2);
+    expect(isVideoPage(cfg.pages[0])).toBe(false);
+    expect(isVideoPage(cfg.pages[1])).toBe(true);
+  });
+});
+
+describe("VideoOverlapPairSchema", () => {
+  it("默认 offsetFrames=0、topLayer=second", () => {
+    const parsed = VideoOverlapPairSchema.parse({ firstPageIndex: 1, secondPageIndex: 2 });
+    expect(parsed.offsetFrames).toBe(0);
+    expect(parsed.topLayer).toBe("second");
+  });
+
+  it("负 offsetFrames 被拒绝", () => {
+    expect(() =>
+      VideoOverlapPairSchema.parse({ firstPageIndex: 1, secondPageIndex: 2, offsetFrames: -1 }),
+    ).toThrow();
+  });
+
+  it("MultiPageSchema 无 videoOverlaps 时回落空数组（旧配置兼容）", () => {
+    const cfg = MultiPageSchema.parse({ pages: [makePage()], musicUrl: "" });
+    expect(cfg.videoOverlaps).toEqual([]);
   });
 });

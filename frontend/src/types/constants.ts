@@ -1,6 +1,21 @@
 import { z } from "zod";
-import { RadarVideoSchema, MultiPageSchema, ComparisonPairSchema, defaultBackground } from "./radar";
-import type { ComparisonPairConfig, OverlayHighlightConfig } from "./radar";
+import {
+  RadarVideoSchema,
+  MultiPageSchema,
+  ComparisonPairSchema,
+  VideoPageSchema,
+  VideoOverlapPairSchema,
+  defaultBackground,
+  isVideoPage,
+} from "./radar";
+import type {
+  ComparisonPairConfig,
+  OverlayHighlightConfig,
+  MultiPageConfig,
+  PageConfig,
+  VideoOverlapPairConfig,
+} from "./radar";
+import { applyGlobalOverride } from "../lib/global-override";
 
 export const COMP_NAME = "RadarChartVideo";
 export const VIDEO_FPS = 30;
@@ -119,6 +134,7 @@ export const defaultMultiPageConfig: z.infer<typeof MultiPageSchema> = {
   pages: [defaultRadarProps],
   musicUrl: "",
   comparisons: [],
+  videoOverlaps: [],
   comparisonArrowStyle: {
     arrowFontSize: 45,
     arrowColor: "#94a3b8",
@@ -249,6 +265,74 @@ export function computeOverlayPhases(
   const negativeLead = Math.min(0, p.labelStart, p.fillStart);
   const total = Math.max(1, p6 + overlay.holdTailFrames - negativeLead);
   return { dotsSettled, p1, p2, p3, p4, p5, p6, total };
+}
+
+export const defaultVideoPage: z.infer<typeof VideoPageSchema> = VideoPageSchema.parse({
+  pageType: "video",
+});
+
+/**
+ * 统一页面时长：雷达页按动画时长推导，视频页直接取持久化的 durationInFrames。
+ */
+export function calculatePageDuration(page: PageConfig): number {
+  return isVideoPage(page) ? page.durationInFrames : calculateDuration(page.animation);
+}
+
+/**
+ * 相邻视频页重叠段总时长 = max(dur1, offsetFrames + dur2)。
+ * offsetFrames > dur1 时中间留空档，公式天然覆盖。
+ */
+export function calculateVideoOverlapDuration(
+  dur1: number,
+  dur2: number,
+  overlap: Pick<z.infer<typeof VideoOverlapPairSchema>, "offsetFrames">,
+): number {
+  return Math.max(dur1, overlap.offsetFrames + dur2);
+}
+
+/**
+ * 多页配置总时长（帧）：全局覆写合并后，依次处理雷达配对（仅相邻双雷达页生效）、
+ * 视频重叠（仅相邻双视频页生效）与单页，供 Root.calculateMetadata、MultiPageVideo
+ * 编排与各编辑器时长展示共用（消除多份重复循环）。
+ */
+export function calculateMultiPageTotalFrames(config: MultiPageConfig): number {
+  const mergedPages = config.pages.map((p) =>
+    isVideoPage(p) ? p : applyGlobalOverride(p, config.globalOverride),
+  );
+  const compMap = new Map<number, (typeof config.comparisons)[number]>();
+  for (const comp of config.comparisons ?? []) compMap.set(comp.firstPageIndex, comp);
+  const overlapMap = new Map<number, VideoOverlapPairConfig>();
+  for (const ov of config.videoOverlaps ?? []) overlapMap.set(ov.firstPageIndex, ov);
+
+  const consumed = new Set<number>();
+  let totalFrames = 0;
+  for (let i = 0; i < mergedPages.length; i++) {
+    if (consumed.has(i)) continue;
+    const cur = mergedPages[i];
+    const next = i + 1 < mergedPages.length ? mergedPages[i + 1] : undefined;
+
+    if (isVideoPage(cur)) {
+      const ov = overlapMap.get(i);
+      if (ov && ov.secondPageIndex === i + 1 && next && isVideoPage(next)) {
+        totalFrames += calculateVideoOverlapDuration(cur.durationInFrames, next.durationInFrames, ov);
+        consumed.add(i);
+        consumed.add(i + 1);
+      } else {
+        totalFrames += cur.durationInFrames;
+      }
+      continue;
+    }
+
+    const comp = compMap.get(i);
+    if (comp && next && !isVideoPage(next)) {
+      totalFrames += calculateComparisonDuration(cur, next, comp);
+      consumed.add(i);
+      consumed.add(i + 1);
+    } else {
+      totalFrames += calculateDuration(cur.animation);
+    }
+  }
+  return totalFrames;
 }
 
 export function calculateComparisonDuration(

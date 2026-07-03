@@ -256,6 +256,54 @@ export const OverlayHighlightSchema = z.object({
 
 export type OverlayHighlightConfig = z.infer<typeof OverlayHighlightSchema>;
 
+export const ChromaKeySchema = z.object({
+  enabled: z.boolean().default(false),
+  keyColor: z.string().default("#00ff00"),
+  similarity: z.number().min(0).max(1).default(0.18),
+  smoothness: z.number().min(0).max(1).default(0.08),
+  spillSuppression: z.number().min(0).max(1).default(0.25),
+});
+
+export type ChromaKeyConfig = z.infer<typeof ChromaKeySchema>;
+
+export const VideoPageSchema = z.object({
+  pageType: z.literal("video"),
+  label: z.string().default("视频页"),
+  src: z.string().default(""),
+  durationInFrames: z.number().int().min(1).max(18000).default(150),
+  fit: z.enum(["contain", "cover", "fill"]).default("contain"),
+  audio: z
+    .object({
+      muted: z.boolean().default(false),
+      volume: z.number().min(0).max(1).default(1),
+    })
+    .default({ muted: false, volume: 1 }),
+  // zod v4 的 .default 不再走内层解析，用 .prefault 让空对象经 schema 填默认值
+  chromaKey: ChromaKeySchema.prefault({}),
+  background: BackgroundSchema, // 抠像后的底衬，复用 #18 背景管线
+});
+
+export type VideoPageConfig = z.infer<typeof VideoPageSchema>;
+
+// union 顺序敏感：VideoPageSchema 在前（靠 pageType 判别），雷达页兜底，
+// 旧配置（无 pageType）自然回落雷达页，零迁移。
+export const PageSchema = z.union([VideoPageSchema, RadarVideoSchema]);
+export type PageConfig = z.infer<typeof PageSchema>;
+
+export function isVideoPage(page: PageConfig): page is VideoPageConfig {
+  return "pageType" in page && page.pageType === "video";
+}
+
+// 相邻视频页重叠配对（镜像 comparisons 的相邻页配对惯用法，见计划 D8）
+export const VideoOverlapPairSchema = z.object({
+  firstPageIndex: z.number(),
+  secondPageIndex: z.number(),
+  offsetFrames: z.number().int().min(0).default(0), // 第二视频相对第一视频起点的延迟帧数
+  topLayer: z.enum(["first", "second"]).default("second"), // 谁在上层
+});
+
+export type VideoOverlapPairConfig = z.infer<typeof VideoOverlapPairSchema>;
+
 export type ComparisonPairConfig = {
   firstPageIndex: number;
   secondPageIndex: number;
@@ -343,9 +391,10 @@ export const GlobalOverrideSchema = z.object({
 export type GlobalOverrideConfig = z.infer<typeof GlobalOverrideSchema>;
 
 export const MultiPageSchema = z.object({
-  pages: z.array(RadarVideoSchema),
+  pages: z.array(PageSchema),
   musicUrl: z.string(),
   comparisons: z.array(ComparisonPairSchema).default([]),
+  videoOverlaps: z.array(VideoOverlapPairSchema).default([]),
   globalOverride: GlobalOverrideSchema.optional(),
   comparisonArrowStyle: ComparisonArrowStyleSchema.default({
     arrowFontSize: 45,
