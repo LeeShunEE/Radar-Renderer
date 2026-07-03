@@ -274,10 +274,11 @@ export type ComparisonPairConfig = {
   legendDotRadius: number;
   dualRatingSlideFrames: number;
   dualRatingFadeFrames: number;
-  // 运行时旧配置（useAutoSave 不过 schema）可能缺以下两个字段，故声明为可选，
-  // 读取处一律 `?? "transition"` / `?? defaultOverlayHighlightConfig` 兜底
-  layout?: "transition" | "overlay";
-  overlay?: OverlayHighlightConfig;
+  // 与 z.infer<ComparisonPairSchema> 输出对齐：.default() 使这两个字段在 schema
+  // 输出里必填（旧 localStorage 经 safeParse 自动回填）。读取处仍保留
+  // `?? "transition"` / `?? defaultOverlayHighlightConfig` 兜底未经 parse 的裸对象。
+  layout: "transition" | "overlay";
+  overlay: OverlayHighlightConfig;
 };
 
 export const ComparisonPairSchema = z.object({
