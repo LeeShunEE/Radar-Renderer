@@ -10,7 +10,7 @@ import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { Progress } from "../ui/progress";
 import type { RadarVideoProps, MultiPageConfig } from "../../types/radar";
-import { calculateDuration, calculateComparisonDuration, VIDEO_FPS } from "../../types/constants";
+import { calculateDuration, calculateMultiPageTotalFrames, VIDEO_FPS } from "../../types/constants";
 import { useServerRender } from "../../hooks/useServerRender";
 import { useLocalRender } from "../../hooks/useLocalRender";
 import { applyGlobalOverride } from "../../lib/global-override";
@@ -35,27 +35,8 @@ export function ExportPanel({ props, config, previewMode }: ExportPanelProps) {
   // 计算单页时长
   const singleFrames = calculateDuration(applyGlobalOverride(props, config.globalOverride).animation);
 
-  // 计算多页总时长（与 PreviewPanel 一致）
-  const multiFrames = (() => {
-    if (!config.pages.length) return 0;
-    const mergedPages = config.pages.map((p) => applyGlobalOverride(p, config.globalOverride));
-    const compMap = new Map<number, (typeof config.comparisons)[number]>();
-    for (const c of config.comparisons) compMap.set(c.firstPageIndex, c);
-    const compared = new Set<number>();
-    let t = 0;
-    for (let i = 0; i < config.pages.length; i++) {
-      if (compared.has(i)) continue;
-      const comp = compMap.get(i);
-      if (comp && i + 1 < config.pages.length) {
-        t += calculateComparisonDuration(mergedPages[i], mergedPages[i + 1], comp);
-        compared.add(i);
-        compared.add(i + 1);
-      } else {
-        t += calculateDuration(mergedPages[i].animation);
-      }
-    }
-    return t;
-  })();
+  // 计算多页总时长（与 PreviewPanel 一致，共用统一时长函数）
+  const multiFrames = config.pages.length ? calculateMultiPageTotalFrames(config) : 0;
 
   // 渲染范围派生规则：
   // - multi 预览：强制全部（当前页灰禁 + 全部锁定已选）。

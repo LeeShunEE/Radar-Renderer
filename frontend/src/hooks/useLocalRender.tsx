@@ -7,6 +7,7 @@
  * 下载：文件名按返回 ext 用 .mp4/.webm
  */
 import { useState, useCallback, useRef, type ReactNode } from "react";
+import { isVideoPage } from "@/types/radar";
 import type { RadarVideoProps, MultiPageConfig } from "@/types/radar";
 import { LocalRenderStage, type LocalRenderMode } from "@/components/editor/LocalRenderStage";
 import { applyGlobalOverride } from "@/lib/global-override";
@@ -102,7 +103,7 @@ export function useLocalRender(): UseLocalRenderResult {
     // 文件名：从 props 取角色名或用 "radar"
     const name = mode === "single" && props
       ? props.characterName || "radar"
-      : config?.pages.map((p) => p.characterName).join("-") || "multi";
+      : config?.pages.map((p) => (isVideoPage(p) ? p.label : p.characterName)).join("-") || "multi";
 
     a.download = `${name}.${result.ext}`;
     a.click();

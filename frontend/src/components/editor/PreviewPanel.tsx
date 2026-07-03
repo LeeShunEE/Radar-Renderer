@@ -7,9 +7,12 @@ import {
   calculateDuration,
   calculateComparisonDuration,
   computeOverlayPhases,
+  calculateMultiPageTotalFrames,
+  calculatePageDuration,
   computePhaseStarts,
   defaultOverlayHighlightConfig,
 } from "../../types/constants";
+import { isVideoPage } from "../../types/radar";
 import type {
   ComparisonPairConfig,
   MultiPageConfig,
@@ -458,15 +461,22 @@ function buildMultiSegments(config: MultiPageConfig): RenderSegment[] {
   const out: RenderSegment[] = [];
   let base = 0;
   const mergedPages = config.pages.map((p) =>
-    applyGlobalOverride(p, config.globalOverride),
+    isVideoPage(p) ? p : applyGlobalOverride(p, config.globalOverride),
   );
   for (let i = 0; i < config.pages.length; i++) {
     if (compared.has(i)) continue;
+    const curPage = mergedPages[i];
+    if (isVideoPage(curPage)) {
+      // 视频页无动画阶段分段，只推进时间轴
+      base += calculatePageDuration(curPage);
+      continue;
+    }
     const compIdx = compIndexMap.get(i);
     const comp = compIdx !== undefined ? config.comparisons[compIdx] : undefined;
-    if (comp && compIdx !== undefined && i + 1 < config.pages.length) {
-      const left = mergedPages[i];
-      const right = mergedPages[i + 1];
+    const nextPage = i + 1 < mergedPages.length ? mergedPages[i + 1] : undefined;
+    if (comp && compIdx !== undefined && nextPage && !isVideoPage(nextPage)) {
+      const left = curPage;
+      const right = nextPage;
       pushPageSegments(out, left, `第${i + 1}页`, base, i);
 
       if ((comp.layout ?? "transition") === "overlay") {
@@ -491,8 +501,8 @@ function buildMultiSegments(config: MultiPageConfig): RenderSegment[] {
       compared.add(i);
       compared.add(i + 1);
     } else {
-      pushPageSegments(out, mergedPages[i], `第${i + 1}页`, base, i);
-      base += calculateDuration(mergedPages[i].animation);
+      pushPageSegments(out, curPage, `第${i + 1}页`, base, i);
+      base += calculateDuration(curPage.animation);
     }
   }
   return out;
@@ -500,25 +510,7 @@ function buildMultiSegments(config: MultiPageConfig): RenderSegment[] {
 
 function calcMultiDuration(config: MultiPageConfig): number {
   if (!config.pages.length) return 1;
-  const mergedPages = config.pages.map((p) =>
-    applyGlobalOverride(p, config.globalOverride),
-  );
-  const compMap = new Map<number, (typeof config.comparisons)[number]>();
-  for (const c of config.comparisons) compMap.set(c.firstPageIndex, c);
-  const compared = new Set<number>();
-  let t = 0;
-  for (let i = 0; i < config.pages.length; i++) {
-    if (compared.has(i)) continue;
-    const comp = compMap.get(i);
-    if (comp && i + 1 < config.pages.length) {
-      t += calculateComparisonDuration(mergedPages[i], mergedPages[i + 1], comp);
-      compared.add(i);
-      compared.add(i + 1);
-    } else {
-      t += calculateDuration(mergedPages[i].animation);
-    }
-  }
-  return Math.max(1, t);
+  return Math.max(1, calculateMultiPageTotalFrames(config));
 }
 
 type HoverState = { frame: number; clientX: number; clientY: number } | null;

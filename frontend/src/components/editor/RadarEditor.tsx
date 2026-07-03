@@ -15,7 +15,8 @@ import { FieldFocusProvider } from "./FieldFocusContext";
 import { applyGlobalOverride } from "../../lib/global-override";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
 import { useAutoSave } from "../../hooks/useAutoSave";
-import type { MultiPageConfig, RadarVideoProps } from "../../types/radar";
+import { isVideoPage } from "../../types/radar";
+import type { MultiPageConfig, PageConfig, RadarVideoProps } from "../../types/radar";
 import { defaultMultiPageConfig, defaultRadarProps } from "../../types/constants";
 
 export const RadarEditor: React.FC = () => {
@@ -58,38 +59,26 @@ export const RadarEditor: React.FC = () => {
 
   const updatePage = (index: number, updates: Partial<RadarVideoProps>) => {
     setConfig((prev) => {
+      const target = prev.pages[index];
+      if (isVideoPage(target)) return prev;
       const pages = [...prev.pages];
-      pages[index] = { ...pages[index], ...updates };
+      let nextPage: RadarVideoProps = { ...target, ...updates };
 
       // Deep merge nested objects
       if (updates.theme) {
-        pages[index] = {
-          ...pages[index],
-          theme: { ...prev.pages[index].theme, ...updates.theme },
-        };
+        nextPage = { ...nextPage, theme: { ...target.theme, ...updates.theme } };
       }
       if (updates.animation) {
-        pages[index] = {
-          ...pages[index],
-          animation: {
-            ...prev.pages[index].animation,
-            ...updates.animation,
-          },
-        };
+        nextPage = { ...nextPage, animation: { ...target.animation, ...updates.animation } };
       }
       if (updates.font) {
-        pages[index] = {
-          ...pages[index],
-          font: { ...prev.pages[index].font, ...updates.font },
-        };
+        nextPage = { ...nextPage, font: { ...target.font, ...updates.font } };
       }
       if (updates.layout) {
-        pages[index] = {
-          ...pages[index],
-          layout: { ...prev.pages[index].layout, ...updates.layout },
-        };
+        nextPage = { ...nextPage, layout: { ...target.layout, ...updates.layout } };
       }
 
+      pages[index] = nextPage;
       return { ...prev, pages };
     });
   };
@@ -97,11 +86,13 @@ export const RadarEditor: React.FC = () => {
   const toggleIgnoreOverride = useCallback(
     (pageIndex: number, path: string, ignored: boolean) => {
       setConfig((prev) => {
+        const target = prev.pages[pageIndex];
+        if (isVideoPage(target)) return prev;
         const pages = [...prev.pages];
         pages[pageIndex] = {
-          ...pages[pageIndex],
+          ...target,
           overrideIgnored: {
-            ...(pages[pageIndex].overrideIgnored ?? {}),
+            ...(target.overrideIgnored ?? {}),
             [path]: ignored,
           },
         };
@@ -152,8 +143,12 @@ export const RadarEditor: React.FC = () => {
   const duplicatePage = (index: number) => {
     setConfig((prev) => {
       const pages = [...prev.pages];
-      const copy = JSON.parse(JSON.stringify(pages[index])) as RadarVideoProps;
-      copy.characterName = `${copy.characterName} (副本)`;
+      const copy = JSON.parse(JSON.stringify(pages[index])) as PageConfig;
+      if (isVideoPage(copy)) {
+        copy.label = `${copy.label} (副本)`;
+      } else {
+        copy.characterName = `${copy.characterName} (副本)`;
+      }
       pages.splice(index + 1, 0, copy);
       // Indices > index shift by +1 (insertion point is index+1).
       const comparisons = remapComparisons(prev.comparisons, (i) =>
@@ -190,8 +185,14 @@ export const RadarEditor: React.FC = () => {
     }
   };
 
+  // 视频页单页预览在 Task 3.4 落地；此前 playerProps 仅对雷达页有意义，
+  // 视频页兜底默认雷达配置避免类型/运行时错误（编辑器尚不能创建视频页）。
   const playerProps = useMemo(
-    () => applyGlobalOverride(activePage, config.globalOverride),
+    () =>
+      applyGlobalOverride(
+        isVideoPage(activePage) ? defaultRadarProps : activePage,
+        config.globalOverride,
+      ),
     [activePage, config.globalOverride],
   );
 
@@ -298,6 +299,8 @@ export const RadarEditor: React.FC = () => {
 
           <TabsContent value="pages" className="overflow-y-auto p-6 space-y-4">
             {config.pages.map((page, i) => {
+              // 视频页配置面板在 Task 3.2 落地，当前先跳过
+              if (isVideoPage(page)) return null;
               const isSecondary = config.comparisons?.some(
                 (c) => c.secondPageIndex === i,
               );
@@ -313,7 +316,7 @@ export const RadarEditor: React.FC = () => {
                   <PageConfigPanel
                     index={i}
                     page={page}
-                    allPages={config.pages}
+                    allPages={config.pages.filter((p): p is RadarVideoProps => !isVideoPage(p))}
                     isActive={i === activePageIndex}
                     previewing={previewMode === "single" && i === activePageIndex}
                     isSecondary={!!isSecondary}

@@ -8,6 +8,7 @@ import { Input } from "../ui/input";
 import { FontSelect } from "./FontFamilyEditor";
 import { ColorPicker } from "../ui/color-picker";
 import { defaultOverlayHighlightConfig } from "../../types/constants";
+import { isVideoPage } from "../../types/radar";
 import type {
   ComparisonArrowStyle,
   ComparisonPairConfig,
@@ -198,8 +199,13 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
       </div>
 
       {config.comparisons.map((comp, i) => {
-        const leftName = config.pages[comp.firstPageIndex]?.characterName || `页${comp.firstPageIndex + 1}`;
-        const rightName = config.pages[comp.secondPageIndex]?.characterName || `页${comp.secondPageIndex + 1}`;
+        const nameOf = (idx: number) => {
+          const page = config.pages[idx];
+          if (!page || isVideoPage(page)) return `页${idx + 1}`;
+          return page.characterName || `页${idx + 1}`;
+        };
+        const leftName = nameOf(comp.firstPageIndex);
+        const rightName = nameOf(comp.secondPageIndex);
         const update = (updates: Partial<ComparisonPairConfig>) =>
           updateComparison(i, updates);
         const layout = comp.layout ?? "transition";

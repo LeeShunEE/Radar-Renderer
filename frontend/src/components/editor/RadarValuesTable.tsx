@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from "react";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
+import { isVideoPage } from "../../types/radar";
 import type { MultiPageConfig, RadarAttribute, RadarVideoProps } from "../../types/radar";
 import { calculateRating, getRatingColor } from "../../lib/rating";
 
@@ -64,12 +65,15 @@ export const RadarValuesTable: React.FC<Props> = ({
   onSetActive,
   onAddPage,
 }) => {
-  const headerPage = config.pages[0];
+  // 表头取第一个雷达页（视频页无属性列）
+  const headerPage = config.pages.find((p): p is RadarVideoProps => !isVideoPage(p));
   if (!headerPage) return null;
 
   const updatePage = (pageIndex: number, updates: Partial<RadarVideoProps>) => {
     const pages = [...config.pages];
-    pages[pageIndex] = { ...pages[pageIndex], ...updates };
+    const target = pages[pageIndex];
+    if (isVideoPage(target)) return;
+    pages[pageIndex] = { ...target, ...updates };
     onChange({ ...config, pages });
     if (pageIndex !== activePageIndex) onSetActive(pageIndex);
   };
@@ -80,9 +84,11 @@ export const RadarValuesTable: React.FC<Props> = ({
     patch: Partial<RadarAttribute>,
   ) => {
     const pages = [...config.pages];
-    const attrs = [...pages[pageIndex].attributes] as RadarVideoProps["attributes"];
+    const target = pages[pageIndex];
+    if (isVideoPage(target)) return;
+    const attrs = [...target.attributes] as RadarVideoProps["attributes"];
     attrs[attrIndex] = { ...attrs[attrIndex], ...patch };
-    pages[pageIndex] = { ...pages[pageIndex], attributes: attrs };
+    pages[pageIndex] = { ...target, attributes: attrs };
     onChange({ ...config, pages });
     if (pageIndex !== activePageIndex) onSetActive(pageIndex);
   };
@@ -93,6 +99,7 @@ export const RadarValuesTable: React.FC<Props> = ({
     value: string,
   ) => {
     const pages = config.pages.map((page) => {
+      if (isVideoPage(page)) return page;
       const attrs = [...page.attributes] as RadarVideoProps["attributes"];
       attrs[attrIndex] = { ...attrs[attrIndex], [field]: value };
       return { ...page, attributes: attrs };
@@ -103,6 +110,7 @@ export const RadarValuesTable: React.FC<Props> = ({
   const swapAttributeColumns = (a: number, b: number) => {
     if (a === b) return;
     const pages = config.pages.map((page) => {
+      if (isVideoPage(page)) return page;
       const attrs = [...page.attributes] as RadarVideoProps["attributes"];
       [attrs[a], attrs[b]] = [attrs[b], attrs[a]];
       return { ...page, attributes: attrs };
@@ -111,9 +119,9 @@ export const RadarValuesTable: React.FC<Props> = ({
   };
 
   const syncLabelsFromFirstPage = () => {
-    const first = config.pages[0];
-    const pages = config.pages.map((page, i) => {
-      if (i === 0) return page;
+    const first = headerPage;
+    const pages = config.pages.map((page) => {
+      if (page === first || isVideoPage(page)) return page;
       const attrs = page.attributes.map((a, idx) => ({
         ...a,
         label: first.attributes[idx].label,
@@ -203,6 +211,8 @@ export const RadarValuesTable: React.FC<Props> = ({
           <tbody>
             {config.pages.map((page, pageIndex) => {
               const isActive = pageIndex === activePageIndex;
+              // 视频页无雷达数值，Task 3.3 增加只读占位行，当前先跳过
+              if (isVideoPage(page)) return null;
               return (
                 <tr
                   key={pageIndex}

@@ -2,6 +2,7 @@ import React from "react";
 import { AbsoluteFill, Audio, Sequence, staticFile } from "remotion";
 import { RadarVideo } from "./RadarVideo";
 import { ComparisonOverlayLayer } from "./ComparisonOverlay/ComparisonOverlayLayer";
+import { isVideoPage } from "../types/radar";
 import type { ComparisonPairConfig, MultiPageConfig, RadarVideoProps } from "../types/radar";
 import { calculateComparisonDuration, calculateDuration } from "../types/constants";
 import { applyGlobalOverride } from "../lib/global-override";
@@ -20,16 +21,23 @@ function buildRenderSequence(config: MultiPageConfig): RenderItem[] {
   }
 
   const mergedPages = config.pages.map((p) =>
-    applyGlobalOverride(p, config.globalOverride),
+    isVideoPage(p) ? p : applyGlobalOverride(p, config.globalOverride),
   );
 
   for (let i = 0; i < config.pages.length; i++) {
     if (compared.has(i)) continue;
 
+    const cur = mergedPages[i];
+    if (isVideoPage(cur)) {
+      // 视频页编排在 Task 2.2 落地，当前先跳过（编辑器尚不能创建视频页）
+      continue;
+    }
+
     const comp = compMap.get(i);
-    if (comp && i + 1 < config.pages.length) {
-      const left = mergedPages[i];
-      const right = mergedPages[i + 1];
+    const next = i + 1 < mergedPages.length ? mergedPages[i + 1] : undefined;
+    if (comp && next && !isVideoPage(next)) {
+      const left = cur;
+      const right = next;
       items.push({
         type: "comparison",
         left,
@@ -40,11 +48,10 @@ function buildRenderSequence(config: MultiPageConfig): RenderItem[] {
       compared.add(i);
       compared.add(i + 1);
     } else {
-      const page = mergedPages[i];
       items.push({
         type: "single",
-        page,
-        duration: calculateDuration(page.animation),
+        page: cur,
+        duration: calculateDuration(cur.animation),
       });
     }
   }
