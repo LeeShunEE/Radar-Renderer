@@ -7,10 +7,12 @@ import { Slider } from "../ui/slider";
 import { Input } from "../ui/input";
 import { FontSelect } from "./FontFamilyEditor";
 import { ColorPicker } from "../ui/color-picker";
+import { defaultOverlayHighlightConfig } from "../../types/constants";
 import type {
   ComparisonArrowStyle,
   ComparisonPairConfig,
   MultiPageConfig,
+  OverlayHighlightConfig,
 } from "../../types/radar";
 
 type ComparisonConfigPanelProps = {
@@ -76,6 +78,20 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
     onChange({ ...config, comparisons });
   };
 
+  // overlay 嵌套字段更新：合并默认值兜底运行时旧配置缺失 overlay 的情况
+  const updateOverlay = (
+    index: number,
+    updates: Partial<OverlayHighlightConfig>,
+  ) => {
+    const comparisons = [...config.comparisons];
+    const cur = comparisons[index];
+    comparisons[index] = {
+      ...cur,
+      overlay: { ...(cur.overlay ?? defaultOverlayHighlightConfig), ...updates },
+    };
+    onChange({ ...config, comparisons });
+  };
+
   const arrowStyle = config.comparisonArrowStyle;
   const updateArrow = (updates: Partial<ComparisonArrowStyle>) =>
     onChange({
@@ -91,6 +107,9 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
         <h4 className="text-xs font-medium text-foreground">
           对比箭头样式（所有对比共用）
         </h4>
+        <p className="text-[11px] text-subtitle">
+          提示：叠加高亮布局的强弱箭头复用下方的「增强色 / 减弱色」。
+        </p>
 
         <div className="space-y-2">
           <div className="text-[11px] text-subtitle">➜ 方向箭头</div>
@@ -183,6 +202,8 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
         const rightName = config.pages[comp.secondPageIndex]?.characterName || `页${comp.secondPageIndex + 1}`;
         const update = (updates: Partial<ComparisonPairConfig>) =>
           updateComparison(i, updates);
+        const layout = comp.layout ?? "transition";
+        const ov = comp.overlay ?? defaultOverlayHighlightConfig;
 
         return (
           <div
@@ -193,170 +214,354 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
               页{comp.firstPageIndex + 1}（{leftName}）+ 页{comp.secondPageIndex + 1}（{rightName}）
             </h4>
 
-            {/* 延迟帧数 */}
-            <div data-field-id={`comparison:${i}:delayFrames`}>
-              <SliderField
-                label="延迟帧数"
-                value={comp.delayFrames}
-                min={-120}
-                max={120}
-                onChange={(v) => update({ delayFrames: v })}
-              />
-            </div>
-
-            {/* 切换动画时长 */}
-            <div data-field-id={`comparison:${i}:swapDurationFrames`}>
-              <SliderField
-                label="切换动画时长(帧)"
-                value={comp.swapDurationFrames}
-                min={1}
-                max={120}
-                onChange={(v) => update({ swapDurationFrames: v })}
-              />
-            </div>
-
-            {/* 第二多边形模式 */}
+            {/* 对比布局：切换过渡（A→B）/ 叠加高亮（同图双方） */}
             <div className="flex items-center justify-between">
-              <Label className="text-xs text-subtitle">第二多边形模式</Label>
-              <select
-                value={comp.polygonMode}
-                onChange={(e) =>
-                  updateComparison(i, {
-                    polygonMode: e.target.value as "expand" | "extend",
-                  })
-                }
-                className="px-2 py-1 text-xs border border-unfocused-border-color rounded bg-background text-foreground"
-              >
-                <option value="expand">从中心展开</option>
-                <option value="extend">从A的值延伸</option>
-              </select>
+              <Label className="text-xs text-subtitle">对比布局</Label>
+              <div data-field-id={`comparison:${i}:layout`}>
+                <select
+                  aria-label="对比布局"
+                  value={layout}
+                  onChange={(e) =>
+                    updateComparison(i, {
+                      layout: e.target.value as "transition" | "overlay",
+                    })
+                  }
+                  className="px-2 py-1 text-xs border border-unfocused-border-color rounded bg-background text-foreground"
+                >
+                  <option value="transition">切换过渡（A→B）</option>
+                  <option value="overlay">叠加高亮（同图双方）</option>
+                </select>
+              </div>
             </div>
 
-            {/* 显示图例 */}
-            <div className="flex items-center justify-between">
-              <Label className="text-xs text-subtitle">显示图例</Label>
-              <Switch
-                checked={comp.showLegend}
-                onCheckedChange={(checked: boolean) =>
-                  updateComparison(i, { showLegend: checked })
-                }
-                size="sm"
-              />
-            </div>
+            {layout === "overlay" ? (
+              <>
+                {/* 叠加高亮：先高亮哪方 */}
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-subtitle">先高亮</Label>
+                  <div data-field-id={`comparison:${i}:overlay.highlightOrder`}>
+                    <select
+                      aria-label="先高亮"
+                      value={ov.highlightOrder}
+                      onChange={(e) =>
+                        updateOverlay(i, {
+                          highlightOrder: e.target.value as "left-first" | "right-first",
+                        })
+                      }
+                      className="px-2 py-1 text-xs border border-unfocused-border-color rounded bg-background text-foreground"
+                    >
+                      <option value="left-first">左方优先</option>
+                      <option value="right-first">右方优先</option>
+                    </select>
+                  </div>
+                </div>
 
-            {/* 头像错位偏移 X */}
-            <div data-field-id={`comparison:${i}:silhouetteSwapOffset`}>
-              <SliderField
-                label="头像错位 X"
-                value={comp.silhouetteSwapOffsetX}
-                min={-500}
-                max={500}
-                onChange={(v) => update({ silhouetteSwapOffsetX: v })}
-              />
-              <SliderField
-                label="头像错位 Y"
-                value={comp.silhouetteSwapOffsetY}
-                min={-500}
-                max={500}
-                onChange={(v) => update({ silhouetteSwapOffsetY: v })}
-              />
-            </div>
+                {/* 编排时序 */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div data-field-id={`comparison:${i}:overlay.delayAfterFill`}>
+                    <SliderField
+                      label="落定→高亮延迟(帧)"
+                      value={ov.delayAfterFill}
+                      min={0}
+                      max={120}
+                      onChange={(v) => updateOverlay(i, { delayAfterFill: v })}
+                    />
+                  </div>
+                  <div data-field-id={`comparison:${i}:overlay.transitionFrames`}>
+                    <SliderField
+                      label="高亮渐变(帧)"
+                      value={ov.transitionFrames}
+                      min={1}
+                      max={60}
+                      onChange={(v) => updateOverlay(i, { transitionFrames: v })}
+                    />
+                  </div>
+                  <div data-field-id={`comparison:${i}:overlay.holdFrames`}>
+                    <SliderField
+                      label="每方停留(帧)"
+                      value={ov.holdFrames}
+                      min={0}
+                      max={240}
+                      onChange={(v) => updateOverlay(i, { holdFrames: v })}
+                    />
+                  </div>
+                  <div data-field-id={`comparison:${i}:overlay.holdTailFrames`}>
+                    <SliderField
+                      label="尾部停留(帧)"
+                      value={ov.holdTailFrames}
+                      min={0}
+                      max={600}
+                      onChange={(v) => updateOverlay(i, { holdTailFrames: v })}
+                    />
+                  </div>
+                </div>
 
-            {/* 第一角色淡出透明度 */}
-            <div data-field-id={`comparison:${i}:silhouetteFadeOutOpacity`}>
-              <SliderField
-                label="A 角色淡出透明度"
-                value={comp.silhouetteFadeOutOpacity}
-                min={0}
-                max={1}
-                step={0.05}
-                onChange={(v) => update({ silhouetteFadeOutOpacity: v })}
-              />
-            </div>
+                {/* 视觉强调 */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div data-field-id={`comparison:${i}:overlay.dimOpacity`}>
+                    <SliderField
+                      label="压暗透明度"
+                      value={ov.dimOpacity}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onChange={(v) => updateOverlay(i, { dimOpacity: v })}
+                    />
+                  </div>
+                  <div data-field-id={`comparison:${i}:overlay.glowRadius`}>
+                    <SliderField
+                      label="高亮光晕半径"
+                      value={ov.glowRadius}
+                      min={0}
+                      max={60}
+                      onChange={(v) => updateOverlay(i, { glowRadius: v })}
+                    />
+                  </div>
+                </div>
 
-            {/* 差异三角缩放 */}
-            <div data-field-id={`comparison:${i}:diffTriangleScale`}>
-              <SliderField
-                label="差异三角缩放"
-                value={comp.diffTriangleScale}
-                min={0.3}
-                max={3}
-                step={0.05}
-                onChange={(v) => update({ diffTriangleScale: v })}
-              />
-            </div>
+                {/* 强弱箭头 */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div data-field-id={`comparison:${i}:overlay.arrowSize`}>
+                    <SliderField
+                      label="箭头尺寸"
+                      value={ov.arrowSize}
+                      min={8}
+                      max={80}
+                      onChange={(v) => updateOverlay(i, { arrowSize: v })}
+                    />
+                  </div>
+                  <div data-field-id={`comparison:${i}:overlay.arrowSideOffset`}>
+                    <SliderField
+                      label="箭头距中线 X"
+                      value={ov.arrowSideOffset}
+                      min={0}
+                      max={300}
+                      onChange={(v) => updateOverlay(i, { arrowSideOffset: v })}
+                    />
+                  </div>
+                  <div data-field-id={`comparison:${i}:overlay.arrowOffsetY`}>
+                    <SliderField
+                      label="箭头 Y 微调"
+                      value={ov.arrowOffsetY}
+                      min={-200}
+                      max={200}
+                      onChange={(v) => updateOverlay(i, { arrowOffsetY: v })}
+                    />
+                  </div>
+                </div>
 
-            {/* 评分滑动时长 */}
-            <div data-field-id={`comparison:${i}:dualRatingSlideFrames`}>
-              <SliderField
-                label="评分滑动时长(帧)"
-                value={comp.dualRatingSlideFrames}
-                min={1}
-                max={60}
-                onChange={(v) => update({ dualRatingSlideFrames: v })}
-              />
-            </div>
+                {/* 角色名 / 剪影 */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div data-field-id={`comparison:${i}:overlay.nameSideOffset`}>
+                    <SliderField
+                      label="侧名距中线"
+                      value={ov.nameSideOffset}
+                      min={100}
+                      max={960}
+                      onChange={(v) => updateOverlay(i, { nameSideOffset: v })}
+                    />
+                  </div>
+                  <div data-field-id={`comparison:${i}:overlay.silhouetteBaseOpacity`}>
+                    <SliderField
+                      label="剪影常态透明度"
+                      value={ov.silhouetteBaseOpacity}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onChange={(v) => updateOverlay(i, { silhouetteBaseOpacity: v })}
+                    />
+                  </div>
+                  <div data-field-id={`comparison:${i}:overlay.silhouetteEmphasisOpacity`}>
+                    <SliderField
+                      label="剪影高亮透明度"
+                      value={ov.silhouetteEmphasisOpacity}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onChange={(v) => updateOverlay(i, { silhouetteEmphasisOpacity: v })}
+                    />
+                  </div>
+                  <div data-field-id={`comparison:${i}:overlay.silhouetteDimOpacity`}>
+                    <SliderField
+                      label="剪影压暗透明度"
+                      value={ov.silhouetteDimOpacity}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onChange={(v) => updateOverlay(i, { silhouetteDimOpacity: v })}
+                    />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* 延迟帧数 */}
+                <div data-field-id={`comparison:${i}:delayFrames`}>
+                  <SliderField
+                    label="延迟帧数"
+                    value={comp.delayFrames}
+                    min={-120}
+                    max={120}
+                    onChange={(v) => update({ delayFrames: v })}
+                  />
+                </div>
 
-            {/* 评分淡入时长 */}
-            <div data-field-id={`comparison:${i}:dualRatingFadeFrames`}>
-              <SliderField
-                label="评分淡入时长(帧)"
-                value={comp.dualRatingFadeFrames}
-                min={1}
-                max={60}
-                onChange={(v) => update({ dualRatingFadeFrames: v })}
-              />
-            </div>
+                {/* 切换动画时长 */}
+                <div data-field-id={`comparison:${i}:swapDurationFrames`}>
+                  <SliderField
+                    label="切换动画时长(帧)"
+                    value={comp.swapDurationFrames}
+                    min={1}
+                    max={120}
+                    onChange={(v) => update({ swapDurationFrames: v })}
+                  />
+                </div>
 
-            {/* 图例字号 */}
-            <div>
-              <SliderField
-                label="图例字号"
-                value={comp.legendFontSize}
-                min={12}
-                max={60}
-                onChange={(v) => update({ legendFontSize: v })}
-              />
-            </div>
+                {/* 第二多边形模式 */}
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-subtitle">第二多边形模式</Label>
+                  <select
+                    aria-label="第二多边形模式"
+                    value={comp.polygonMode}
+                    onChange={(e) =>
+                      updateComparison(i, {
+                        polygonMode: e.target.value as "expand" | "extend",
+                      })
+                    }
+                    className="px-2 py-1 text-xs border border-unfocused-border-color rounded bg-background text-foreground"
+                  >
+                    <option value="expand">从中心展开</option>
+                    <option value="extend">从A的值延伸</option>
+                  </select>
+                </div>
 
-            {/* 图例圆点半径 */}
-            <div data-field-id={`comparison:${i}:legendDotRadius`}>
-              <SliderField
-                label="图例圆点半径"
-                value={comp.legendDotRadius}
-                min={2}
-                max={30}
-                step={0.5}
-                onChange={(v) => update({ legendDotRadius: v })}
-              />
-            </div>
+                {/* 显示图例 */}
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-subtitle">显示图例</Label>
+                  <Switch
+                    checked={comp.showLegend}
+                    onCheckedChange={(checked: boolean) =>
+                      updateComparison(i, { showLegend: checked })
+                    }
+                    size="sm"
+                  />
+                </div>
 
-            {/* 图例 XY 偏移 */}
-            <div>
-              <SliderField
-                label="图例 X 偏移"
-                value={comp.legendOffsetX}
-                min={-500}
-                max={500}
-                onChange={(v) => update({ legendOffsetX: v })}
-              />
-              <SliderField
-                label="图例 Y 偏移"
-                value={comp.legendOffsetY}
-                min={-500}
-                max={500}
-                onChange={(v) => update({ legendOffsetY: v })}
-              />
-            </div>
+                {/* 头像错位偏移 X */}
+                <div data-field-id={`comparison:${i}:silhouetteSwapOffset`}>
+                  <SliderField
+                    label="头像错位 X"
+                    value={comp.silhouetteSwapOffsetX}
+                    min={-500}
+                    max={500}
+                    onChange={(v) => update({ silhouetteSwapOffsetX: v })}
+                  />
+                  <SliderField
+                    label="头像错位 Y"
+                    value={comp.silhouetteSwapOffsetY}
+                    min={-500}
+                    max={500}
+                    onChange={(v) => update({ silhouetteSwapOffsetY: v })}
+                  />
+                </div>
 
-            {/* 图例字体 */}
-            <div className="flex items-center gap-2">
-              <Label className="text-xs text-subtitle shrink-0 w-20">图例字体</Label>
-              <FontSelect
-                value={comp.legendFontFamily}
-                onChange={(v) => updateComparison(i, { legendFontFamily: v })}
-              />
-            </div>
+                {/* 第一角色淡出透明度 */}
+                <div data-field-id={`comparison:${i}:silhouetteFadeOutOpacity`}>
+                  <SliderField
+                    label="A 角色淡出透明度"
+                    value={comp.silhouetteFadeOutOpacity}
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    onChange={(v) => update({ silhouetteFadeOutOpacity: v })}
+                  />
+                </div>
+
+                {/* 差异三角缩放 */}
+                <div data-field-id={`comparison:${i}:diffTriangleScale`}>
+                  <SliderField
+                    label="差异三角缩放"
+                    value={comp.diffTriangleScale}
+                    min={0.3}
+                    max={3}
+                    step={0.05}
+                    onChange={(v) => update({ diffTriangleScale: v })}
+                  />
+                </div>
+
+                {/* 评分滑动时长 */}
+                <div data-field-id={`comparison:${i}:dualRatingSlideFrames`}>
+                  <SliderField
+                    label="评分滑动时长(帧)"
+                    value={comp.dualRatingSlideFrames}
+                    min={1}
+                    max={60}
+                    onChange={(v) => update({ dualRatingSlideFrames: v })}
+                  />
+                </div>
+
+                {/* 评分淡入时长 */}
+                <div data-field-id={`comparison:${i}:dualRatingFadeFrames`}>
+                  <SliderField
+                    label="评分淡入时长(帧)"
+                    value={comp.dualRatingFadeFrames}
+                    min={1}
+                    max={60}
+                    onChange={(v) => update({ dualRatingFadeFrames: v })}
+                  />
+                </div>
+
+                {/* 图例字号 */}
+                <div>
+                  <SliderField
+                    label="图例字号"
+                    value={comp.legendFontSize}
+                    min={12}
+                    max={60}
+                    onChange={(v) => update({ legendFontSize: v })}
+                  />
+                </div>
+
+                {/* 图例圆点半径 */}
+                <div data-field-id={`comparison:${i}:legendDotRadius`}>
+                  <SliderField
+                    label="图例圆点半径"
+                    value={comp.legendDotRadius}
+                    min={2}
+                    max={30}
+                    step={0.5}
+                    onChange={(v) => update({ legendDotRadius: v })}
+                  />
+                </div>
+
+                {/* 图例 XY 偏移 */}
+                <div>
+                  <SliderField
+                    label="图例 X 偏移"
+                    value={comp.legendOffsetX}
+                    min={-500}
+                    max={500}
+                    onChange={(v) => update({ legendOffsetX: v })}
+                  />
+                  <SliderField
+                    label="图例 Y 偏移"
+                    value={comp.legendOffsetY}
+                    min={-500}
+                    max={500}
+                    onChange={(v) => update({ legendOffsetY: v })}
+                  />
+                </div>
+
+                {/* 图例字体 */}
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-subtitle shrink-0 w-20">图例字体</Label>
+                  <FontSelect
+                    value={comp.legendFontFamily}
+                    onChange={(v) => updateComparison(i, { legendFontFamily: v })}
+                  />
+                </div>
+              </>
+            )}
           </div>
         );
       })}

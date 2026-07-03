@@ -1,6 +1,7 @@
 import React from "react";
 import { AbsoluteFill, Audio, Sequence, staticFile } from "remotion";
 import { RadarVideo } from "./RadarVideo";
+import { ComparisonOverlayLayer } from "./ComparisonOverlay/ComparisonOverlayLayer";
 import type { ComparisonPairConfig, MultiPageConfig, RadarVideoProps } from "../types/radar";
 import { calculateComparisonDuration, calculateDuration } from "../types/constants";
 import { applyGlobalOverride } from "../lib/global-override";
@@ -73,6 +74,14 @@ export const MultiPageVideo: React.FC<{ config: MultiPageConfig }> = ({
           <Sequence key={i} from={startFrame} durationInFrames={item.duration}>
             {item.type === "single" ? (
               <RadarVideo {...item.page} />
+            ) : (item.config.layout ?? "transition") === "overlay" ? (
+              // overlay：双方同图叠加高亮，走 RadarVideo 的兄弟顶层组件
+              <ComparisonOverlayLayer
+                left={item.left}
+                right={item.right}
+                config={item.config}
+                arrowStyle={config.comparisonArrowStyle}
+              />
             ) : (
               <RadarVideo
                 {...item.left}

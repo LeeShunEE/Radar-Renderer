@@ -222,6 +222,40 @@ export const RadarVideoSchema = z.object({
 
 export type RadarVideoProps = z.infer<typeof RadarVideoSchema>;
 
+/** 叠加高亮（overlay）布局的编排参数，默认值 = issue #17 预览审定稿 */
+export const OverlayHighlightSchema = z.object({
+  /** 先高亮哪一方 */
+  highlightOrder: z.enum(["left-first", "right-first"]).default("left-first"),
+  /** 双方绘制完成（顶点弹完）后到首次高亮的等待帧数 */
+  delayAfterFill: z.number().min(0).max(120).default(18),
+  /** 高亮切换的渐变时长 */
+  transitionFrames: z.number().min(1).max(60).default(14),
+  /** 每一方高亮的停留帧数 */
+  holdFrames: z.number().min(0).max(240).default(42),
+  /** 双方恢复正常后的尾部停留帧数 */
+  holdTailFrames: z.number().min(0).max(600).default(70),
+  /** 被压暗一方的整体透明度 */
+  dimOpacity: z.number().min(0).max(1).default(0.15),
+  /** 高亮方 drop-shadow 光晕半径（px） */
+  glowRadius: z.number().min(0).max(60).default(16),
+  /** 强弱三角尺寸（px） */
+  arrowSize: z.number().min(8).max(80).default(24),
+  /** 箭头距评级行中线的水平距离（左方在左、右方在右） */
+  arrowSideOffset: z.number().min(0).max(300).default(92),
+  /** 箭头垂直微调 */
+  arrowOffsetY: z.number().min(-200).max(200).default(0),
+  /** 两侧角色名距画面中线的水平距离 */
+  nameSideOffset: z.number().min(100).max(960).default(665),
+  /** 剪影常态透明度（叠加图中调低避免压过雷达图） */
+  silhouetteBaseOpacity: z.number().min(0).max(1).default(0.4),
+  /** 剪影高亮透明度 */
+  silhouetteEmphasisOpacity: z.number().min(0).max(1).default(0.85),
+  /** 剪影被压暗透明度 */
+  silhouetteDimOpacity: z.number().min(0).max(1).default(0.1),
+});
+
+export type OverlayHighlightConfig = z.infer<typeof OverlayHighlightSchema>;
+
 export type ComparisonPairConfig = {
   firstPageIndex: number;
   secondPageIndex: number;
@@ -240,6 +274,11 @@ export type ComparisonPairConfig = {
   legendDotRadius: number;
   dualRatingSlideFrames: number;
   dualRatingFadeFrames: number;
+  // 与 z.infer<ComparisonPairSchema> 输出对齐：.default() 使这两个字段在 schema
+  // 输出里必填（旧 localStorage 经 safeParse 自动回填）。读取处仍保留
+  // `?? "transition"` / `?? defaultOverlayHighlightConfig` 兜底未经 parse 的裸对象。
+  layout: "transition" | "overlay";
+  overlay: OverlayHighlightConfig;
 };
 
 export const ComparisonPairSchema = z.object({
@@ -260,6 +299,26 @@ export const ComparisonPairSchema = z.object({
   legendDotRadius: z.number().min(2).max(30).default(6),
   dualRatingSlideFrames: z.number().min(1).max(60).default(10),
   dualRatingFadeFrames: z.number().min(1).max(60).default(10),
+  layout: z.enum(["transition", "overlay"]).default("transition"),
+  // 整块 .default() 让旧 localStorage 配置在 safeParse 时整体回填。
+  // 字面量不能换成 constants.defaultOverlayHighlightConfig（constants 已 import
+  // 本文件，会循环依赖），与 constants 的一致性由 radar.test.ts 深比较守卫。
+  overlay: OverlayHighlightSchema.default({
+    highlightOrder: "left-first",
+    delayAfterFill: 18,
+    transitionFrames: 14,
+    holdFrames: 42,
+    holdTailFrames: 70,
+    dimOpacity: 0.15,
+    glowRadius: 16,
+    arrowSize: 24,
+    arrowSideOffset: 92,
+    arrowOffsetY: 0,
+    nameSideOffset: 665,
+    silhouetteBaseOpacity: 0.4,
+    silhouetteEmphasisOpacity: 0.85,
+    silhouetteDimOpacity: 0.1,
+  }),
 });
 
 export const ComparisonArrowStyleSchema = z.object({

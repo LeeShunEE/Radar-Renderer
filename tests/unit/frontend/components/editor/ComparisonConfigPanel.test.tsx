@@ -5,7 +5,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ComparisonConfigPanel } from "@/components/editor/ComparisonConfigPanel";
-import { defaultComparisonConfig } from "@/types/constants";
+import { defaultComparisonConfig, defaultOverlayHighlightConfig } from "@/types/constants";
 import { makeMultiPageConfig } from "./_fixtures";
 
 // sliderPassesArray 控制 mock 以数组还是裸数值回调，用于覆盖 SliderField 的 Array.isArray 两个分支
@@ -103,7 +103,9 @@ describe("ComparisonConfigPanel", () => {
   it("改 polygonMode 下拉 → onChange", () => {
     const onChange = vi.fn();
     render(<ComparisonConfigPanel config={configWithComp()} onChange={onChange} />);
-    fireEvent.change(screen.getByRole("combobox"), { target: { value: "extend" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "第二多边形模式" }), {
+      target: { value: "extend" },
+    });
     const next = onChange.mock.calls.at(-1)![0];
     expect(next.comparisons[0].polygonMode).toBe("extend");
   });
@@ -233,5 +235,111 @@ describe("ComparisonConfigPanel", () => {
     } finally {
       h.sliderPassesArray = true;
     }
+  });
+});
+
+describe("ComparisonConfigPanel overlay 布局", () => {
+  const configOverlay = () => {
+    const c = configWithComp();
+    c.comparisons[0] = { ...c.comparisons[0], layout: "overlay" };
+    return c;
+  };
+
+  it("transition 默认：transition 控件可见、overlay 控件不渲染", () => {
+    const { container } = render(
+      <ComparisonConfigPanel config={configWithComp()} onChange={vi.fn()} />,
+    );
+    expect(
+      container.querySelector('[data-field-id="comparison:0:delayFrames"]'),
+    ).not.toBeNull();
+    expect(
+      container.querySelector('[data-field-id="comparison:0:overlay.glowRadius"]'),
+    ).toBeNull();
+  });
+
+  it("overlay 时 transition 专属控件全部隐藏", () => {
+    const { container } = render(
+      <ComparisonConfigPanel config={configOverlay()} onChange={vi.fn()} />,
+    );
+    for (const fid of [
+      "delayFrames",
+      "swapDurationFrames",
+      "polygonMode",
+      "legendDotRadius",
+      "dualRatingSlideFrames",
+      "diffTriangleScale",
+    ]) {
+      expect(
+        container.querySelector(`[data-field-id="comparison:0:${fid}"]`),
+      ).toBeNull();
+    }
+  });
+
+  it("overlay 时 overlay 控件出现", () => {
+    const { container } = render(
+      <ComparisonConfigPanel config={configOverlay()} onChange={vi.fn()} />,
+    );
+    for (const key of [
+      "delayAfterFill",
+      "glowRadius",
+      "arrowSize",
+      "nameSideOffset",
+      "silhouetteBaseOpacity",
+    ]) {
+      expect(
+        container.querySelector(`[data-field-id="comparison:0:overlay.${key}"]`),
+      ).not.toBeNull();
+    }
+  });
+
+  it("切换布局 select → onChange layout=overlay", () => {
+    const onChange = vi.fn();
+    render(<ComparisonConfigPanel config={configWithComp()} onChange={onChange} />);
+    fireEvent.change(screen.getByRole("combobox", { name: "对比布局" }), {
+      target: { value: "overlay" },
+    });
+    expect(onChange.mock.calls.at(-1)![0].comparisons[0].layout).toBe("overlay");
+  });
+
+  it("改 overlay.glowRadius → onChange 且保留兄弟字段 delayAfterFill", () => {
+    const onChange = vi.fn();
+    const { container } = render(
+      <ComparisonConfigPanel config={configOverlay()} onChange={onChange} />,
+    );
+    const slider = container.querySelector(
+      '[data-field-id="comparison:0:overlay.glowRadius"] [data-testid="slider"]',
+    ) as HTMLElement;
+    fireEvent.change(slider, { target: { value: "30" } });
+    const next = onChange.mock.calls.at(-1)![0].comparisons[0].overlay;
+    expect(next.glowRadius).toBe(30);
+    expect(next.delayAfterFill).toBe(defaultOverlayHighlightConfig.delayAfterFill);
+  });
+
+  it("切换 overlay.highlightOrder → onChange", () => {
+    const onChange = vi.fn();
+    const { container } = render(
+      <ComparisonConfigPanel config={configOverlay()} onChange={onChange} />,
+    );
+    const select = container.querySelector(
+      '[data-field-id="comparison:0:overlay.highlightOrder"] select',
+    ) as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: "right-first" } });
+    expect(
+      onChange.mock.calls.at(-1)![0].comparisons[0].overlay.highlightOrder,
+    ).toBe("right-first");
+  });
+
+  it("运行时旧配置缺 layout/overlay 时不崩溃，按 transition 渲染", () => {
+    const c = configWithComp();
+    const comp: Record<string, unknown> = { ...c.comparisons[0] };
+    delete comp.layout;
+    delete comp.overlay;
+    c.comparisons[0] = comp as never;
+    const { container } = render(
+      <ComparisonConfigPanel config={c} onChange={vi.fn()} />,
+    );
+    expect(
+      container.querySelector('[data-field-id="comparison:0:delayFrames"]'),
+    ).not.toBeNull();
   });
 });

@@ -6,9 +6,15 @@ import { useUploadObjectUrls } from "@/hooks/useUploadObjectUrls";
 import {
   calculateDuration,
   calculateComparisonDuration,
+  computeOverlayPhases,
   computePhaseStarts,
+  defaultOverlayHighlightConfig,
 } from "../../types/constants";
-import type { MultiPageConfig, RadarVideoProps } from "../../types/radar";
+import type {
+  ComparisonPairConfig,
+  MultiPageConfig,
+  RadarVideoProps,
+} from "../../types/radar";
 import { RadarVideo } from "../../remotion/RadarVideo";
 import { MultiPageVideo } from "../../remotion/MultiPageVideo";
 import { applyGlobalOverride } from "../../lib/global-override";
@@ -368,6 +374,77 @@ function pushComparisonSegments(
   });
 }
 
+const OVERLAY_HIGHLIGHT_FIELDS = [
+  "highlightOrder",
+  "dimOpacity",
+  "glowRadius",
+  "silhouetteBaseOpacity",
+  "silhouetteEmphasisOpacity",
+  "silhouetteDimOpacity",
+];
+const OVERLAY_ARROW_FIELDS = ["arrowSize", "arrowSideOffset", "arrowOffsetY"];
+
+/**
+ * 叠加高亮布局的 timeline 段：绘制期段由 pushPageSegments(left) 覆盖
+ * （双方共用左页 animation 节奏），此处只补 overlay 编排特有的关键事件——
+ * 首方/次方依次高亮、高亮期双剪影明暗联动、强弱箭头弹出与常驻。
+ * comparisonStart 取 comparison 层第 0 帧（双方从首帧同画，无 leftEnd+delay 偏移）。
+ */
+function pushOverlaySegments(
+  out: RenderSegment[],
+  left: RadarVideoProps,
+  comp: ComparisonPairConfig,
+  comparisonIndex: number,
+  comparisonStart: number,
+  pageLabel: string,
+): void {
+  const overlay = comp.overlay ?? defaultOverlayHighlightConfig;
+  const phases = computeOverlayPhases(left.animation, overlay);
+  const base = comparisonStart;
+  const ofIds = (keys: string[]) =>
+    keys.map((k) => `comparison:${comparisonIndex}:overlay.${k}`);
+
+  const first = overlay.highlightOrder === "right-first" ? "右方" : "左方";
+  const second = overlay.highlightOrder === "right-first" ? "左方" : "右方";
+
+  out.push({
+    targetId: "radar-octagon",
+    start: base + phases.p1,
+    end: base + phases.p3,
+    pageLabel,
+    behavior: `${first}高亮`,
+    comparisonIndex,
+    fieldIds: ofIds(OVERLAY_HIGHLIGHT_FIELDS),
+  });
+  out.push({
+    targetId: "radar-octagon",
+    start: base + phases.p3,
+    end: base + phases.p5,
+    pageLabel,
+    behavior: `${second}高亮`,
+    comparisonIndex,
+    fieldIds: ofIds(OVERLAY_HIGHLIGHT_FIELDS),
+  });
+  out.push({
+    targetId: "avatar",
+    start: base + phases.p1,
+    end: base + phases.p6,
+    pageLabel,
+    behavior: "双剪影高亮联动",
+    comparisonIndex,
+    fieldIds: ofIds(OVERLAY_HIGHLIGHT_FIELDS),
+  });
+  out.push({
+    targetId: "radar-rating",
+    start: base + phases.p1,
+    end: base + phases.total,
+    pageLabel,
+    behavior: "强弱箭头",
+    comparisonIndex,
+    fieldIds: ofIds(OVERLAY_ARROW_FIELDS),
+  });
+}
+
 function buildSingleSegments(page: RadarVideoProps): RenderSegment[] {
   const out: RenderSegment[] = [];
   pushPageSegments(out, page, "", 0, 0);
@@ -392,17 +469,23 @@ function buildMultiSegments(config: MultiPageConfig): RenderSegment[] {
       const right = mergedPages[i + 1];
       pushPageSegments(out, left, `第${i + 1}页`, base, i);
 
-      const leftEnd = calculateDuration(left.animation);
-      const comparisonStart = base + leftEnd + comp.delayFrames;
-      pushComparisonSegments(
-        out,
-        right,
-        comp,
-        compIdx,
-        comparisonStart,
-        i + 1,
-        `第${i + 1}→${i + 2}页`,
-      );
+      if ((comp.layout ?? "transition") === "overlay") {
+        // overlay：双方同图，从 comparison 层第 0 帧同画；绘制段已由
+        // pushPageSegments(left) 覆盖，此处只补高亮编排与强弱箭头 seek 段
+        pushOverlaySegments(out, left, comp, compIdx, base, `第${i + 1}→${i + 2}页`);
+      } else {
+        const leftEnd = calculateDuration(left.animation);
+        const comparisonStart = base + leftEnd + comp.delayFrames;
+        pushComparisonSegments(
+          out,
+          right,
+          comp,
+          compIdx,
+          comparisonStart,
+          i + 1,
+          `第${i + 1}→${i + 2}页`,
+        );
+      }
 
       base += calculateComparisonDuration(left, right, comp);
       compared.add(i);

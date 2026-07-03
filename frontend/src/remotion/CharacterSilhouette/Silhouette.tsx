@@ -18,6 +18,8 @@ type SilhouetteProps = {
   fadeFromFrame?: number;
   fadeOutDuration?: number;
   targetOpacityOverride?: number;
+  /** 占据哪半屏：默认 left（原行为）；叠加高亮对比用 right 放置右方剪影 */
+  side?: "left" | "right";
 };
 
 /**
@@ -44,6 +46,7 @@ export const Silhouette: React.FC<SilhouetteProps> = ({
   fadeFromFrame,
   fadeOutDuration,
   targetOpacityOverride,
+  side = "left",
 }) => {
   const frame = useCurrentFrame();
 
@@ -78,7 +81,7 @@ export const Silhouette: React.FC<SilhouetteProps> = ({
     <div
       style={{
         position: "absolute",
-        left: 0,
+        left: side === "right" ? "50%" : 0,
         top: 0,
         width: "50%",
         height: "100%",
