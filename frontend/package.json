@@ -11,6 +11,7 @@
     "@base-ui/react": "^1.6.0",
     "@remotion/bundler": "4.0.484",
     "@remotion/cli": "4.0.484",
+    "@remotion/effects": "4.0.484",
     "@remotion/google-fonts": "4.0.484",
     "@remotion/lambda": "4.0.484",
     "@remotion/media": "4.0.484",

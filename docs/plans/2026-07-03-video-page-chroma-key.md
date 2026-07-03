@@ -754,4 +754,9 @@ pre-push 全套通过后推分支，开 PR（`Closes #19`），PR 描述附 spik
 
 ## Spike 结论
 
-> （Task 0.1 Step 4 执行后填写）
+> Task 0.1 于 2026-07-03 执行（无头环境，Studio 手工步骤以 `remotion still --gl=angle` 服务端渲染替代验证）。
+
+- **colorKey 服务端渲染 ✅ 可用**：合成绿幕素材（纯绿底 + 红白方块，libx264 yuv420p）经 `@remotion/media` `<Video effects={[colorKey({})]}>` 渲染，绿底完全抠除、下层洋红底衬透出、主体边缘干净无绿边（spill suppression 默认 0.25 生效）。API 形态与计划一致：`colorKey({ keyColor, similarity, smoothness, spillSuppression })`，导出路径 `@remotion/effects/color-key`，默认值 `#00ff00`/0.18/0.08/0.25。
+- **alpha WebM 直渲 ❌ 不可用**：合法的 VP9 yuva420p alpha WebM（bundled ffmpeg 反解验证素材本身无损）经 `@remotion/media` `<Video>` 渲染输出撕裂花屏（alpha 平面被误解为色度数据）。按 D7 决议：**不做专门配置**，alpha 视频场景暂不支持直渲；后续若有需求，对 `.webm` 增加 `<OffthreadVideo transparent>` 渲染分支（另行任务）。
+- **性能观感**：640x360 单帧 still 渲染（含 bundle）约 30s 级，其中 bundle 占大头；colorKey 本身无显著额外耗时。
+- **闸门判定**：colorKey 主路线通过，按原计划继续；D7 记录为已知限制。
