@@ -151,9 +151,9 @@ cut by maintainers:
 #    guards that the release tag matches it (and the footer version derives from
 #    it), so a missed bump fails the release.
 # 2. Generate merged PR list for LLM summarization:
-bash scripts/gen-release-notes.sh --from-tag <prev-tag> > pr-list.md
+python scripts/gen-release-notes.py --from-tag <prev-tag> > pr-list.md
 #    For first release (no prev-tag), omit --from-tag:
-#    bash scripts/gen-release-notes.sh > pr-list.md
+#    python scripts/gen-release-notes.py > pr-list.md
 # 3. Summarize pr-list.md with LLM → release-notes.md (group by type: Features,
 #    Bug Fixes, Documentation, etc.; format as Keep a Changelog).
 # 4. Tag and push:
@@ -295,9 +295,9 @@ cd frontend && pnpm test:unit && pnpm test:integration
 # 1. 先把 frontend/package.json 的 `version` bump 到目标版本——deploy workflow 会校验
 #    release tag 与之一致（页脚版本号也由它派生），漏 bump 会让发版失败。
 # 2. 生成 merged PR 列表供 LLM 总结：
-bash scripts/gen-release-notes.sh --from-tag <上一个tag> > pr-list.md
+python scripts/gen-release-notes.py --from-tag <上一个tag> > pr-list.md
 #    首个版本（无上一个tag）时省略 --from-tag：
-#    bash scripts/gen-release-notes.sh > pr-list.md
+#    python scripts/gen-release-notes.py > pr-list.md
 # 3. 用 LLM 总结 pr-list.md → release-notes.md（按类型分组：Features、Bug Fixes、
 #    Documentation 等；格式参考 Keep a Changelog）。
 # 4. 打 tag 并推送：
