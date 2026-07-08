@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PreviewPanel } from "./PreviewPanel";
+import { PreviewTargetSelector } from "./PreviewTargetSelector";
 import { GlobalConfigEditor } from "./GlobalConfigEditor";
 import { ComparisonConfigPanel } from "./ComparisonConfigPanel";
 import { PageConfigPanel } from "./PageConfigPanel";
@@ -203,6 +204,16 @@ export const RadarEditor: React.FC = () => {
     <div className="flex h-[calc(100vh-52px)]">
       {/* 左侧预览 */}
       <div className="w-[45%] p-6 border-r border-unfocused-border-color overflow-y-auto">
+        <PreviewTargetSelector
+          pages={config.pages}
+          previewMode={previewMode}
+          activePageIndex={activePageIndex}
+          onSelectGlobal={() => setPreviewMode("multi")}
+          onSelectPage={(i) => {
+            setActivePageIndex(i);
+            setPreviewMode("single");
+          }}
+        />
         <PreviewPanel
           {...(previewMode === "single"
             ? {
@@ -223,11 +234,11 @@ export const RadarEditor: React.FC = () => {
         >
           <div className="px-6 pt-4 pb-2 border-b border-unfocused-border-color bg-background">
             <TabsList className="w-full justify-start">
-              <TabsTrigger value="persistence">配置</TabsTrigger>
+              <TabsTrigger value="persistence">保存/加载</TabsTrigger>
               <TabsTrigger value="global">全局</TabsTrigger>
               <TabsTrigger value="comparison">对比</TabsTrigger>
               <TabsTrigger value="values">数值</TabsTrigger>
-              <TabsTrigger value="pages">页面</TabsTrigger>
+              <TabsTrigger value="pages">动画细节</TabsTrigger>
               <TabsTrigger value="assets">素材</TabsTrigger>
               <TabsTrigger value="export">导出</TabsTrigger>
             </TabsList>
@@ -267,6 +278,7 @@ export const RadarEditor: React.FC = () => {
               onChange={setConfig}
               activePageIndex={activePageIndex}
               onSetActive={setActivePageIndex}
+              onAddPage={addPage}
             />
           </TabsContent>
 
@@ -289,6 +301,7 @@ export const RadarEditor: React.FC = () => {
                     page={page}
                     allPages={config.pages}
                     isActive={i === activePageIndex}
+                    previewing={previewMode === "single" && i === activePageIndex}
                     isSecondary={!!isSecondary}
                     expanded={expandedMap[i] ?? false}
                     onToggle={() => togglePageExpanded(i)}

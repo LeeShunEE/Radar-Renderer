@@ -22,7 +22,18 @@ const makeRichConfig = (): MultiPageConfig => ({
 });
 
 vi.mock("@/components/editor/PreviewPanel", () => ({
-  PreviewPanel: () => <div data-testid="preview" />,
+  PreviewPanel: (p: any) => <div data-testid="preview">{p.mode}</div>,
+}));
+vi.mock("@/components/editor/PreviewTargetSelector", () => ({
+  PreviewTargetSelector: (p: any) => (
+    <div>
+      <span data-testid="preview-target">
+        {p.previewMode === "multi" ? "global" : `page-${p.activePageIndex}`}
+      </span>
+      <button data-testid="sel-global" onClick={p.onSelectGlobal}>global</button>
+      <button data-testid="sel-page-1" onClick={() => p.onSelectPage(1)}>page1</button>
+    </div>
+  ),
 }));
 vi.mock("@/components/editor/GlobalConfigEditor", () => ({
   GlobalConfigEditor: (p: any) => (
@@ -44,7 +55,9 @@ vi.mock("@/components/editor/ComparisonConfigPanel", () => ({
   ComparisonConfigPanel: () => null,
 }));
 vi.mock("@/components/editor/RadarValuesTable", () => ({
-  RadarValuesTable: () => null,
+  RadarValuesTable: (p: any) => (
+    <button data-testid="values-add-page" onClick={p.onAddPage}>values-add</button>
+  ),
 }));
 vi.mock("@/components/editor/ConfigPersistencePanel", () => ({
   ConfigPersistencePanel: (p: any) => (
@@ -59,6 +72,7 @@ vi.mock("@/components/editor/ExportPanel", () => ({ ExportPanel: () => null }));
 vi.mock("@/components/editor/PageConfigPanel", () => ({
   PageConfigPanel: (p: any) => (
     <div onFocus={() => p.onUpdate({})}>
+      {p.previewing && <span data-testid={`previewing-${p.index}`}>预览中</span>}
       <span data-testid={`pc-${p.index}`}>
         {p.page.characterName}|{p.page.theme.backgroundColor}|{JSON.stringify(p.page.overrideIgnored ?? {})}
       </span>
@@ -95,7 +109,7 @@ vi.mock("@/components/editor/PageConfigPanel", () => ({
 vi.mock("@/components/ui/tabs", () => ({
   Tabs: ({ children }: any) => <div>{children}</div>,
   TabsList: ({ children }: any) => <div>{children}</div>,
-  TabsTrigger: () => null,
+  TabsTrigger: ({ children }: any) => <span>{children}</span>,
   TabsContent: ({ children }: any) => <div>{children}</div>,
 }));
 
@@ -222,6 +236,52 @@ describe("RadarEditor", () => {
       fireEvent.click(screen.getByTestId("set-active"));
       fireEvent.click(screen.getByTestId("preview-all"));
       expect(screen.getByTestId("preview")).toBeInTheDocument();
+    });
+  });
+
+  describe("预览对象选择器与页签命名", () => {
+    it("默认单页预览第 0 页，Player 为 single 模式", () => {
+      render(<RadarEditor />);
+      expect(screen.getByTestId("preview-target").textContent).toBe("page-0");
+      expect(screen.getByTestId("preview").textContent).toBe("single");
+    });
+
+    it("选择全局 → Player 切 multi，选择器同步显示 global", () => {
+      render(<RadarEditor />);
+      fireEvent.click(screen.getByTestId("sel-global"));
+      expect(screen.getByTestId("preview-target").textContent).toBe("global");
+      expect(screen.getByTestId("preview").textContent).toBe("multi");
+    });
+
+    it("全局预览时页面卡片不显示「预览中」徽标", () => {
+      render(<RadarEditor />);
+      expect(screen.getByTestId("previewing-0")).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId("sel-global"));
+      expect(screen.queryByTestId("previewing-0")).toBeNull();
+    });
+
+    it("全局后再选某页 → 回到单页预览该页", () => {
+      render(<RadarEditor />);
+      fireEvent.click(screen.getByTestId("add")); // 保证有第 1 页
+      fireEvent.click(screen.getByTestId("sel-global"));
+      fireEvent.click(screen.getByTestId("sel-page-1"));
+      expect(screen.getByTestId("preview-target").textContent).toBe("page-1");
+      expect(screen.getByTestId("preview").textContent).toBe("single");
+      expect(screen.getByTestId("previewing-1")).toBeInTheDocument();
+    });
+
+    it("页签重命名：保存/加载 与 动画细节", () => {
+      render(<RadarEditor />);
+      expect(screen.getByText("保存/加载")).toBeInTheDocument();
+      expect(screen.getByText("动画细节")).toBeInTheDocument();
+      expect(screen.queryByText("配置")).toBeNull();
+    });
+
+    it("数值表 onAddPage → 页数 +1", () => {
+      render(<RadarEditor />);
+      const before = count();
+      fireEvent.click(screen.getByTestId("values-add-page"));
+      expect(count()).toBe(before + 1);
     });
   });
 });

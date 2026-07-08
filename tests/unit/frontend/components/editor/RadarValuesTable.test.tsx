@@ -288,4 +288,44 @@ describe("RadarValuesTable", () => {
     fireEvent.mouseDown(rows[0]);
     expect(onSetActive).not.toHaveBeenCalled();
   });
+
+  it("同步按钮带悬浮说明 tooltip", () => {
+    render(
+      <RadarValuesTable
+        config={makeMultiPageConfig()}
+        onChange={vi.fn()}
+        activePageIndex={0}
+        onSetActive={vi.fn()}
+      />,
+    );
+    const tooltip = screen.getByRole("tooltip");
+    expect(tooltip.textContent).toContain("复制到其余所有页面");
+  });
+
+  it("传入 onAddPage → 显示「＋ 添加新页」并触发回调", () => {
+    const onAddPage = vi.fn();
+    render(
+      <RadarValuesTable
+        config={makeMultiPageConfig()}
+        onChange={vi.fn()}
+        activePageIndex={0}
+        onSetActive={vi.fn()}
+        onAddPage={onAddPage}
+      />,
+    );
+    fireEvent.click(screen.getByText("＋ 添加新页"));
+    expect(onAddPage).toHaveBeenCalled();
+  });
+
+  it("未传 onAddPage → 不渲染添加按钮", () => {
+    render(
+      <RadarValuesTable
+        config={makeMultiPageConfig()}
+        onChange={vi.fn()}
+        activePageIndex={0}
+        onSetActive={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText("＋ 添加新页")).toBeNull();
+  });
 });
