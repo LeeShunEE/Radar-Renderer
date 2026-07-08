@@ -1165,6 +1165,15 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = (panelProps) => {
           )}
         </div>
       </div>
+      <div className="text-[11px] leading-relaxed text-muted-foreground select-none">
+        <span className="whitespace-nowrap">左键单击色块：跳转到该动画起始帧并定位对应参数</span>
+        <span className="mx-1 opacity-50">·</span>
+        <span className="whitespace-nowrap">左键拖动轨道：平移时间轴视图</span>
+        <span className="mx-1 opacity-50">·</span>
+        <span className="whitespace-nowrap">右键单击或拖动：调整播放位置</span>
+        <span className="mx-1 opacity-50">·</span>
+        <span className="whitespace-nowrap">滚轮：缩放时间轴</span>
+      </div>
       {audioSrc && (
         <div className="text-xs text-muted-foreground space-y-1">
           <div

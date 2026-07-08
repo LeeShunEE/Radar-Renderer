@@ -234,13 +234,27 @@ export const RadarEditor: React.FC = () => {
         >
           <div className="px-6 pt-4 pb-2 border-b border-unfocused-border-color bg-background">
             <TabsList className="w-full justify-start">
-              <TabsTrigger value="persistence">保存/加载</TabsTrigger>
-              <TabsTrigger value="global">全局</TabsTrigger>
-              <TabsTrigger value="comparison">对比</TabsTrigger>
-              <TabsTrigger value="values">数值</TabsTrigger>
-              <TabsTrigger value="pages">动画细节</TabsTrigger>
-              <TabsTrigger value="assets">素材</TabsTrigger>
-              <TabsTrigger value="export">导出</TabsTrigger>
+              <TabsTrigger value="persistence" title="保存当前配置到服务器，或加载、管理历史配置">
+                保存/加载
+              </TabsTrigger>
+              <TabsTrigger value="global" title="管理页面列表，并统一覆盖各页面共用的全局参数（背景、字体等）">
+                全局
+              </TabsTrigger>
+              <TabsTrigger value="comparison" title="配置相邻两页之间的对比过渡动画（切换/叠加布局）">
+                对比
+              </TabsTrigger>
+              <TabsTrigger value="values" title="以表格批量编辑各页面的属性名称与评分数值">
+                数值
+              </TabsTrigger>
+              <TabsTrigger value="pages" title="逐页调整动画时序、特效与元素布局参数">
+                动画细节
+              </TabsTrigger>
+              <TabsTrigger value="assets" title="管理上传的图片、视频、音乐等素材文件">
+                素材
+              </TabsTrigger>
+              <TabsTrigger value="export" title="创建视频渲染任务并查看渲染队列进度">
+                导出
+              </TabsTrigger>
             </TabsList>
           </div>
 
