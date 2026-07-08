@@ -23,6 +23,8 @@ type PageConfigPanelProps = {
   page: RadarVideoProps;
   allPages: RadarVideoProps[];
   isActive: boolean;
+  /** 播放器当前确实在单页预览本页（多页/全局预览时应为 false，避免误导） */
+  previewing?: boolean;
   isSecondary: boolean;
   expanded: boolean;
   onToggle: () => void;
@@ -83,6 +85,7 @@ export const PageConfigPanel: React.FC<PageConfigPanelProps> = ({
   page,
   allPages,
   isActive,
+  previewing = false,
   isSecondary,
   expanded,
   onToggle,
@@ -189,7 +192,7 @@ export const PageConfigPanel: React.FC<PageConfigPanelProps> = ({
           <span className="text-sm font-medium text-foreground">
             第{index + 1}页：{page.characterName || `页${index + 1}`}
           </span>
-          {isActive && (
+          {previewing && (
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
               预览中
             </span>

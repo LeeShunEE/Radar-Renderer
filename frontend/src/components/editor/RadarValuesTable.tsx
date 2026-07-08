@@ -11,6 +11,7 @@ type Props = {
   onChange: (next: MultiPageConfig) => void;
   activePageIndex: number;
   onSetActive: (index: number) => void;
+  onAddPage?: () => void;
 };
 
 const clampValue = (v: number) => Math.max(0, Math.min(200, v));
@@ -61,6 +62,7 @@ export const RadarValuesTable: React.FC<Props> = ({
   onChange,
   activePageIndex,
   onSetActive,
+  onAddPage,
 }) => {
   const headerPage = config.pages[0];
   if (!headerPage) return null;
@@ -126,14 +128,22 @@ export const RadarValuesTable: React.FC<Props> = ({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-foreground">雷达数值表</h3>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={syncLabelsFromFirstPage}
-          title="将首页的属性名同步到所有页面"
-        >
-          同步表头到全部页面
-        </Button>
+        <div className="relative group">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={syncLabelsFromFirstPage}
+          >
+            同步表头到全部页面
+          </Button>
+          <div
+            role="tooltip"
+            className="pointer-events-none absolute right-0 top-full mt-1 z-20 hidden group-hover:block w-64 rounded border border-unfocused-border-color bg-card p-2 text-xs text-foreground shadow-md"
+          >
+            将第 1 页（首行）的各属性「简称」与「全称」复制到其余所有页面的对应列，
+            使全部页面共用同一套表头；各页数值不受影响。
+          </div>
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded border border-unfocused-border-color">
@@ -256,6 +266,12 @@ export const RadarValuesTable: React.FC<Props> = ({
           </tbody>
         </table>
       </div>
+
+      {onAddPage && (
+        <Button variant="outline" size="sm" onClick={onAddPage}>
+          ＋ 添加新页
+        </Button>
+      )}
 
       <p className="text-xs text-subtitle">
         数值范围 0–200。点击行首数字可将该页设为预览。修改首行属性名会同步覆盖所有页面的对应属性名。

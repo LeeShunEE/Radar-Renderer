@@ -65,12 +65,17 @@ const baseProps = (over: Record<string, unknown> = {}) => ({
 });
 
 describe("PageConfigPanel", () => {
-  it("渲染页标题；isActive 显示「预览中」", () => {
+  it("渲染页标题；previewing 显示「预览中」", () => {
     const { rerender } = render(<PageConfigPanel {...baseProps()} />);
     expect(screen.getByText(/第1页：角色1/)).toBeInTheDocument();
     expect(screen.queryByText("预览中")).toBeNull();
-    rerender(<PageConfigPanel {...baseProps({ isActive: true })} />);
+    rerender(<PageConfigPanel {...baseProps({ previewing: true })} />);
     expect(screen.getByText("预览中")).toBeInTheDocument();
+  });
+
+  it("isActive 但非 previewing（全局预览中）→ 不显示「预览中」", () => {
+    render(<PageConfigPanel {...baseProps({ isActive: true, previewing: false })} />);
+    expect(screen.queryByText("预览中")).toBeNull();
   });
 
   it("点头部 → onToggle", () => {
