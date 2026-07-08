@@ -23,6 +23,7 @@ export function FileManagerPanel() {
     quota,
     loading,
     uploading,
+    uploadProgress,
     error,
     refresh,
     upload,
@@ -136,6 +137,16 @@ export function FileManagerPanel() {
           className="hidden"
         />
       </div>
+
+      {/* 上传进度条 */}
+      {uploading && (
+        <div className="flex items-center gap-2">
+          <Progress value={uploadProgress ?? 0} className="h-1.5 flex-1" />
+          <span className="text-xs text-muted-foreground shrink-0">
+            {uploadProgress ?? 0}%
+          </span>
+        </div>
+      )}
 
       {/* 粘贴提示：告知用户可直接 Ctrl+V / Cmd+V 粘贴图片上传 */}
       <p className="text-xs text-muted-foreground flex items-center gap-1">

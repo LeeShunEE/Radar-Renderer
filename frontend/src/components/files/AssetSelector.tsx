@@ -12,6 +12,8 @@ import { useUploadObjectUrls } from "@/hooks/useUploadObjectUrls";
 import { RefreshCw, Upload, ClipboardPaste } from "lucide-react";
 import { checkBackgroundVideo, type BackgroundMediaKind } from "@/lib/media-guard";
 import { extractPastedImage, pastedImageName } from "@/lib/clipboard-image";
+import { AUDIO_EXTS, IMAGE_EXTS, VIDEO_EXTS, extRegex } from "@/lib/asset-exts";
+import { Progress } from "@/components/ui/progress";
 
 /** 读取视频文件的宽高（异步，jsdom 中会走 onerror 分支，回退 0×0）。 */
 async function readVideoMeta(file: File): Promise<{ width: number; height: number }> {
@@ -53,15 +55,15 @@ interface AssetSelectorProps {
   mediaKind?: BackgroundMediaKind;
 }
 
-/** 文件名扩展名过滤正则 */
-const SIL_EXT_RE = /\.(png|jpg|jpeg|gif|webp|svg)$/i;
-const MUSIC_EXT_RE = /\.(mp3|wav|ogg|m4a|aac)$/i;
-const BG_EXT_RE = /\.(png|jpg|jpeg|gif|webp|svg|mp4|webm|mov)$/i;
-const BG_IMAGE_EXT_RE = /\.(png|jpg|jpeg|gif|webp|svg)$/i;
-const BG_VIDEO_EXT_RE = /\.(mp4|webm|mov)$/i;
+/** 文件名扩展名过滤正则（清单见 asset-exts.ts，与后端保持一致） */
+const SIL_EXT_RE = extRegex(IMAGE_EXTS);
+const MUSIC_EXT_RE = extRegex(AUDIO_EXTS);
+const BG_EXT_RE = extRegex([...IMAGE_EXTS, ...VIDEO_EXTS]);
+const BG_IMAGE_EXT_RE = extRegex(IMAGE_EXTS);
+const BG_VIDEO_EXT_RE = extRegex(VIDEO_EXTS);
 
 /** 判断文件名是否为视频 */
-const isVideoName = (name: string) => /\.(mp4|webm|mov)$/i.test(name);
+const isVideoName = (name: string) => BG_VIDEO_EXT_RE.test(name);
 
 export function AssetSelector({
   category,
@@ -81,6 +83,7 @@ export function AssetSelector({
     files: userFiles,
     loading: filesLoading,
     uploading,
+    uploadProgress,
     upload,
     getDownloadUrl,
   } = useFileManagement();
@@ -319,6 +322,16 @@ export function AssetSelector({
           />
         </div>
       </div>
+
+      {/* 上传进度条：覆盖文件选择与粘贴两种上传入口 */}
+      {uploading && (
+        <div className="flex items-center gap-2">
+          <Progress value={uploadProgress ?? 0} className="h-1.5 flex-1" />
+          <span className="text-xs text-muted-foreground shrink-0">
+            {uploadProgress ?? 0}%
+          </span>
+        </div>
+      )}
 
       {/* 粘贴提示：鼠标悬停本区域时可直接 Ctrl+V 粘贴图片上传并自动选中 */}
       {acceptsImagePaste && (

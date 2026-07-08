@@ -28,6 +28,7 @@ const fileMgmt = vi.hoisted(() => ({
   files: [{ name: "my-sil.png" }, { name: "my-song.mp3" }],
   loading: false,
   uploading: false,
+  uploadProgress: null as number | null,
   upload: vi.fn().mockResolvedValue(undefined),
   getDownloadUrl: vi.fn((n: string) => `http://cdn/${n}`),
 }));
@@ -60,6 +61,7 @@ describe("AssetSelector", () => {
     fileMgmt.files = [{ name: "my-sil.png" }, { name: "my-song.mp3" }];
     fileMgmt.loading = false;
     fileMgmt.uploading = false;
+    fileMgmt.uploadProgress = null;
   });
 
   it("silhouettes 类别：渲染公共资源网格 + 用户上传区", () => {
@@ -116,6 +118,13 @@ describe("AssetSelector", () => {
     expect(screen.getByText("bg.mp3")).toBeInTheDocument();
     expect(screen.getByText("my-song.mp3")).toBeInTheDocument();
     expect(screen.getAllByText("▶").length).toBeGreaterThan(0);
+  });
+
+  it("music 类别：上传的 flac 出现在「我的上传」（bug 回归）", () => {
+    fileMgmt.files = [{ name: "my-song.flac" }];
+    render(<AssetSelector category="music" value="" onChange={vi.fn()} />);
+    expect(screen.getByText("我的上传")).toBeInTheDocument();
+    expect(screen.getByText("my-song.flac")).toBeInTheDocument();
   });
 
   it("点击 music 项 → onChange(path)", () => {
@@ -208,6 +217,22 @@ describe("AssetSelector", () => {
     fileMgmt.files = [];
     render(<AssetSelector category="silhouettes" value="" onChange={vi.fn()} />);
     expect(screen.getByText(/暂无资源/)).toBeInTheDocument();
+  });
+
+  describe("上传进度条", () => {
+    it("uploading 时显示进度条与百分比", () => {
+      fileMgmt.uploading = true;
+      fileMgmt.uploadProgress = 42;
+      render(<AssetSelector category="music" value="" onChange={vi.fn()} />);
+      expect(screen.getByText("42%")).toBeInTheDocument();
+    });
+
+    it("非 uploading 时不显示进度条", () => {
+      fileMgmt.uploading = false;
+      fileMgmt.uploadProgress = null;
+      render(<AssetSelector category="music" value="" onChange={vi.fn()} />);
+      expect(screen.queryByText(/%$/)).toBeNull();
+    });
   });
 
   describe("粘贴上传（Ctrl+V）", () => {

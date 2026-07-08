@@ -27,6 +27,7 @@ const fm = vi.hoisted(() => ({
     quota: null as any,
     loading: false,
     uploading: false,
+    uploadProgress: null as number | null,
     error: null as string | null,
     refresh: vi.fn(),
     upload: vi.fn(),
@@ -47,6 +48,7 @@ beforeEach(() => {
   fm.state.quota = null;
   fm.state.loading = false;
   fm.state.uploading = false;
+  fm.state.uploadProgress = null;
   fm.state.error = null;
   fm.state.refresh = vi.fn();
   fm.state.upload = vi.fn();
@@ -102,6 +104,13 @@ describe("FileManagerPanel", () => {
     const buttons = screen.getAllByRole("button");
     fireEvent.click(buttons[buttons.length - 1]);
     expect(fm.state.deleteFile).toHaveBeenCalledWith("a.png");
+  });
+
+  it("上传中显示进度条与百分比", () => {
+    fm.state.uploading = true;
+    fm.state.uploadProgress = 66;
+    render(<FileManagerPanel />);
+    expect(screen.getByText("66%")).toBeInTheDocument();
   });
 
   it("刷新按钮触发 refresh", () => {

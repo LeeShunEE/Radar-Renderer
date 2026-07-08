@@ -21,6 +21,8 @@ export interface FileManagementState {
   quota: QuotaInfo | null;
   loading: boolean;
   uploading: boolean;
+  /** 上传进度百分比（0-100），非上传中为 null */
+  uploadProgress: number | null;
   error: string | null;
 }
 
@@ -30,6 +32,7 @@ export function useFileManagement() {
     quota: null,
     loading: false,
     uploading: false,
+    uploadProgress: null,
     error: null,
   });
 
@@ -43,6 +46,7 @@ export function useFileManagement() {
         quota: data.quota,
         loading: false,
         uploading: false,
+        uploadProgress: null,
         error: null,
       });
     } catch (e) {
@@ -61,15 +65,18 @@ export function useFileManagement() {
 
   /** 上传文件。 */
   const upload = useCallback(async (file: File) => {
-    setState((prev) => ({ ...prev, uploading: true, error: null }));
+    setState((prev) => ({ ...prev, uploading: true, uploadProgress: 0, error: null }));
     try {
-      await files.upload(file);
-      // 上传成功后刷新列表
+      await files.upload(file, (percent) => {
+        setState((prev) => ({ ...prev, uploadProgress: percent }));
+      });
+      // 上传成功后刷新列表（refresh 会重置 uploading / uploadProgress）
       await refresh();
     } catch (e) {
       setState((prev) => ({
         ...prev,
         uploading: false,
+        uploadProgress: null,
         error: e instanceof Error ? e.message : "上传失败",
       }));
       throw e;
