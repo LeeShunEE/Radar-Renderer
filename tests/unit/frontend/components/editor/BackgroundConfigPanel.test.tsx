@@ -16,7 +16,11 @@ import { baseTheme } from "./_fixtures";
 // AssetSelector 有重 hook 依赖，stub 掉
 vi.mock("@/components/files/AssetSelector", () => ({
   AssetSelector: (p: any) => (
-    <div data-testid="asset-selector" data-category={p.category} />
+    <div
+      data-testid="asset-selector"
+      data-category={p.category}
+      data-media-kind={p.mediaKind}
+    />
   ),
 }));
 
@@ -177,6 +181,103 @@ describe("BackgroundConfigPanel", () => {
     // video → gradient
     fireEvent.click(screen.getByText(/渐变/));
     expect(onChange.mock.calls.at(-1)![0].background?.type).toBe("gradient");
+  });
+
+  // ── 类型切换时清理不匹配的旧 src（bug：视频背景选图片 → MediaPlaybackError）──
+
+  it("type=image 且 src 为图片 → 切到 video 时 src 被清空", () => {
+    render(
+      <BackgroundConfigPanel
+        background={makeBackground({
+          type: "image",
+          media: makeMedia({ src: "http://cdn/download/bg.png" }),
+        })}
+        theme={makeTheme()}
+        onChange={onChange}
+      />,
+    );
+    fireEvent.click(screen.getByText(/视频/));
+    const call = onChange.mock.calls.at(-1)![0];
+    expect(call.background?.type).toBe("video");
+    expect(call.background?.media?.src).toBe("");
+  });
+
+  it("type=video 且 src 为视频 → 切到 image 时 src 被清空", () => {
+    render(
+      <BackgroundConfigPanel
+        background={makeBackground({
+          type: "video",
+          media: makeMedia({ src: "http://cdn/download/bg.mp4" }),
+        })}
+        theme={makeTheme()}
+        onChange={onChange}
+      />,
+    );
+    fireEvent.click(screen.getByText(/图片/));
+    const call = onChange.mock.calls.at(-1)![0];
+    expect(call.background?.type).toBe("image");
+    expect(call.background?.media?.src).toBe("");
+  });
+
+  it("切换目标类型与 src 匹配时保留 src（gradient → video，src 为视频）", () => {
+    render(
+      <BackgroundConfigPanel
+        background={makeBackground({
+          type: "gradient",
+          media: makeMedia({ src: "http://cdn/download/bg.mp4" }),
+        })}
+        theme={makeTheme()}
+        onChange={onChange}
+      />,
+    );
+    fireEvent.click(screen.getByText(/视频/));
+    const call = onChange.mock.calls.at(-1)![0];
+    expect(call.background?.type).toBe("video");
+    expect(call.background?.media?.src).toBe("http://cdn/download/bg.mp4");
+  });
+
+  it("无法识别类型的 src（blob:）在类型切换时保留", () => {
+    render(
+      <BackgroundConfigPanel
+        background={makeBackground({
+          type: "image",
+          media: makeMedia({ src: "blob:http://host/uuid" }),
+        })}
+        theme={makeTheme()}
+        onChange={onChange}
+      />,
+    );
+    fireEvent.click(screen.getByText(/视频/));
+    const call = onChange.mock.calls.at(-1)![0];
+    expect(call.background?.media?.src).toBe("blob:http://host/uuid");
+  });
+
+  // ── AssetSelector 的 mediaKind 传参 ─────────────────────────────────────
+
+  it("type=image 时 AssetSelector 收到 mediaKind=image", () => {
+    render(
+      <BackgroundConfigPanel
+        background={makeBackground({ type: "image", media: makeMedia() })}
+        theme={makeTheme()}
+        onChange={onChange}
+      />,
+    );
+    expect(
+      screen.getByTestId("asset-selector").getAttribute("data-media-kind"),
+    ).toBe("image");
+  });
+
+  it("type=video 时 AssetSelector 收到 mediaKind=video", () => {
+    render(
+      <BackgroundConfigPanel
+        background={makeBackground({ type: "video", media: makeMedia() })}
+        theme={makeTheme()}
+        onChange={onChange}
+      />,
+    );
+    expect(
+      screen.getByTestId("asset-selector").getAttribute("data-media-kind"),
+    ).toBe("video");
   });
 
   // ── gradient 时不显示媒体控件 ────────────────────────────────────────────

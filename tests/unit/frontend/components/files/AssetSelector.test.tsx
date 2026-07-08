@@ -327,4 +327,139 @@ describe("AssetSelector", () => {
       expect(screen.queryByText("公共资源")).toBeNull();
     });
   });
+
+  describe("backgrounds 类别 + mediaKind 过滤", () => {
+    beforeEach(() => {
+      fileMgmt.files = [
+        { name: "bg-video.mp4" },
+        { name: "bg-image.png" },
+      ];
+    });
+
+    it("mediaKind=image：仅列图片，accept=image/*，header=背景图片", () => {
+      render(
+        <AssetSelector
+          category="backgrounds"
+          mediaKind="image"
+          value=""
+          onChange={vi.fn()}
+        />,
+      );
+      expect(screen.getByText("背景图片")).toBeInTheDocument();
+      expect(screen.getByTitle("bg-image.png")).toBeInTheDocument();
+      expect(screen.queryByTitle("bg-video.mp4")).toBeNull();
+      const fileInput = document.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+      expect(fileInput.accept).toBe("image/*");
+    });
+
+    it("mediaKind=video：仅列视频，accept=video/*，header=背景视频", () => {
+      render(
+        <AssetSelector
+          category="backgrounds"
+          mediaKind="video"
+          value=""
+          onChange={vi.fn()}
+        />,
+      );
+      expect(screen.getByText("背景视频")).toBeInTheDocument();
+      expect(screen.getByTitle("bg-video.mp4")).toBeInTheDocument();
+      expect(screen.queryByTitle("bg-image.png")).toBeNull();
+      const fileInput = document.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+      expect(fileInput.accept).toBe("video/*");
+    });
+
+    it("mediaKind=video：不显示图片粘贴提示", () => {
+      render(
+        <AssetSelector
+          category="backgrounds"
+          mediaKind="video"
+          value=""
+          onChange={vi.fn()}
+        />,
+      );
+      expect(screen.queryByText(/悬停此处按 Ctrl\+V/)).toBeNull();
+    });
+
+    it("mediaKind=image：仍显示图片粘贴提示", () => {
+      render(
+        <AssetSelector
+          category="backgrounds"
+          mediaKind="image"
+          value=""
+          onChange={vi.fn()}
+        />,
+      );
+      expect(screen.getByText(/悬停此处按 Ctrl\+V/)).toBeInTheDocument();
+    });
+
+    it("mediaKind=video 上传图片文件 → 硬拦截，不调用 upload", async () => {
+      const upload = vi.fn().mockResolvedValue(undefined);
+      fileMgmt.upload = upload;
+      render(
+        <AssetSelector
+          category="backgrounds"
+          mediaKind="video"
+          value=""
+          onChange={vi.fn()}
+        />,
+      );
+      const fileInput = document.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+      fireEvent.change(fileInput, {
+        target: { files: [imageFile("sneaky.png")] },
+      });
+      await waitFor(() =>
+        expect(screen.getByTestId("upload-kind-error")).toBeInTheDocument(),
+      );
+      expect(screen.getByTestId("upload-kind-error").textContent).toMatch(/视频背景/);
+      expect(upload).not.toHaveBeenCalled();
+    });
+
+    it("mediaKind=image 上传视频文件 → 硬拦截，不调用 upload", async () => {
+      const upload = vi.fn().mockResolvedValue(undefined);
+      fileMgmt.upload = upload;
+      render(
+        <AssetSelector
+          category="backgrounds"
+          mediaKind="image"
+          value=""
+          onChange={vi.fn()}
+        />,
+      );
+      const fileInput = document.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+      const videoFile = new File(["x"], "sneaky.mp4", { type: "video/mp4" });
+      fireEvent.change(fileInput, { target: { files: [videoFile] } });
+      await waitFor(() =>
+        expect(screen.getByTestId("upload-kind-error")).toBeInTheDocument(),
+      );
+      expect(screen.getByTestId("upload-kind-error").textContent).toMatch(/图片背景/);
+      expect(upload).not.toHaveBeenCalled();
+    });
+
+    it("mediaKind=image 上传图片文件 → 正常调用 upload，无拦截提示", async () => {
+      const upload = vi.fn().mockResolvedValue(undefined);
+      fileMgmt.upload = upload;
+      render(
+        <AssetSelector
+          category="backgrounds"
+          mediaKind="image"
+          value=""
+          onChange={vi.fn()}
+        />,
+      );
+      const fileInput = document.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+      fireEvent.change(fileInput, { target: { files: [imageFile("ok.png")] } });
+      await waitFor(() => expect(upload).toHaveBeenCalledTimes(1));
+      expect(screen.queryByTestId("upload-kind-error")).toBeNull();
+    });
+  });
 });
