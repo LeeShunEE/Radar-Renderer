@@ -5,6 +5,7 @@ import { Label } from "../ui/label";
 import { Slider } from "../ui/slider";
 import { Switch } from "../ui/switch";
 import { AssetSelector } from "../files/AssetSelector";
+import { mediaKindFromSrc } from "../../lib/media-guard";
 import {
   BackgroundMediaSchema,
   type BackgroundConfig,
@@ -61,12 +62,12 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
       // 渲染端按 type==="gradient" 分发，保留的 media 不影响渐变渲染（见 selectBackgroundKind）。
       onChange({ background: { type: "gradient", media: background.media } });
     } else {
-      onChange({
-        background: {
-          type,
-          media: background.media ?? BackgroundMediaSchema.parse({ src: "" }),
-        },
-      });
+      const nextMedia = background.media ?? BackgroundMediaSchema.parse({ src: "" });
+      // 类型不匹配的旧 src 必须清掉：图片进 <Video> / 视频进 <Img> 会直接报错。
+      // 无法识别类型的 src（如 blob:）保留，交给用户判断。
+      const srcKind = mediaKindFromSrc(nextMedia.src);
+      const src = srcKind !== null && srcKind !== type ? "" : nextMedia.src;
+      onChange({ background: { type, media: { ...nextMedia, src } } });
     }
   };
 
@@ -102,6 +103,7 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
         <div className="space-y-3">
           <AssetSelector
             category="backgrounds"
+            mediaKind={isVideo ? "video" : "image"}
             value={media.src}
             onChange={(src) => updateMedia({ src })}
           />

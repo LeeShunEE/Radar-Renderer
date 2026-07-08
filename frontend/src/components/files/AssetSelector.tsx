@@ -10,7 +10,7 @@ import { usePublicAssets } from "@/hooks/usePublicAssets";
 import { useFileManagement } from "@/hooks/useFileManagement";
 import { useUploadObjectUrls } from "@/hooks/useUploadObjectUrls";
 import { RefreshCw, Upload, ClipboardPaste } from "lucide-react";
-import { checkBackgroundVideo } from "@/lib/media-guard";
+import { checkBackgroundVideo, type BackgroundMediaKind } from "@/lib/media-guard";
 import { extractPastedImage, pastedImageName } from "@/lib/clipboard-image";
 
 /** 读取视频文件的宽高（异步，jsdom 中会走 onerror 分支，回退 0×0）。 */
@@ -45,12 +45,20 @@ interface AssetSelectorProps {
   onChange: (path: string) => void;
   /** 是否显示播放按钮（仅 music 有效） */
   showPlayButton?: boolean;
+  /**
+   * 背景媒体类型过滤（仅 backgrounds 有效）：
+   * "image" 只列/只收图片，"video" 只列/只收视频。
+   * 不传则图片视频混排（历史行为，背景类型不匹配会导致渲染端报错）。
+   */
+  mediaKind?: BackgroundMediaKind;
 }
 
 /** 文件名扩展名过滤正则 */
 const SIL_EXT_RE = /\.(png|jpg|jpeg|gif|webp|svg)$/i;
 const MUSIC_EXT_RE = /\.(mp3|wav|ogg|m4a|aac)$/i;
 const BG_EXT_RE = /\.(png|jpg|jpeg|gif|webp|svg|mp4|webm|mov)$/i;
+const BG_IMAGE_EXT_RE = /\.(png|jpg|jpeg|gif|webp|svg)$/i;
+const BG_VIDEO_EXT_RE = /\.(mp4|webm|mov)$/i;
 
 /** 判断文件名是否为视频 */
 const isVideoName = (name: string) => /\.(mp4|webm|mov)$/i.test(name);
@@ -60,6 +68,7 @@ export function AssetSelector({
   value,
   onChange,
   showPlayButton = false,
+  mediaKind,
 }: AssetSelectorProps) {
   const {
     silhouettes,
@@ -84,8 +93,13 @@ export function AssetSelector({
   const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
   // 背景视频上传软警告（决策 Q7）：仅提示，不拦截上传
   const [bgWarnings, setBgWarnings] = useState<string[]>([]);
-  // 粘贴上传：仅图片类别（剪影/背景）支持；用 hover 限定作用域，避免多个选择器同时响应同一次 Ctrl+V
-  const acceptsImagePaste = category === "silhouettes" || category === "backgrounds";
+  // 上传类型不符的硬拦截提示（如视频背景模式下选了图片）
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  // 背景媒体过滤：仅 backgrounds 类别生效
+  const bgKind = category === "backgrounds" ? mediaKind : undefined;
+  // 粘贴上传：仅图片类别（剪影/图片背景）支持；用 hover 限定作用域，避免多个选择器同时响应同一次 Ctrl+V
+  const acceptsImagePaste =
+    category === "silhouettes" || (category === "backgrounds" && bgKind !== "video");
   const hoveredRef = useRef(false);
   const [pasteHint, setPasteHint] = useState<string | null>(null);
 
@@ -99,7 +113,11 @@ export function AssetSelector({
       ? SIL_EXT_RE
       : category === "music"
         ? MUSIC_EXT_RE
-        : BG_EXT_RE;
+        : bgKind === "image"
+          ? BG_IMAGE_EXT_RE
+          : bgKind === "video"
+            ? BG_VIDEO_EXT_RE
+            : BG_EXT_RE;
 
   const userAssets = userFiles
     .filter((f) => f.name.match(extRe))
@@ -124,8 +142,25 @@ export function AssetSelector({
     if (!file) return;
     // 清空上次警告
     setBgWarnings([]);
+    setUploadError(null);
+    // file.type 可能为空串（系统未识别 MIME 时），扩展名兜底
+    const mime = file.type ?? "";
+    const isVideoFile = mime.startsWith("video/") || BG_VIDEO_EXT_RE.test(file.name);
+    const isImageFile = mime.startsWith("image/") || BG_IMAGE_EXT_RE.test(file.name);
+    // 背景媒体类型硬拦截：accept 属性可被系统文件对话框的「所有文件」绕过，
+    // 类型不符的文件传给渲染端会直接报错（图片进 <Video> / 视频进 <Img>），故在此拦下。
+    if (bgKind === "video" && !isVideoFile) {
+      setUploadError("当前为视频背景，请选择视频文件（mp4 / webm / mov）");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    if (bgKind === "image" && !isImageFile) {
+      setUploadError("当前为图片背景，请选择图片文件（png / jpg / gif / webp / svg）");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
     // 背景视频软警告（Q7）：并行读元数据 + 上传，不因读取失败而阻塞
-    if (category === "backgrounds" && (file.type.startsWith("video/") || /\.(mp4|webm|mov)$/i.test(file.name))) {
+    if (category === "backgrounds" && isVideoFile) {
       // 并行：上传不等读取完成
       const metaPromise = readVideoMeta(file).then(({ width, height }) => {
         const warns = checkBackgroundVideo({ width, height, sizeBytes: file.size });
@@ -226,7 +261,11 @@ export function AssetSelector({
       ? "image/*"
       : category === "music"
         ? "audio/*"
-        : "image/*,video/*";
+        : bgKind === "image"
+          ? "image/*"
+          : bgKind === "video"
+            ? "video/*"
+            : "image/*,video/*";
 
   /** header 标签文字 */
   const headerLabel =
@@ -234,7 +273,11 @@ export function AssetSelector({
       ? "剪影图片"
       : category === "music"
         ? "背景音乐"
-        : "背景媒体";
+        : bgKind === "image"
+          ? "背景图片"
+          : bgKind === "video"
+            ? "背景视频"
+            : "背景媒体";
 
   return (
     <div
@@ -282,6 +325,16 @@ export function AssetSelector({
         <p className="text-xs text-muted-foreground flex items-center gap-1">
           <ClipboardPaste className="w-3 h-3 shrink-0" />
           {pasteHint ?? "悬停此处按 Ctrl+V（⌘V）可粘贴图片"}
+        </p>
+      )}
+
+      {/* 上传类型不符的硬拦截提示 */}
+      {uploadError && (
+        <p
+          data-testid="upload-kind-error"
+          className="text-xs rounded-md border border-red-400/50 bg-red-50/10 px-2 py-1.5 text-red-600 dark:text-red-400"
+        >
+          ✕ {uploadError}
         </p>
       )}
 
