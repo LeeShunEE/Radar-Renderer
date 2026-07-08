@@ -380,23 +380,127 @@ describe("api-client", () => {
     });
   });
 
-  describe("files 二进制与上传端点", () => {
-    it("upload 成功返回 JSON", async () => {
+  describe("files.upload（XHR，支持进度）", () => {
+    /** 最小 XHR stub：send 后不自动完成，由测试手动触发 onload/onerror/onprogress。 */
+    class FakeXHR {
+      static instances: FakeXHR[] = [];
+      method = "";
+      url = "";
+      requestHeaders: Record<string, string> = {};
+      sentBody: unknown = null;
+      status = 0;
+      responseText = "";
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      upload = {
+        onprogress: null as
+          | ((e: { lengthComputable: boolean; loaded: number; total: number }) => void)
+          | null,
+      };
+      open(method: string, url: string) {
+        this.method = method;
+        this.url = url;
+      }
+      setRequestHeader(key: string, value: string) {
+        this.requestHeaders[key] = value;
+      }
+      send(body: unknown) {
+        this.sentBody = body;
+        FakeXHR.instances.push(this);
+      }
+    }
+
+    beforeEach(() => {
+      FakeXHR.instances = [];
+      vi.stubGlobal("XMLHttpRequest", FakeXHR);
+    });
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    /** 启动上传并返回 (promise, xhr 实例)。 */
+    const startUpload = (onProgress?: (p: number) => void) => {
+      const promise = files.upload(new File(["d"], "x.png"), onProgress);
+      const xhr = FakeXHR.instances[0];
+      return { promise, xhr };
+    };
+
+    it("成功解析 JSON 并携带 Authorization 头", async () => {
       setTokens("a", "r");
-      mockFetch.mockResolvedValueOnce({ ok: true, status: 201, json: async () => ({ file: { name: "x.png" } }) });
-      const res = await files.upload(new File(["d"], "x.png"));
+      const { promise, xhr } = startUpload();
+      expect(xhr.method).toBe("POST");
+      expect(xhr.url).toContain("/api/v1/files");
+      expect(xhr.requestHeaders.Authorization).toBe("Bearer a");
+      // FormData 上传不应手动设置 Content-Type（交给 XHR 带 boundary）
+      expect(xhr.requestHeaders["Content-Type"]).toBeUndefined();
+      expect(xhr.sentBody).toBeInstanceOf(FormData);
+
+      xhr.status = 201;
+      xhr.responseText = JSON.stringify({ file: { name: "x.png" } });
+      xhr.onload!();
+
+      const res = await promise;
       expect(res.file.name).toBe("x.png");
-      const opts = mockFetch.mock.calls[0][1];
-      expect(opts.method).toBe("POST");
-      // FormData 上传不应强制 JSON Content-Type
-      expect(opts.headers).toEqual({ Authorization: "Bearer a" });
     });
 
-    it("upload 失败抛错", async () => {
-      mockFetch.mockResolvedValueOnce({ ok: false, status: 413, json: async () => ({ error: "太大" }) });
-      await expect(files.upload(new File(["d"], "x.png"))).rejects.toThrow("太大");
+    it("无 token 时不设置 Authorization 头", async () => {
+      const { promise, xhr } = startUpload();
+      expect(xhr.requestHeaders.Authorization).toBeUndefined();
+      xhr.status = 201;
+      xhr.responseText = "{}";
+      xhr.onload!();
+      await promise;
     });
 
+    it("非 2xx 抛出 body.error", async () => {
+      const { promise, xhr } = startUpload();
+      xhr.status = 413;
+      xhr.responseText = JSON.stringify({ error: "太大" });
+      xhr.onload!();
+      await expect(promise).rejects.toThrow("太大");
+    });
+
+    it("非 2xx 且响应体非 JSON 时回退「上传失败」", async () => {
+      const { promise, xhr } = startUpload();
+      xhr.status = 500;
+      xhr.responseText = "Internal Server Error";
+      xhr.onload!();
+      await expect(promise).rejects.toThrow("上传失败");
+    });
+
+    it("onerror 抛出「上传失败」", async () => {
+      const { promise, xhr } = startUpload();
+      xhr.onerror!();
+      await expect(promise).rejects.toThrow("上传失败");
+    });
+
+    it("onprogress 回调百分比（四舍五入）", async () => {
+      const onProgress = vi.fn();
+      const { promise, xhr } = startUpload(onProgress);
+      xhr.upload.onprogress!({ lengthComputable: true, loaded: 1, total: 3 });
+      xhr.upload.onprogress!({ lengthComputable: true, loaded: 3, total: 3 });
+      expect(onProgress).toHaveBeenNthCalledWith(1, 33);
+      expect(onProgress).toHaveBeenNthCalledWith(2, 100);
+      xhr.status = 201;
+      xhr.responseText = "{}";
+      xhr.onload!();
+      await promise;
+    });
+
+    it("lengthComputable 为 false 时不回调", async () => {
+      const onProgress = vi.fn();
+      const { promise, xhr } = startUpload(onProgress);
+      xhr.upload.onprogress!({ lengthComputable: false, loaded: 1, total: 0 });
+      expect(onProgress).not.toHaveBeenCalled();
+      xhr.status = 201;
+      xhr.responseText = "{}";
+      xhr.onload!();
+      await promise;
+    });
+  });
+
+  describe("files 二进制端点", () => {
     it("downloadOutput 构造产物 URL", () => {
       expect(files.downloadOutput(7)).toContain("/api/v1/files/outputs/7");
     });

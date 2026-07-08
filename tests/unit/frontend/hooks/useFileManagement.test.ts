@@ -99,11 +99,47 @@ describe("useFileManagement", () => {
         await result.current.upload(file);
       });
 
-      expect(files.upload).toHaveBeenCalledWith(file);
+      expect(files.upload).toHaveBeenCalledWith(file, expect.any(Function));
       expect(result.current.uploading).toBe(false);
     });
 
-    it("上传失败时设置 error 并重新抛出", async () => {
+    it("进度回调触发时更新 uploadProgress，成功后重置为 null", async () => {
+      let progressCb!: (percent: number) => void;
+      let resolveUpload!: () => void;
+      vi.mocked(files.upload).mockImplementationOnce((_file, onProgress) => {
+        progressCb = onProgress!;
+        return new Promise((res) => {
+          resolveUpload = () => res({} as never);
+        });
+      });
+
+      const { result } = renderHook(() => useFileManagement());
+      await waitFor(() => expect(result.current.loading).toBe(false));
+
+      let uploadPromise!: Promise<void>;
+      act(() => {
+        uploadPromise = result.current.upload(new File(["x"], "u.png"));
+      });
+
+      // 开始上传：uploading=true，进度从 0 起步
+      expect(result.current.uploading).toBe(true);
+      expect(result.current.uploadProgress).toBe(0);
+
+      act(() => {
+        progressCb(37);
+      });
+      expect(result.current.uploadProgress).toBe(37);
+
+      await act(async () => {
+        resolveUpload();
+        await uploadPromise;
+      });
+
+      expect(result.current.uploading).toBe(false);
+      expect(result.current.uploadProgress).toBeNull();
+    });
+
+    it("上传失败时设置 error、重置 uploadProgress 并重新抛出", async () => {
       const { result } = renderHook(() => useFileManagement());
       await waitFor(() => expect(result.current.loading).toBe(false));
 
@@ -120,6 +156,7 @@ describe("useFileManagement", () => {
 
       expect(threw).toBe(true);
       expect(result.current.uploading).toBe(false);
+      expect(result.current.uploadProgress).toBeNull();
       expect(result.current.error).toBe("上传被拒");
     });
   });

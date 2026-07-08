@@ -245,21 +245,48 @@ export const files = {
     authFetch<{ files: Array<{ name: string; size_bytes: number; modified_at: string }>; quota: { used_bytes: number; limit_bytes: number; available_bytes: number } }>(
       "/api/v1/files",
     ),
-  upload: async (file: File) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    const accessToken = getAccessToken();
-    const res = await fetch(`${API_BASE}/api/v1/files`, {
-      method: "POST",
-      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
-      body: formData,
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({ error: "上传失败" }));
-      throw new Error(body.error);
-    }
-    return res.json();
-  },
+  /** 上传文件。用 XHR 而非 fetch：fetch 无法获取上传进度。 */
+  upload: (
+    file: File,
+    onProgress?: (percent: number) => void,
+  ): Promise<{ file: { name: string; size_bytes: number; modified_at: string }; quota: { used_bytes: number; limit_bytes: number; available_bytes: number } }> =>
+    new Promise((resolve, reject) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const accessToken = getAccessToken();
+
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${API_BASE}/api/v1/files`);
+      if (accessToken) {
+        xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
+      }
+      // 不设 Content-Type：由 XHR 按 FormData 自动带 multipart boundary
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) {
+          onProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            resolve(JSON.parse(xhr.responseText));
+          } catch {
+            reject(new Error("上传失败"));
+          }
+        } else {
+          let message = "上传失败";
+          try {
+            message = JSON.parse(xhr.responseText).error ?? message;
+          } catch {
+            // 响应体非 JSON，用默认消息
+          }
+          reject(new Error(message));
+        }
+      };
+      xhr.onerror = () => reject(new Error("上传失败"));
+      xhr.send(formData);
+    }),
   downloadUpload: (name: string) => `${API_BASE}/api/v1/files/uploads/${name}`,
   downloadOutput: (taskId: number) => `${API_BASE}/api/v1/files/outputs/${taskId}`,
   /** 带认证拉取渲染产物为 Blob（见 authFetchBlob）。 */
