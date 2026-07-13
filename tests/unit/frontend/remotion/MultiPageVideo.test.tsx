@@ -12,7 +12,7 @@ vi.mock("remotion", async (orig) => {
   return {
     ...actual,
     Sequence: (p: { from?: number; durationInFrames?: number; children?: React.ReactNode }) => (
-      <div data-testid="sequence" data-from={p.from} data-duration={p.durationInFrames}>
+      <div data-testid="sequence" data-from={p.from ?? 0} data-duration={p.durationInFrames}>
         {p.children}
       </div>
     ),

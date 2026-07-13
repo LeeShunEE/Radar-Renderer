@@ -16,7 +16,7 @@ vi.mock("remotion", async (orig) => {
         data-testid={p["data-testid"] as string}
         data-kind="offthread"
         data-muted={String(p.muted)}
-        data-volume={p.volume as number}
+        data-volume={typeof p.volume === "function" ? (p.volume as (frame: number) => number)(0) : (p.volume as number)}
         style={p.style as React.CSSProperties}
       />
     ),
@@ -32,7 +32,7 @@ vi.mock("@remotion/media", () => ({
       data-testid={p["data-testid"] as string}
       data-kind="media"
       data-muted={String(p.muted)}
-      data-volume={p.volume as number}
+      data-volume={typeof p.volume === "function" ? (p.volume as (frame: number) => number)(0) : (p.volume as number)}
       data-effects={JSON.stringify(p.effects ?? null)}
       style={p.style as React.CSSProperties}
     />
