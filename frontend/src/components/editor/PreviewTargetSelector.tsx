@@ -8,10 +8,10 @@ import {
   SelectContent,
   SelectItem,
 } from "../ui/select";
-import type { RadarVideoProps } from "../../types/radar";
+import { isVideoPage, type PageConfig } from "../../types/radar";
 
 type PreviewTargetSelectorProps = {
-  pages: RadarVideoProps[];
+  pages: PageConfig[];
   previewMode: "single" | "multi";
   activePageIndex: number;
   onSelectGlobal: () => void;
@@ -57,7 +57,7 @@ export const PreviewTargetSelector: React.FC<PreviewTargetSelectorProps> = ({
           </SelectItem>
           {pages.map((page, i) => (
             <SelectItem key={i} value={`page-${i}`}>
-              第{i + 1}页：{page.characterName || `页${i + 1}`}
+              第{i + 1}页：{(isVideoPage(page) ? page.label : page.characterName) || `页${i + 1}`}
             </SelectItem>
           ))}
         </SelectContent>
