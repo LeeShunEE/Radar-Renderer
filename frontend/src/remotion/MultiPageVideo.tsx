@@ -99,7 +99,7 @@ function buildRenderSequence(config: MultiPageConfig): RenderItem[] {
 
 function renderVideoOverlap(item: Extract<RenderItem, { type: "videoOverlap" }>) {
   const layers = [
-    <Sequence key="first" from={0} durationInFrames={item.first.durationInFrames}>
+    <Sequence key="first" durationInFrames={item.first.durationInFrames}>
       <VideoPage page={item.first} />
     </Sequence>,
     <Sequence

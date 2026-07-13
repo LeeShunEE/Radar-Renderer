@@ -47,7 +47,7 @@ export const VideoPage: React.FC<{ page: VideoPageConfig }> = ({ page }) => {
             src={src}
             effects={effects}
             muted={audio.muted}
-            volume={audio.volume}
+            volume={() => audio.volume}
             style={style}
           />
         ) : (
@@ -55,7 +55,7 @@ export const VideoPage: React.FC<{ page: VideoPageConfig }> = ({ page }) => {
             data-testid="video-page-video"
             src={src}
             muted={audio.muted}
-            volume={audio.volume}
+            volume={() => audio.volume}
             style={style}
           />
         )
