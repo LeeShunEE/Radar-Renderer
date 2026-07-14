@@ -69,6 +69,12 @@ export const GlobalConfigEditor: React.FC<GlobalConfigEditorProps> = ({
       const comparisons = config.comparisons.filter((_, i) => i !== existingIdx);
       onChange({ ...config, comparisons });
     } else {
+      // D2：配对仅在相邻双雷达页生效；视频页不参与对比（任一侧为视频页禁止新建）
+      if (
+        isVideoPage(config.pages[firstIdx]) ||
+        isVideoPage(config.pages[secondIdx])
+      )
+        return;
       // Can't add if either page is already compared
       if (isPageCompared(firstIdx) || isPageCompared(secondIdx)) return;
       const newComp: ComparisonPairConfig = {
@@ -157,7 +163,12 @@ export const GlobalConfigEditor: React.FC<GlobalConfigEditorProps> = ({
                 <button
                   type="button"
                   onClick={() => toggleComparison(i, i + 1)}
-                  disabled={!isComparisonActive(i, i + 1) && (isPageCompared(i) || isPageCompared(i + 1))}
+                  disabled={
+                    isVideoPage(page) ||
+                    isVideoPage(config.pages[i + 1]) ||
+                    (!isComparisonActive(i, i + 1) &&
+                      (isPageCompared(i) || isPageCompared(i + 1)))
+                  }
                   className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors ${
                     isComparisonActive(i, i + 1)
                       ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/50"

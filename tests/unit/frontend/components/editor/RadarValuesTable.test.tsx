@@ -5,6 +5,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { RadarValuesTable } from "@/components/editor/RadarValuesTable";
 import { makeMultiPageConfig } from "./_fixtures";
+import { defaultVideoPage } from "@/types/constants";
 
 describe("RadarValuesTable", () => {
   it("无页面时返回 null", () => {
@@ -327,5 +328,51 @@ describe("RadarValuesTable", () => {
       />,
     );
     expect(screen.queryByText("＋ 添加新页")).toBeNull();
+  });
+
+  it("视频页渲染只读占位行（label + 视频页标签）", () => {
+    const mixed = {
+      ...makeMultiPageConfig(),
+      pages: [makeMultiPageConfig().pages[0], { ...defaultVideoPage, label: "视频页1" }],
+    };
+    render(
+      <RadarValuesTable
+        config={mixed}
+        onChange={vi.fn()}
+        activePageIndex={0}
+        onSetActive={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("视频页1")).toBeInTheDocument();
+    expect(screen.getByText("视频页")).toBeInTheDocument();
+  });
+
+  it("视频页占位行序与页索引对齐（第 2 行为视频页）", () => {
+    const mixed = {
+      ...makeMultiPageConfig(),
+      pages: [makeMultiPageConfig().pages[0], { ...defaultVideoPage, label: "视频页1" }],
+    };
+    render(
+      <RadarValuesTable
+        config={mixed}
+        onChange={vi.fn()}
+        activePageIndex={0}
+        onSetActive={vi.fn()}
+      />,
+    );
+    const rows = screen.getAllByRole("row").filter((r) => r.closest("tbody"));
+    expect(rows[1].textContent).toContain("视频页1");
+  });
+
+  it("全视频页（无雷达页）返回 null（无表头无法对齐）", () => {
+    const { container } = render(
+      <RadarValuesTable
+        config={{ ...makeMultiPageConfig(), pages: [{ ...defaultVideoPage }] }}
+        onChange={vi.fn()}
+        activePageIndex={0}
+        onSetActive={vi.fn()}
+      />,
+    );
+    expect(container).toBeEmptyDOMElement();
   });
 });

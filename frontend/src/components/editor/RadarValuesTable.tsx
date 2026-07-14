@@ -211,8 +211,50 @@ export const RadarValuesTable: React.FC<Props> = ({
           <tbody>
             {config.pages.map((page, pageIndex) => {
               const isActive = pageIndex === activePageIndex;
-              // 视频页无雷达数值，Task 3.3 增加只读占位行，当前先跳过
-              if (isVideoPage(page)) return null;
+              if (isVideoPage(page)) {
+                // 视频页无雷达数值：渲染只读占位行，保持行序与页索引对齐
+                return (
+                  <tr
+                    key={pageIndex}
+                    className={isActive ? "bg-accent/20" : "hover:bg-accent/10"}
+                    onFocus={() => {
+                      if (pageIndex !== activePageIndex) onSetActive(pageIndex);
+                    }}
+                    onMouseDown={() => {
+                      if (pageIndex !== activePageIndex) onSetActive(pageIndex);
+                    }}
+                  >
+                    <td className="sticky left-0 z-10 bg-background px-2 py-1 border-b border-r border-unfocused-border-color min-w-[200px]">
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => onSetActive(pageIndex)}
+                          className={`text-xs px-1 rounded ${
+                            isActive
+                              ? "text-amber-400 font-bold"
+                              : "text-subtitle hover:text-foreground"
+                          }`}
+                          title="设为预览页"
+                        >
+                          {pageIndex + 1}
+                        </button>
+                        <span className="text-xs text-subtitle truncate flex-1">
+                          {page.label}
+                        </span>
+                        <span className="text-[10px] px-1 rounded bg-muted text-muted-foreground shrink-0">
+                          视频页
+                        </span>
+                      </div>
+                    </td>
+                    <td
+                      colSpan={headerPage.attributes.length}
+                      className="px-2 py-1 text-center text-xs text-subtitle border-b border-unfocused-border-color"
+                    >
+                      无雷达数值
+                    </td>
+                  </tr>
+                );
+              }
               return (
                 <tr
                   key={pageIndex}
