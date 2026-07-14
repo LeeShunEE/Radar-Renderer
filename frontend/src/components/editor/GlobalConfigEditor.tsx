@@ -36,6 +36,7 @@ export const GlobalConfigEditor: React.FC<GlobalConfigEditorProps> = ({
   onChange,
   onSetActive,
   onAddPage,
+  onAddVideoPage,
   onDuplicatePage,
   onRemovePage,
   onMovePage,
@@ -177,6 +178,15 @@ export const GlobalConfigEditor: React.FC<GlobalConfigEditorProps> = ({
             className="h-7 text-xs"
           >
             + 添加页面
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onAddVideoPage?.()}
+            className="h-7 text-xs"
+          >
+            + 添加视频页
           </Button>
         </div>
       </div>

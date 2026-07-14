@@ -6,6 +6,7 @@ import { PreviewTargetSelector } from "./PreviewTargetSelector";
 import { GlobalConfigEditor } from "./GlobalConfigEditor";
 import { ComparisonConfigPanel } from "./ComparisonConfigPanel";
 import { PageConfigPanel } from "./PageConfigPanel";
+import { VideoPageConfigPanel } from "./VideoPageConfigPanel";
 import { RadarValuesTable } from "./RadarValuesTable";
 import { ExportPanel } from "./ExportPanel";
 import { ConfigPersistencePanel } from "./ConfigPersistencePanel";
@@ -336,30 +337,15 @@ export const RadarEditor: React.FC = () => {
           <TabsContent value="pages" className="overflow-y-auto p-6 space-y-4">
             {config.pages.map((page, i) => {
               if (isVideoPage(page)) {
-                // 过渡占位：Task 3.2 将替换为 VideoPageConfigPanel。
-                // 此处仅渲染可观测状态 + 触发 updateVideoPage，验证状态层嵌套合并。
+                const activate = () => {
+                  if (i !== activePageIndex) setActivePageIndex(i);
+                };
                 return (
-                  <div
-                    key={i}
-                    data-testid={`vp-${i}`}
-                    className="space-y-1 border border-unfocused-border-color rounded-lg p-3"
-                  >
-                    <span data-testid={`vp-label-${i}`}>{page.label}</span>
-                    <span data-testid={`vp-state-${i}`}>
-                      {page.chromaKey.similarity}:{page.audio.muted ? 1 : 0}
-                    </span>
-                    <button
-                      type="button"
-                      data-testid={`vp-upd-${i}`}
-                      onClick={() =>
-                        updateVideoPage(i, {
-                          chromaKey: { similarity: 0.5 },
-                          audio: { muted: true },
-                        })
-                      }
-                    >
-                      upd
-                    </button>
+                  <div key={i} data-testid={`vp-${i}`} onFocus={activate} onMouseDown={activate}>
+                    <VideoPageConfigPanel
+                      page={page}
+                      onUpdate={(updates) => updateVideoPage(i, updates)}
+                    />
                   </div>
                 );
               }

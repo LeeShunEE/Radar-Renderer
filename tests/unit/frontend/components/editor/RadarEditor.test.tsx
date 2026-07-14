@@ -3,7 +3,7 @@
  * PreviewPanel/各面板/Tabs 全 stub 化；通过 mock 组件的回调按钮触发 RadarEditor 自身状态逻辑。
  */
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import { RadarEditor } from "@/components/editor/RadarEditor";
 import { defaultMultiPageConfig, defaultRadarProps, defaultVideoPage } from "@/types/constants";
 import { ComparisonPairSchema, VideoOverlapPairSchema, type MultiPageConfig } from "@/types/radar";
@@ -132,6 +132,24 @@ vi.mock("@/components/editor/PageConfigPanel", () => ({
       <button data-testid={`preview-${p.index}`} onClick={p.onPreview}>preview</button>
       <button data-testid={`dup-${p.index}`} onClick={p.onDuplicate}>dup</button>
       <button data-testid={`rm-${p.index}`} onClick={p.onRemove}>rm</button>
+    </div>
+  ),
+}));
+vi.mock("@/components/editor/VideoPageConfigPanel", () => ({
+  VideoPageConfigPanel: (p: any) => (
+    <div>
+      <span data-testid="vp-label">{p.page.label}</span>
+      <span data-testid="vp-state">
+        {p.page.chromaKey.similarity}:{p.page.audio.muted ? 1 : 0}
+      </span>
+      <button
+        data-testid="vp-upd"
+        onClick={() =>
+          p.onUpdate({ chromaKey: { similarity: 0.5 }, audio: { muted: true } })
+        }
+      >
+        upd
+      </button>
     </div>
   ),
 }));
@@ -322,17 +340,20 @@ describe("RadarEditor", () => {
       expect(count()).toBe(before + 1);
       // 新视频页在末尾（index=before），pages tab 渲染视频页占位
       expect(screen.getByTestId(`vp-${before}`)).toBeInTheDocument();
-      expect(screen.getByTestId(`vp-label-${before}`).textContent).toBe(`视频${before + 1}`);
+      expect(
+        within(screen.getByTestId(`vp-${before}`)).getByTestId("vp-label").textContent,
+      ).toBe(`视频${before + 1}`);
     });
 
     it("updateVideoPage 嵌套合并 chromaKey/audio（保留其余键）", () => {
       render(<RadarEditor />);
       fireEvent.click(screen.getByTestId("add-video")); // 视频页在 index 1
       // 默认 similarity=0.18、audio.muted=false
-      expect(screen.getByTestId("vp-state-1").textContent).toBe("0.18:0");
-      fireEvent.click(screen.getByTestId("vp-upd-1"));
+      const wrap1 = screen.getByTestId("vp-1");
+      expect(within(wrap1).getByTestId("vp-state").textContent).toBe("0.18:0");
+      fireEvent.click(within(wrap1).getByTestId("vp-upd"));
       // 嵌套合并：similarity→0.5、muted→true；其余键（keyColor/spillSuppression/volume）保留
-      expect(screen.getByTestId("vp-state-1").textContent).toBe("0.5:1");
+      expect(within(wrap1).getByTestId("vp-state").textContent).toBe("0.5:1");
     });
 
     it("removePage 重映射 videoOverlaps：删首页后 {1,2}→{0,1}", () => {
@@ -365,7 +386,7 @@ describe("RadarEditor", () => {
       fireEvent.click(screen.getByTestId("load-video"));
       fireEvent.click(screen.getByTestId("set-active-1")); // active=index1 (V1 视频页)
       expect(screen.getByTestId("preview")).toBeInTheDocument();
-      expect(screen.getByTestId("vp-label-1")).toBeInTheDocument();
+      expect(within(screen.getByTestId("vp-1")).getByTestId("vp-label")).toBeInTheDocument();
     });
   });
 });
