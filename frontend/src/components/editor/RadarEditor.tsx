@@ -16,8 +16,8 @@ import { applyGlobalOverride } from "../../lib/global-override";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
 import { useAutoSave } from "../../hooks/useAutoSave";
 import { isVideoPage } from "../../types/radar";
-import type { MultiPageConfig, PageConfig, RadarVideoProps } from "../../types/radar";
-import { defaultMultiPageConfig, defaultRadarProps } from "../../types/constants";
+import type { MultiPageConfig, PageConfig, RadarVideoProps, VideoPageConfig } from "../../types/radar";
+import { defaultMultiPageConfig, defaultRadarProps, defaultVideoPage } from "../../types/constants";
 
 export const RadarEditor: React.FC = () => {
   const [config, setConfig] = useState<MultiPageConfig>(defaultMultiPageConfig);
@@ -83,6 +83,27 @@ export const RadarEditor: React.FC = () => {
     });
   };
 
+  // 视频页更新：嵌套合并 chromaKey/audio/background（参照 updatePage 的 theme/animation 合并）。
+  const updateVideoPage = (index: number, updates: Partial<VideoPageConfig>) => {
+    setConfig((prev) => {
+      const target = prev.pages[index];
+      if (!isVideoPage(target)) return prev;
+      const pages = [...prev.pages];
+      let nextPage: VideoPageConfig = { ...target, ...updates };
+      if (updates.chromaKey) {
+        nextPage = { ...nextPage, chromaKey: { ...target.chromaKey, ...updates.chromaKey } };
+      }
+      if (updates.audio) {
+        nextPage = { ...nextPage, audio: { ...target.audio, ...updates.audio } };
+      }
+      if (updates.background) {
+        nextPage = { ...nextPage, background: { ...target.background, ...updates.background } };
+      }
+      pages[index] = nextPage;
+      return { ...prev, pages };
+    });
+  };
+
   const toggleIgnoreOverride = useCallback(
     (pageIndex: number, path: string, ignored: boolean) => {
       setConfig((prev) => {
@@ -112,25 +133,37 @@ export const RadarEditor: React.FC = () => {
     }));
   };
 
-  const remapComparisons = (
-    comparisons: MultiPageConfig["comparisons"],
+  const addVideoPage = () => {
+    setConfig((prev) => ({
+      ...prev,
+      pages: [
+        ...prev.pages,
+        { ...defaultVideoPage, label: `视频${prev.pages.length + 1}` },
+      ],
+    }));
+  };
+
+  // 泛化的相邻页索引对重映射：comparisons 与 videoOverlaps 共用同一 remap，
+  // 删除任一侧页面 → 该配对移除（被删索引映射为 null）；其余按 remap 平移。
+  const remapIndexPairs = <T extends { firstPageIndex: number; secondPageIndex: number }>(
+    pairs: T[],
     remap: (oldIndex: number) => number | null,
-  ) =>
-    comparisons.flatMap((c) => {
-      const a = remap(c.firstPageIndex);
-      const b = remap(c.secondPageIndex);
+  ): T[] =>
+    pairs.flatMap((pair) => {
+      const a = remap(pair.firstPageIndex);
+      const b = remap(pair.secondPageIndex);
       if (a === null || b === null || a === b) return [];
-      return [{ ...c, firstPageIndex: a, secondPageIndex: b }];
+      return [{ ...pair, firstPageIndex: a, secondPageIndex: b }];
     });
 
   const removePage = (index: number) => {
     setConfig((prev) => {
       if (prev.pages.length <= 1) return prev;
       const pages = prev.pages.filter((_, i) => i !== index);
-      const comparisons = remapComparisons(prev.comparisons, (i) =>
-        i === index ? null : i > index ? i - 1 : i,
-      );
-      return { ...prev, pages, comparisons };
+      const remap = (i: number) => (i === index ? null : i > index ? i - 1 : i);
+      const comparisons = remapIndexPairs(prev.comparisons, remap);
+      const videoOverlaps = remapIndexPairs(prev.videoOverlaps, remap);
+      return { ...prev, pages, comparisons, videoOverlaps };
     });
     setActivePageIndex((prev) => {
       if (prev >= config.pages.length - 1) {
@@ -150,11 +183,11 @@ export const RadarEditor: React.FC = () => {
         copy.characterName = `${copy.characterName} (副本)`;
       }
       pages.splice(index + 1, 0, copy);
-      // Indices > index shift by +1 (insertion point is index+1).
-      const comparisons = remapComparisons(prev.comparisons, (i) =>
-        i > index ? i + 1 : i,
-      );
-      return { ...prev, pages, comparisons };
+      // 插入点 index+1：index 之后的所有索引 +1。
+      const remap = (i: number) => (i > index ? i + 1 : i);
+      const comparisons = remapIndexPairs(prev.comparisons, remap);
+      const videoOverlaps = remapIndexPairs(prev.videoOverlaps, remap);
+      return { ...prev, pages, comparisons, videoOverlaps };
     });
   };
 
@@ -163,20 +196,22 @@ export const RadarEditor: React.FC = () => {
       const pages = [...prev.pages];
       const [moved] = pages.splice(from, 1);
       pages.splice(to, 0, moved);
-      const comparisons = remapComparisons(prev.comparisons, (i) => {
+      const remap = (i: number) => {
         if (i === from) return to;
-        // After removing `from`, items shift; after inserting at `to`, items shift back.
+        // 移除 from 后元素前移，插入 to 后再回移；两次移位的净效果按区间分支。
         if (from < to) {
-          // Range (from, to] shifts down by 1.
+          // 区间 (from, to] 整体 -1。
           if (i > from && i <= to) return i - 1;
           return i;
         } else {
-          // Range [to, from) shifts up by 1.
+          // 区间 [to, from) 整体 +1。
           if (i >= to && i < from) return i + 1;
           return i;
         }
-      });
-      return { ...prev, pages, comparisons };
+      };
+      const comparisons = remapIndexPairs(prev.comparisons, remap);
+      const videoOverlaps = remapIndexPairs(prev.videoOverlaps, remap);
+      return { ...prev, pages, comparisons, videoOverlaps };
     });
     if (activePageIndex === from) {
       setActivePageIndex(to);
@@ -185,8 +220,8 @@ export const RadarEditor: React.FC = () => {
     }
   };
 
-  // 视频页单页预览在 Task 3.4 落地；此前 playerProps 仅对雷达页有意义，
-  // 视频页兜底默认雷达配置避免类型/运行时错误（编辑器尚不能创建视频页）。
+  // 视频页单页预览在 Task 3.4 落地（PreviewPanel 新增 single-video 分支）；
+  // 此前 playerProps 仅 ExportPanel 等按雷达页消费，视频页兜底默认雷达配置避免类型/运行时错误。
   const playerProps = useMemo(
     () =>
       applyGlobalOverride(
@@ -276,6 +311,7 @@ export const RadarEditor: React.FC = () => {
               onChange={setConfig}
               onSetActive={setActivePageIndex}
               onAddPage={addPage}
+              onAddVideoPage={addVideoPage}
               onDuplicatePage={duplicatePage}
               onRemovePage={removePage}
               onMovePage={movePage}
@@ -299,8 +335,34 @@ export const RadarEditor: React.FC = () => {
 
           <TabsContent value="pages" className="overflow-y-auto p-6 space-y-4">
             {config.pages.map((page, i) => {
-              // 视频页配置面板在 Task 3.2 落地，当前先跳过
-              if (isVideoPage(page)) return null;
+              if (isVideoPage(page)) {
+                // 过渡占位：Task 3.2 将替换为 VideoPageConfigPanel。
+                // 此处仅渲染可观测状态 + 触发 updateVideoPage，验证状态层嵌套合并。
+                return (
+                  <div
+                    key={i}
+                    data-testid={`vp-${i}`}
+                    className="space-y-1 border border-unfocused-border-color rounded-lg p-3"
+                  >
+                    <span data-testid={`vp-label-${i}`}>{page.label}</span>
+                    <span data-testid={`vp-state-${i}`}>
+                      {page.chromaKey.similarity}:{page.audio.muted ? 1 : 0}
+                    </span>
+                    <button
+                      type="button"
+                      data-testid={`vp-upd-${i}`}
+                      onClick={() =>
+                        updateVideoPage(i, {
+                          chromaKey: { similarity: 0.5 },
+                          audio: { muted: true },
+                        })
+                      }
+                    >
+                      upd
+                    </button>
+                  </div>
+                );
+              }
               const isSecondary = config.comparisons?.some(
                 (c) => c.secondPageIndex === i,
               );

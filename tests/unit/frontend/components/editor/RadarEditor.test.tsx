@@ -5,8 +5,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { RadarEditor } from "@/components/editor/RadarEditor";
-import { defaultMultiPageConfig, defaultRadarProps } from "@/types/constants";
-import { ComparisonPairSchema, type MultiPageConfig } from "@/types/radar";
+import { defaultMultiPageConfig, defaultRadarProps, defaultVideoPage } from "@/types/constants";
+import { ComparisonPairSchema, VideoOverlapPairSchema, type MultiPageConfig } from "@/types/radar";
 
 // 构造一个 4 页 + 两组对比的 config，专门驱动 remap/move/remove/dup 的分支
 const makeRichConfig = (): MultiPageConfig => ({
@@ -18,6 +18,21 @@ const makeRichConfig = (): MultiPageConfig => ({
   comparisons: [
     ComparisonPairSchema.parse({ firstPageIndex: 0, secondPageIndex: 1 }),
     ComparisonPairSchema.parse({ firstPageIndex: 2, secondPageIndex: 3 }),
+  ],
+});
+
+// 雷达/视频页混排 + 一组相邻视频页重叠（firstPageIndex/secondPageIndex 指向物理位置）
+const makeVideoRichConfig = (): MultiPageConfig => ({
+  ...defaultMultiPageConfig,
+  pages: [
+    { ...defaultRadarProps, characterName: "R0" },
+    { ...defaultVideoPage, label: "V1" },
+    { ...defaultVideoPage, label: "V2" },
+    { ...defaultRadarProps, characterName: "R3" },
+  ],
+  comparisons: [],
+  videoOverlaps: [
+    VideoOverlapPairSchema.parse({ firstPageIndex: 1, secondPageIndex: 2, offsetFrames: 30 }),
   ],
 });
 
@@ -40,13 +55,22 @@ vi.mock("@/components/editor/GlobalConfigEditor", () => ({
     <div>
       <span data-testid="page-count">{p.config.pages.length}</span>
       <span data-testid="comp-count">{p.config.comparisons.length}</span>
+      <span data-testid="overlap-count">{p.config.videoOverlaps?.length ?? 0}</span>
+      {p.config.videoOverlaps?.[0] && (
+        <span data-testid="overlap-0">
+          {p.config.videoOverlaps[0].firstPageIndex},{p.config.videoOverlaps[0].secondPageIndex}
+        </span>
+      )}
       <button data-testid="add" onClick={p.onAddPage}>add</button>
+      <button data-testid="add-video" onClick={p.onAddVideoPage}>add-video</button>
       <button data-testid="remove" onClick={() => p.onRemovePage(0)}>remove</button>
       <button data-testid="remove-mid" onClick={() => p.onRemovePage(1)}>remove-mid</button>
       <button data-testid="dup" onClick={() => p.onDuplicatePage(0)}>dup</button>
+      <button data-testid="dup-mid" onClick={() => p.onDuplicatePage(1)}>dup-mid</button>
       <button data-testid="move-fwd" onClick={() => p.onMovePage(0, 2)}>move-fwd</button>
       <button data-testid="move-back" onClick={() => p.onMovePage(2, 0)}>move-back</button>
       <button data-testid="set-active" onClick={() => p.onSetActive(2)}>set-active</button>
+      <button data-testid="set-active-1" onClick={() => p.onSetActive(1)}>set-active-1</button>
       <button data-testid="preview-all" onClick={p.onPreviewAll}>preview-all</button>
     </div>
   ),
@@ -61,9 +85,14 @@ vi.mock("@/components/editor/RadarValuesTable", () => ({
 }));
 vi.mock("@/components/editor/ConfigPersistencePanel", () => ({
   ConfigPersistencePanel: (p: any) => (
-    <button data-testid="load" onClick={() => p.onLoadConfig(makeRichConfig())}>
-      load
-    </button>
+    <div>
+      <button data-testid="load" onClick={() => p.onLoadConfig(makeRichConfig())}>
+        load
+      </button>
+      <button data-testid="load-video" onClick={() => p.onLoadConfig(makeVideoRichConfig())}>
+        load-video
+      </button>
+    </div>
   ),
 }));
 vi.mock("@/components/files/FileManagerPanel", () => ({ FileManagerPanel: () => null }));
@@ -282,6 +311,61 @@ describe("RadarEditor", () => {
       const before = count();
       fireEvent.click(screen.getByTestId("values-add-page"));
       expect(count()).toBe(before + 1);
+    });
+  });
+
+  describe("视频页状态层（addVideoPage/updateVideoPage/videoOverlaps 重映射）", () => {
+    it("addVideoPage 在末尾追加视频页", () => {
+      render(<RadarEditor />);
+      const before = count();
+      fireEvent.click(screen.getByTestId("add-video"));
+      expect(count()).toBe(before + 1);
+      // 新视频页在末尾（index=before），pages tab 渲染视频页占位
+      expect(screen.getByTestId(`vp-${before}`)).toBeInTheDocument();
+      expect(screen.getByTestId(`vp-label-${before}`).textContent).toBe(`视频${before + 1}`);
+    });
+
+    it("updateVideoPage 嵌套合并 chromaKey/audio（保留其余键）", () => {
+      render(<RadarEditor />);
+      fireEvent.click(screen.getByTestId("add-video")); // 视频页在 index 1
+      // 默认 similarity=0.18、audio.muted=false
+      expect(screen.getByTestId("vp-state-1").textContent).toBe("0.18:0");
+      fireEvent.click(screen.getByTestId("vp-upd-1"));
+      // 嵌套合并：similarity→0.5、muted→true；其余键（keyColor/spillSuppression/volume）保留
+      expect(screen.getByTestId("vp-state-1").textContent).toBe("0.5:1");
+    });
+
+    it("removePage 重映射 videoOverlaps：删首页后 {1,2}→{0,1}", () => {
+      render(<RadarEditor />);
+      fireEvent.click(screen.getByTestId("load-video")); // [R0,V1,V2,R3] + overlaps[{1,2}]
+      expect(screen.getByTestId("overlap-0").textContent).toBe("1,2");
+      fireEvent.click(screen.getByTestId("remove")); // remove index 0 (R0)
+      expect(count()).toBe(3);
+      expect(screen.getByTestId("overlap-count").textContent).toBe("1");
+      expect(screen.getByTestId("overlap-0").textContent).toBe("0,1");
+    });
+
+    it("duplicatePage 重映射 videoOverlaps：复制 index1 后 {1,2}→{1,3}", () => {
+      render(<RadarEditor />);
+      fireEvent.click(screen.getByTestId("load-video"));
+      fireEvent.click(screen.getByTestId("dup-mid")); // duplicate index 1 (V1)
+      expect(count()).toBe(5);
+      expect(screen.getByTestId("overlap-0").textContent).toBe("1,3");
+    });
+
+    it("movePage 重映射 videoOverlaps：前移 index0→2 后 {1,2}→{0,1}", () => {
+      render(<RadarEditor />);
+      fireEvent.click(screen.getByTestId("load-video"));
+      fireEvent.click(screen.getByTestId("move-fwd")); // move 0→2
+      expect(screen.getByTestId("overlap-0").textContent).toBe("0,1");
+    });
+
+    it("activePage 为视频页时不崩溃", () => {
+      render(<RadarEditor />);
+      fireEvent.click(screen.getByTestId("load-video"));
+      fireEvent.click(screen.getByTestId("set-active-1")); // active=index1 (V1 视频页)
+      expect(screen.getByTestId("preview")).toBeInTheDocument();
+      expect(screen.getByTestId("vp-label-1")).toBeInTheDocument();
     });
   });
 });

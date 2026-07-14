@@ -22,6 +22,8 @@ type GlobalConfigEditorProps = {
   onChange: (config: MultiPageConfig) => void;
   onSetActive: (index: number) => void;
   onAddPage: () => void;
+  /** 添加视频页（Task 3.2 起在 UI 暴露按钮） */
+  onAddVideoPage?: () => void;
   onDuplicatePage: (index: number) => void;
   onRemovePage: (index: number) => void;
   onMovePage: (from: number, to: number) => void;
