@@ -76,23 +76,29 @@ system (`BackgroundGradient`).
 - Media backgrounds render correctly with radar overlay
 - Performance acceptable for video backgrounds under 1080p
 
-##### 2.3 Video Insert with Chroma Key Effect
+##### 2.3 Standalone Video Pages with Chroma Key Effect
 
-> Issue: #19
+> Issue: #19 — ✅ Implemented
 
-Insert video clips into radar charts with green/blue screen keying support
-using `@remotion/effects` package.
+Mix standalone video pages with radar pages in the multi-page timeline, with
+green/blue screen keying via the `@remotion/effects` package.
 
 **Key changes:**
-- Add `videoInserts` array to radar chart config
-- Create `VideoInsertLayer` component with position/size/timing controls
-- Integrate `@remotion/effects` `chromaKey` effect
-- Provide preset configs for common green/blue screen colors
+- `pages` becomes a union of radar pages and video pages (`VideoPageSchema`);
+  legacy configs without `pageType` fall back to radar with zero migration
+- New `VideoPage` composition: source video with fit / audio controls,
+  chroma key (`@remotion/effects`), and backing background media
+- Green/blue screen presets plus custom key color with
+  similarity / smoothness / spill-suppression sliders
+- Adjacent video pages can overlap (frame offset + top-layer choice),
+  e.g. keyed foreground person over the previous clip
+- Editor support: add/configure video pages, overlap pairing panel,
+  single-page preview, multi-page export
 
 **Acceptance criteria:**
-- Users can place videos at specified positions within the chart area
+- Users can add video pages alongside radar pages and reorder freely
 - Green/blue screen videos are correctly keyed with configurable thresholds
-- WebM transparent videos work without chroma key processing
+- Overlapping adjacent video clips render with correct timing and layering
 
 #### Phase 3: Platform & Integration
 
@@ -175,22 +181,26 @@ Have an idea? Open a `feature request` issue or start a Discussion.
 - 媒体背景与雷达叠加层正确渲染
 - 视频背景在 1080p 以内性能可接受
 
-##### 2.3 视频插入与色键效果
+##### 2.3 独立视频页与色键效果
 
-> Issue: #19
+> Issue: #19 —— ✅ 已实现
 
-在雷达图表中插入视频片段，支持绿幕/蓝幕抠像，使用 `@remotion/effects` 包。
+多页时间轴中混排独立视频页与雷达页，支持绿幕/蓝幕抠像，使用 `@remotion/effects` 包。
 
 **关键改动：**
-- 雷达配置新增 `videoInserts` 数组字段
-- 创建 `VideoInsertLayer` 组件，支持位置/尺寸/时序控制
-- 集成 `@remotion/effects` 的 `chromaKey` 效果
-- 提供常见绿幕/蓝幕颜色的预设配置
+- `pages` 变为雷达页与视频页（`VideoPageSchema`）的 union；
+  旧配置无 `pageType` 自动回退雷达页，零迁移
+- 新增 `VideoPage` 合成：主视频（fit / 音频控制）+ 色键
+  （`@remotion/effects`）+ 底衬背景媒体
+- 绿幕/蓝幕预设 + 自定义键色，相似度/平滑度/溢色抑制三滑杆
+- 相邻视频页可重叠播放（帧偏移 + 上下层选择），
+  典型场景：抠像人物叠在上一段画面之上
+- 编辑器支持：添加/配置视频页、重叠配对面板、单页预览、多页导出
 
 **验收标准：**
-- 用户可在图表区域指定位置放置视频
+- 用户可在雷达页之间自由添加、排序视频页
 - 绿幕/蓝幕视频正确抠像，阈值可配置
-- WebM 透明视频无需色键处理即可工作
+- 相邻视频片段重叠时时序与层级正确渲染
 
 #### 第三阶段：平台与集成
 
