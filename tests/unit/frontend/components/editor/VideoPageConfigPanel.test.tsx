@@ -20,8 +20,17 @@ vi.mock("@/components/files/AssetSelector", () => ({
       <button data-testid="asset-pick" onClick={() => p.onChange("http://cdn/download/clip.mp4")}>
         pick
       </button>
+      <button
+        data-testid="asset-pick-upload"
+        onClick={() => p.onChange("http://backend/api/v1/files/uploads/green.webm")}
+      >
+        pick-upload
+      </button>
     </div>
   ),
+}));
+vi.mock("@/lib/api-client", () => ({
+  files: { fetchUploadBlob: vi.fn() },
 }));
 vi.mock("@/components/ui/slider", () => ({
   Slider: ({ value, onValueChange, "data-testid": testId }: any) => (
@@ -209,6 +218,39 @@ describe("VideoPageConfigPanel", () => {
           durationInFrames: Math.round(10.5 * VIDEO_FPS),
         });
       });
+    });
+
+    it("uploads URL 经鉴权 blob 拉取后探测（裸 <video src> 会 401）", async () => {
+      const { files } = await import("@/lib/api-client");
+      vi.mocked(files.fetchUploadBlob).mockResolvedValue(new Blob(["x"]));
+      const createSpy = vi.fn(() => "blob:probe-url");
+      const revokeSpy = vi.fn();
+      URL.createObjectURL = createSpy as any;
+      URL.revokeObjectURL = revokeSpy as any;
+
+      mountFakeVideo(2);
+      render(<VideoPageConfigPanel page={makePage()} onUpdate={onUpdate} />);
+      fireEvent.click(screen.getByTestId("asset-pick-upload"));
+      await waitFor(() => {
+        expect(onUpdate).toHaveBeenCalledWith({
+          durationInFrames: Math.round(2 * VIDEO_FPS),
+        });
+      });
+      expect(files.fetchUploadBlob).toHaveBeenCalledWith("green.webm");
+      expect(createSpy).toHaveBeenCalled();
+      expect(revokeSpy).toHaveBeenCalledWith("blob:probe-url");
+    });
+
+    it("uploads blob 拉取失败不回填 durationInFrames", async () => {
+      const { files } = await import("@/lib/api-client");
+      vi.mocked(files.fetchUploadBlob).mockRejectedValue(new Error("401"));
+      mountFakeVideo(2);
+      render(<VideoPageConfigPanel page={makePage()} onUpdate={onUpdate} />);
+      fireEvent.click(screen.getByTestId("asset-pick-upload"));
+      await new Promise((r) => setTimeout(r, 30));
+      expect(onUpdate).not.toHaveBeenCalledWith(
+        expect.objectContaining({ durationInFrames: expect.anything() }),
+      );
     });
 
     it("探测失败（onerror）不回填 durationInFrames", async () => {

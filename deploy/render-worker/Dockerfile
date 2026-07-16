@@ -29,6 +29,7 @@ RUN --mount=type=cache,target=/var/cache/apk \
     chromium-chromedriver \
     ffmpeg \
     fontconfig \
+    mesa-vulkan-swrast \
     font-noto \
     font-noto-cjk \
     setpriv
@@ -131,6 +132,7 @@ RUN --mount=type=cache,target=/var/cache/apk \
     chromium \
     ffmpeg \
     fontconfig \
+    mesa-vulkan-swrast \
     font-noto \
     font-noto-cjk \
     setpriv

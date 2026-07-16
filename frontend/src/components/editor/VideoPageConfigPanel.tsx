@@ -9,6 +9,7 @@ import { ColorPicker } from "../ui/color-picker";
 import { AssetSelector } from "../files/AssetSelector";
 import { BackgroundMediaEditor } from "./BackgroundMediaEditor";
 import { VIDEO_FPS } from "../../types/constants";
+import { files } from "../../lib/api-client";
 import type { VideoPageConfig } from "../../types/radar";
 
 /** 视频页局部更新：顶层字段可选，嵌套 chromaKey/audio/background 支持局部字段（由 updateVideoPage 深合并） */
@@ -59,6 +60,31 @@ async function probeDurationInFrames(url: string): Promise<number | null> {
   });
 }
 
+/** 匹配需鉴权的用户上传文件 URL（与 replace-uploads.ts 保持一致）。 */
+const UPLOADS_URL_PATTERN = /\/api\/v1\/files\/uploads\/([^/?#]+)$/;
+
+/**
+ * 按 src 类型分发时长探测：
+ * 用户上传文件端点需鉴权，裸 <video src> 直链会 401，
+ * 须先经带 token 的 fetch 拉取 Blob 再对 objectURL 探测（用后即 revoke）。
+ * 公共素材/外链直接探测。拉取失败返回 null（保留手填值）。
+ */
+async function probeSrcDurationInFrames(src: string): Promise<number | null> {
+  const m = UPLOADS_URL_PATTERN.exec(src);
+  if (!m) return probeDurationInFrames(src);
+  try {
+    const blob = await files.fetchUploadBlob(m[1]);
+    const objectUrl = URL.createObjectURL(blob);
+    try {
+      return await probeDurationInFrames(objectUrl);
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
+  } catch {
+    return null;
+  }
+}
+
 export const VideoPageConfigPanel: React.FC<VideoPageConfigPanelProps> = ({
   page,
   onUpdate,
@@ -69,7 +95,7 @@ export const VideoPageConfigPanel: React.FC<VideoPageConfigPanelProps> = ({
     onUpdate({ src: nextSrc });
     if (nextSrc) {
       // 选中素材后自动探测时长回填；失败则保留用户手填值
-      void probeDurationInFrames(nextSrc).then((frames) => {
+      void probeSrcDurationInFrames(nextSrc).then((frames) => {
         if (frames !== null) onUpdate({ durationInFrames: frames });
       });
     }

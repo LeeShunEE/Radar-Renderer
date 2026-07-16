@@ -157,7 +157,10 @@ async function handleRender(body) {
   const serveUrl = await getBundle();
   const isMulti = mode === "multi";
   const compositionId = isMulti ? MULTI_COMP_NAME : COMP_NAME;
-  const chromiumOptions = { gl: "angle", enableMultiProcessOnLinux: true };
+  // 容器内无 GPU：色键等 canvas 效果需要 WebGL2 上下文。Alpine chromium 不带
+  // SwiftShader（"angle"/"swangle" 均拿不到 WebGL2），改走 ANGLE-on-Vulkan +
+  // lavapipe 软件 Vulkan（镜像内 apk mesa-vulkan-swrast），即 gl: "vulkan"。
+  const chromiumOptions = { gl: "vulkan", enableMultiProcessOnLinux: true };
 
   const composition = await selectComposition({
     serveUrl,
