@@ -5,6 +5,7 @@ import { PreviewPanel } from "./PreviewPanel";
 import { PreviewTargetSelector } from "./PreviewTargetSelector";
 import { GlobalConfigEditor } from "./GlobalConfigEditor";
 import { ComparisonConfigPanel } from "./ComparisonConfigPanel";
+import { VideoOverlapConfigPanel } from "./VideoOverlapConfigPanel";
 import { PageConfigPanel } from "./PageConfigPanel";
 import { VideoPageConfigPanel } from "./VideoPageConfigPanel";
 import { RadarValuesTable } from "./RadarValuesTable";
@@ -322,6 +323,7 @@ export const RadarEditor: React.FC = () => {
 
           <TabsContent value="comparison" className="overflow-y-auto p-6 space-y-4">
             <ComparisonConfigPanel config={config} onChange={setConfig} />
+            <VideoOverlapConfigPanel config={config} onChange={setConfig} />
           </TabsContent>
 
           <TabsContent value="values" className="overflow-y-auto p-6 space-y-4">
