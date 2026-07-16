@@ -11,8 +11,7 @@
 import React, { useRef, useEffect, useMemo, useState } from "react";
 import { Player, type PlayerRef } from "@remotion/player";
 import type { RadarVideoProps, MultiPageConfig } from "@/types/radar";
-import { calculateDuration, calculateComparisonDuration, VIDEO_FPS, VIDEO_WIDTH, VIDEO_HEIGHT } from "@/types/constants";
-import { applyGlobalOverride } from "@/lib/global-override";
+import { calculateDuration, calculateMultiPageTotalFrames, VIDEO_FPS, VIDEO_WIDTH, VIDEO_HEIGHT } from "@/types/constants";
 import { RadarVideo } from "@/remotion/RadarVideo";
 import { MultiPageVideo } from "@/remotion/MultiPageVideo";
 import { resolveMusicUrl, fetchAndDecodeAudio } from "@/lib/render-media-source";
@@ -44,23 +43,7 @@ export interface LocalRenderStageProps {
  */
 function calcMultiTotalDuration(config: MultiPageConfig): number {
   if (!config.pages.length) return 1;
-  const mergedPages = config.pages.map((p) => applyGlobalOverride(p, config.globalOverride));
-  const compMap = new Map<number, (typeof config.comparisons)[number]>();
-  for (const c of config.comparisons) compMap.set(c.firstPageIndex, c);
-  const compared = new Set<number>();
-  let t = 0;
-  for (let i = 0; i < config.pages.length; i++) {
-    if (compared.has(i)) continue;
-    const comp = compMap.get(i);
-    if (comp && i + 1 < config.pages.length) {
-      t += calculateComparisonDuration(mergedPages[i], mergedPages[i + 1], comp);
-      compared.add(i);
-      compared.add(i + 1);
-    } else {
-      t += calculateDuration(mergedPages[i].animation);
-    }
-  }
-  return Math.max(1, t);
+  return Math.max(1, calculateMultiPageTotalFrames(config));
 }
 
 /**

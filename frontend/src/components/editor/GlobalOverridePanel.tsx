@@ -6,7 +6,9 @@ import { Switch } from "../ui/switch";
 import { Slider } from "../ui/slider";
 import { Label } from "../ui/label";
 import { FontSelect } from "./FontFamilyEditor";
-import type { GlobalOverrideConfig, MultiPageConfig } from "../../types/radar";
+import { isVideoPage } from "../../types/radar";
+import type { GlobalOverrideConfig, MultiPageConfig, RadarVideoProps } from "../../types/radar";
+import { defaultRadarProps } from "../../types/constants";
 import {
   OVERRIDE_GROUPS,
   type OverrideField,
@@ -22,9 +24,10 @@ type Props = {
 const isFontField = (path: string) => path.endsWith("Family") || path === "slug.fontFamily";
 
 export const GlobalOverridePanel: React.FC<Props> = ({ config, onChange }) => {
+  // 覆写仅作用于雷达页：fallback values 取第一个雷达页，全视频页时用默认雷达配置
   const override: GlobalOverrideConfig = config.globalOverride ?? {
     enabled: {},
-    values: config.pages[0],
+    values: config.pages.find((p): p is RadarVideoProps => !isVideoPage(p)) ?? defaultRadarProps,
   };
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 

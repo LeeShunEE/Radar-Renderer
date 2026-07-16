@@ -131,6 +131,7 @@ export function makeMultiPageConfig(
     pages,
     musicUrl: "",
     comparisons: [],
+    videoOverlaps: [],
     comparisonArrowStyle: {
       arrowFontSize: 45,
       arrowColor: "#94a3b8",

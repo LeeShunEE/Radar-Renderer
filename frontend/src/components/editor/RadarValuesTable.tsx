@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from "react";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
+import { isVideoPage } from "../../types/radar";
 import type { MultiPageConfig, RadarAttribute, RadarVideoProps } from "../../types/radar";
 import { calculateRating, getRatingColor } from "../../lib/rating";
 
@@ -64,12 +65,15 @@ export const RadarValuesTable: React.FC<Props> = ({
   onSetActive,
   onAddPage,
 }) => {
-  const headerPage = config.pages[0];
+  // 表头取第一个雷达页（视频页无属性列）
+  const headerPage = config.pages.find((p): p is RadarVideoProps => !isVideoPage(p));
   if (!headerPage) return null;
 
   const updatePage = (pageIndex: number, updates: Partial<RadarVideoProps>) => {
     const pages = [...config.pages];
-    pages[pageIndex] = { ...pages[pageIndex], ...updates };
+    const target = pages[pageIndex];
+    if (isVideoPage(target)) return;
+    pages[pageIndex] = { ...target, ...updates };
     onChange({ ...config, pages });
     if (pageIndex !== activePageIndex) onSetActive(pageIndex);
   };
@@ -80,9 +84,11 @@ export const RadarValuesTable: React.FC<Props> = ({
     patch: Partial<RadarAttribute>,
   ) => {
     const pages = [...config.pages];
-    const attrs = [...pages[pageIndex].attributes] as RadarVideoProps["attributes"];
+    const target = pages[pageIndex];
+    if (isVideoPage(target)) return;
+    const attrs = [...target.attributes] as RadarVideoProps["attributes"];
     attrs[attrIndex] = { ...attrs[attrIndex], ...patch };
-    pages[pageIndex] = { ...pages[pageIndex], attributes: attrs };
+    pages[pageIndex] = { ...target, attributes: attrs };
     onChange({ ...config, pages });
     if (pageIndex !== activePageIndex) onSetActive(pageIndex);
   };
@@ -93,6 +99,7 @@ export const RadarValuesTable: React.FC<Props> = ({
     value: string,
   ) => {
     const pages = config.pages.map((page) => {
+      if (isVideoPage(page)) return page;
       const attrs = [...page.attributes] as RadarVideoProps["attributes"];
       attrs[attrIndex] = { ...attrs[attrIndex], [field]: value };
       return { ...page, attributes: attrs };
@@ -103,6 +110,7 @@ export const RadarValuesTable: React.FC<Props> = ({
   const swapAttributeColumns = (a: number, b: number) => {
     if (a === b) return;
     const pages = config.pages.map((page) => {
+      if (isVideoPage(page)) return page;
       const attrs = [...page.attributes] as RadarVideoProps["attributes"];
       [attrs[a], attrs[b]] = [attrs[b], attrs[a]];
       return { ...page, attributes: attrs };
@@ -111,9 +119,9 @@ export const RadarValuesTable: React.FC<Props> = ({
   };
 
   const syncLabelsFromFirstPage = () => {
-    const first = config.pages[0];
-    const pages = config.pages.map((page, i) => {
-      if (i === 0) return page;
+    const first = headerPage;
+    const pages = config.pages.map((page) => {
+      if (page === first || isVideoPage(page)) return page;
       const attrs = page.attributes.map((a, idx) => ({
         ...a,
         label: first.attributes[idx].label,
@@ -203,6 +211,50 @@ export const RadarValuesTable: React.FC<Props> = ({
           <tbody>
             {config.pages.map((page, pageIndex) => {
               const isActive = pageIndex === activePageIndex;
+              if (isVideoPage(page)) {
+                // 视频页无雷达数值：渲染只读占位行，保持行序与页索引对齐
+                return (
+                  <tr
+                    key={pageIndex}
+                    className={isActive ? "bg-accent/20" : "hover:bg-accent/10"}
+                    onFocus={() => {
+                      if (pageIndex !== activePageIndex) onSetActive(pageIndex);
+                    }}
+                    onMouseDown={() => {
+                      if (pageIndex !== activePageIndex) onSetActive(pageIndex);
+                    }}
+                  >
+                    <td className="sticky left-0 z-10 bg-background px-2 py-1 border-b border-r border-unfocused-border-color min-w-[200px]">
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => onSetActive(pageIndex)}
+                          className={`text-xs px-1 rounded ${
+                            isActive
+                              ? "text-amber-400 font-bold"
+                              : "text-subtitle hover:text-foreground"
+                          }`}
+                          title="设为预览页"
+                        >
+                          {pageIndex + 1}
+                        </button>
+                        <span className="text-xs text-subtitle truncate flex-1">
+                          {page.label}
+                        </span>
+                        <span className="text-[10px] px-1 rounded bg-muted text-muted-foreground shrink-0">
+                          视频页
+                        </span>
+                      </div>
+                    </td>
+                    <td
+                      colSpan={headerPage.attributes.length}
+                      className="px-2 py-1 text-center text-xs text-subtitle border-b border-unfocused-border-color"
+                    >
+                      无雷达数值
+                    </td>
+                  </tr>
+                );
+              }
               return (
                 <tr
                   key={pageIndex}

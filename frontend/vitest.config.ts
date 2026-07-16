@@ -66,6 +66,8 @@ export default defineConfig({
       { find: /^remotion$/, replacement: path.resolve(__dirname, "./node_modules/remotion") },
       // @remotion/media：同上，且保证 vi.mock("@remotion/media") 命中被测源码解析的同一模块路径
       { find: /^@remotion\/media$/, replacement: path.resolve(__dirname, "./node_modules/@remotion/media") },
+      // @remotion/effects/color-key：同因（测试在 frontend/ 外），指向 esm 产物保证 vi.mock 命中
+      { find: /^@remotion\/effects\/color-key$/, replacement: path.resolve(__dirname, "./node_modules/@remotion/effects/dist/esm/color-key.mjs") },
     ],
   },
   server: {

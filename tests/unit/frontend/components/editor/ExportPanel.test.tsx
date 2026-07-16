@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { ExportPanel } from "@/components/editor/ExportPanel";
 import { makePage, makeMultiPageConfig } from "./_fixtures";
+import { defaultVideoPage } from "@/types/constants";
 
 const { serverState, localState } = vi.hoisted(() => ({
   serverState: {
@@ -229,5 +230,68 @@ describe("ExportPanel", () => {
     fireEvent.click(screen.getByText("本地浏览器"));
     fireEvent.click(screen.getByText("导出当前页 MP4（本地）"));
     expect(localState.renderStage).toHaveBeenCalled();
+  });
+
+  // ── 视频页 single 导出禁用（Task 3.4）───────────────────────────────────
+
+  describe("activePage 为视频页", () => {
+    const videoActivePage = { ...defaultVideoPage, label: "视频页1" };
+    const mixedConfig = {
+      ...makeMultiPageConfig(2),
+      pages: [makeMultiPageConfig(1).pages[0], videoActivePage],
+    };
+
+    it("single 预览：服务端「导出当前页」按钮禁用 + 提示改用全部页面导出", () => {
+      render(
+        <ExportPanel
+          props={props}
+          config={mixedConfig}
+          previewMode="single"
+          activePage={videoActivePage}
+        />,
+      );
+      expect(screen.getByText("导出当前页 MP4")).toBeDisabled();
+      expect(screen.getByText("导出当前页 GIF")).toBeDisabled();
+      expect(screen.getByText(/视频页请用全部页面导出/)).toBeInTheDocument();
+    });
+
+    it("single 预览：本地「导出当前页」按钮禁用", () => {
+      render(
+        <ExportPanel
+          props={props}
+          config={mixedConfig}
+          previewMode="single"
+          activePage={videoActivePage}
+        />,
+      );
+      fireEvent.click(screen.getByText("本地浏览器"));
+      expect(screen.getByText("导出当前页 MP4（本地）")).toBeDisabled();
+    });
+
+    it("切到全部页面导出不受影响", () => {
+      render(
+        <ExportPanel
+          props={props}
+          config={mixedConfig}
+          previewMode="single"
+          activePage={videoActivePage}
+        />,
+      );
+      fireEvent.click(screen.getByText("渲染全部页面"));
+      expect(screen.getByText("导出全部 MP4")).not.toBeDisabled();
+    });
+
+    it("activePage 为雷达页时当前页导出不禁用（回归）", () => {
+      render(
+        <ExportPanel
+          props={props}
+          config={config}
+          previewMode="single"
+          activePage={config.pages[0]}
+        />,
+      );
+      expect(screen.getByText("导出当前页 MP4")).not.toBeDisabled();
+      expect(screen.queryByText(/视频页请用全部页面导出/)).toBeNull();
+    });
   });
 });

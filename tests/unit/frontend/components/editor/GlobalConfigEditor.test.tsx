@@ -6,6 +6,7 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { GlobalConfigEditor } from "@/components/editor/GlobalConfigEditor";
 import { makeMultiPageConfig } from "./_fixtures";
+import { defaultVideoPage } from "@/types/constants";
 
 vi.mock("@/components/files/AssetSelector", () => ({
   AssetSelector: () => <div data-testid="asset-selector" />,
@@ -168,5 +169,30 @@ describe("GlobalConfigEditor", () => {
       />,
     );
     expect(screen.getByText(/总时长：/)).toBeInTheDocument();
+  });
+
+  it("相邻两页任一为视频页时⚡对比按钮禁用（D2 UI 守卫）", () => {
+    const mixedConfig = {
+      ...makeMultiPageConfig(2),
+      pages: [
+        makeMultiPageConfig(1).pages[0],
+        { ...defaultVideoPage, label: "视频页1" },
+      ],
+    };
+    render(
+      <GlobalConfigEditor
+        config={mixedConfig}
+        activePageIndex={0}
+        onChange={vi.fn()}
+        onSetActive={vi.fn()}
+        onAddPage={vi.fn()}
+        onDuplicatePage={vi.fn()}
+        onRemovePage={vi.fn()}
+        onMovePage={vi.fn()}
+        onPreviewAll={vi.fn()}
+      />,
+    );
+    const toggle = screen.getByRole("button", { name: /对比/ });
+    expect(toggle).toBeDisabled();
   });
 });
