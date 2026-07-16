@@ -9,7 +9,8 @@ import { useState } from "react";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { Progress } from "../ui/progress";
-import type { RadarVideoProps, MultiPageConfig } from "../../types/radar";
+import { isVideoPage } from "../../types/radar";
+import type { RadarVideoProps, MultiPageConfig, PageConfig } from "../../types/radar";
 import { calculateDuration, calculateMultiPageTotalFrames, VIDEO_FPS } from "../../types/constants";
 import { useServerRender } from "../../hooks/useServerRender";
 import { useLocalRender } from "../../hooks/useLocalRender";
@@ -21,9 +22,11 @@ type ExportPanelProps = {
   config: MultiPageConfig;
   /** 当前预览模式：single（单页）/ multi（全局）。决定渲染范围的约束规则。 */
   previewMode: "single" | "multi";
+  /** 当前激活页；视频页时单页导出不可用（single 渲染走 RadarVideo composition，视频页无对应）。 */
+  activePage?: PageConfig;
 };
 
-export function ExportPanel({ props, config, previewMode }: ExportPanelProps) {
+export function ExportPanel({ props, config, previewMode, activePage }: ExportPanelProps) {
   const serverRender = useServerRender();
   const localRender = useLocalRender();
   const [exportMode, setExportMode] = useState<"server" | "local">("server");
@@ -31,6 +34,9 @@ export function ExportPanel({ props, config, previewMode }: ExportPanelProps) {
   const [renderRange, setRenderRange] = useState<"current" | "all">("current");
 
   const totalPages = config.pages.length;
+
+  // 当前页为视频页时禁用单页导出（single 渲染 composition 只支持雷达页）
+  const isVideoActive = activePage ? isVideoPage(activePage) : false;
 
   // 计算单页时长
   const singleFrames = calculateDuration(applyGlobalOverride(props, config.globalOverride).animation);
@@ -225,10 +231,15 @@ export function ExportPanel({ props, config, previewMode }: ExportPanelProps) {
               <p className="text-xs text-subtitle">
                 导出当前页：{props.characterName}（{singleFrames} 帧 / {(singleFrames / VIDEO_FPS).toFixed(1)} 秒）
               </p>
+              {isVideoActive && (
+                <p className="text-xs text-geist-error">
+                  当前页是视频页，视频页请用全部页面导出。
+                </p>
+              )}
               <div className="flex gap-2">
                 <Button
                   onClick={() => handleServerRender("h264", "single")}
-                  disabled={serverRender.status !== "idle" && serverRender.status !== "done" && serverRender.status !== "failed"}
+                  disabled={isVideoActive || (serverRender.status !== "idle" && serverRender.status !== "done" && serverRender.status !== "failed")}
                   className="flex-1"
                   size="sm"
                 >
@@ -236,7 +247,7 @@ export function ExportPanel({ props, config, previewMode }: ExportPanelProps) {
                 </Button>
                 <Button
                   onClick={() => handleServerRender("gif", "single")}
-                  disabled={serverRender.status !== "idle" && serverRender.status !== "done" && serverRender.status !== "failed"}
+                  disabled={isVideoActive || (serverRender.status !== "idle" && serverRender.status !== "done" && serverRender.status !== "failed")}
                   variant="outline"
                   className="flex-1"
                   size="sm"
@@ -302,9 +313,14 @@ export function ExportPanel({ props, config, previewMode }: ExportPanelProps) {
             <p className="text-xs text-subtitle">
               导出当前页：{props.characterName}（{singleFrames} 帧 / {(singleFrames / VIDEO_FPS).toFixed(1)} 秒）
             </p>
+            {isVideoActive && (
+              <p className="text-xs text-geist-error">
+                当前页是视频页，视频页请用全部页面导出。
+              </p>
+            )}
             <Button
               onClick={handleLocalRenderSingle}
-              disabled={localRender.rendering}
+              disabled={isVideoActive || localRender.rendering}
               className="w-full"
               size="sm"
             >

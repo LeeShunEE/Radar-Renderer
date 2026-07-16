@@ -22,7 +22,7 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
     onChange({ theme: { ...theme, ...patch } });
 
   // shadcn Slider 回调可能是数组或裸数值，统一取标量（与 BackgroundMediaEditor 一致）
-  const num = (v: number[]) => (Array.isArray(v) ? v[0] : v);
+  const num = (v: number | readonly number[]) => (Array.isArray(v) ? v[0] : v);
 
   return (
     <div className="space-y-3">

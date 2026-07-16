@@ -17,8 +17,10 @@ import type {
   ComparisonPairConfig,
   MultiPageConfig,
   RadarVideoProps,
+  VideoPageConfig,
 } from "../../types/radar";
 import { RadarVideo } from "../../remotion/RadarVideo";
+import { VideoPage } from "../../remotion/VideoPage";
 import { MultiPageVideo } from "../../remotion/MultiPageVideo";
 import { applyGlobalOverride } from "../../lib/global-override";
 import { replaceUploadsInProps } from "../../lib/replace-uploads";
@@ -26,7 +28,8 @@ import { VIDEO_FPS, VIDEO_WIDTH, VIDEO_HEIGHT } from "../../types/constants";
 import { useFieldFocus } from "./FieldFocusContext";
 
 type PreviewPanelProps =
-  | { mode: "single"; props: RadarVideoProps; musicUrl?: string }
+  /** videoPage 存在时单页预览渲染 VideoPage（视频页无动画分段，props 仅作兜底不消费） */
+  | { mode: "single"; props: RadarVideoProps; videoPage?: VideoPageConfig; musicUrl?: string }
   | { mode: "multi"; config: MultiPageConfig };
 
 type TargetID = "radar-label" | "radar-rating" | "radar-octagon" | "avatar" | "name" | "legend";
@@ -554,6 +557,15 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = (panelProps) => {
 
   const { component, inputProps, durationInFrames, segments } = useMemo(() => {
     if (panelProps.mode === "single") {
+      // 视频页单页预览：直接渲染 VideoPage，时长取素材帧数，无动画分段
+      if (panelProps.videoPage) {
+        return {
+          component: VideoPage as unknown as React.FC<Record<string, unknown>>,
+          inputProps: { page: panelProps.videoPage } as Record<string, unknown>,
+          durationInFrames: Math.max(1, panelProps.videoPage.durationInFrames),
+          segments: [] as RenderSegment[],
+        };
+      }
       return {
         component: RadarVideo as React.FC<Record<string, unknown>>,
         inputProps: panelProps.props as Record<string, unknown>,

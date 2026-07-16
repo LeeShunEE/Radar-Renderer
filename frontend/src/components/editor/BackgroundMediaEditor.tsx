@@ -53,7 +53,7 @@ export const BackgroundMediaEditor: React.FC<BackgroundMediaEditorProps> = ({
     });
 
   // shadcn Slider 回调可能是数组或裸数值（测试 mock 与真实组件行为不同），统一取标量
-  const num = (v: number[]) => (Array.isArray(v) ? v[0] : v);
+  const num = (v: number | readonly number[]) => (Array.isArray(v) ? v[0] : v);
 
   // ── type switch ───────────────────────────────────────────────────────────
   const handleTypeChange = (type: BackgroundConfig["type"]) => {

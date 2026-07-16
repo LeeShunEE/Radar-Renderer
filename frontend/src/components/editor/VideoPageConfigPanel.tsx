@@ -11,9 +11,19 @@ import { BackgroundMediaEditor } from "./BackgroundMediaEditor";
 import { VIDEO_FPS } from "../../types/constants";
 import type { VideoPageConfig } from "../../types/radar";
 
+/** 视频页局部更新：顶层字段可选，嵌套 chromaKey/audio/background 支持局部字段（由 updateVideoPage 深合并） */
+export type VideoPageUpdate = Omit<
+  Partial<VideoPageConfig>,
+  "chromaKey" | "audio" | "background"
+> & {
+  chromaKey?: Partial<VideoPageConfig["chromaKey"]>;
+  audio?: Partial<VideoPageConfig["audio"]>;
+  background?: Partial<VideoPageConfig["background"]>;
+};
+
 type VideoPageConfigPanelProps = {
   page: VideoPageConfig;
-  onUpdate: (updates: Partial<VideoPageConfig>) => void;
+  onUpdate: (updates: VideoPageUpdate) => void;
 };
 
 const FIT_OPTIONS = ["contain", "cover", "fill"] as const;
@@ -65,7 +75,7 @@ export const VideoPageConfigPanel: React.FC<VideoPageConfigPanelProps> = ({
     }
   };
 
-  const num = (v: number[]) => (Array.isArray(v) ? v[0] : v);
+  const num = (v: number | readonly number[]) => (Array.isArray(v) ? v[0] : v);
 
   return (
     <div className="space-y-4 border border-unfocused-border-color rounded-lg p-4 bg-card">

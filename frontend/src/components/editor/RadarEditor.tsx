@@ -7,7 +7,7 @@ import { GlobalConfigEditor } from "./GlobalConfigEditor";
 import { ComparisonConfigPanel } from "./ComparisonConfigPanel";
 import { VideoOverlapConfigPanel } from "./VideoOverlapConfigPanel";
 import { PageConfigPanel } from "./PageConfigPanel";
-import { VideoPageConfigPanel } from "./VideoPageConfigPanel";
+import { VideoPageConfigPanel, type VideoPageUpdate } from "./VideoPageConfigPanel";
 import { RadarValuesTable } from "./RadarValuesTable";
 import { ExportPanel } from "./ExportPanel";
 import { ConfigPersistencePanel } from "./ConfigPersistencePanel";
@@ -86,20 +86,21 @@ export const RadarEditor: React.FC = () => {
   };
 
   // 视频页更新：嵌套合并 chromaKey/audio/background（参照 updatePage 的 theme/animation 合并）。
-  const updateVideoPage = (index: number, updates: Partial<VideoPageConfig>) => {
+  const updateVideoPage = (index: number, updates: VideoPageUpdate) => {
     setConfig((prev) => {
       const target = prev.pages[index];
       if (!isVideoPage(target)) return prev;
       const pages = [...prev.pages];
-      let nextPage: VideoPageConfig = { ...target, ...updates };
-      if (updates.chromaKey) {
-        nextPage = { ...nextPage, chromaKey: { ...target.chromaKey, ...updates.chromaKey } };
+      const { chromaKey, audio, background, ...rest } = updates;
+      let nextPage: VideoPageConfig = { ...target, ...rest };
+      if (chromaKey) {
+        nextPage = { ...nextPage, chromaKey: { ...target.chromaKey, ...chromaKey } };
       }
-      if (updates.audio) {
-        nextPage = { ...nextPage, audio: { ...target.audio, ...updates.audio } };
+      if (audio) {
+        nextPage = { ...nextPage, audio: { ...target.audio, ...audio } };
       }
-      if (updates.background) {
-        nextPage = { ...nextPage, background: { ...target.background, ...updates.background } };
+      if (background) {
+        nextPage = { ...nextPage, background: { ...target.background, ...background } };
       }
       pages[index] = nextPage;
       return { ...prev, pages };
@@ -222,8 +223,8 @@ export const RadarEditor: React.FC = () => {
     }
   };
 
-  // 视频页单页预览在 Task 3.4 落地（PreviewPanel 新增 single-video 分支）；
-  // 此前 playerProps 仅 ExportPanel 等按雷达页消费，视频页兜底默认雷达配置避免类型/运行时错误。
+  // 视频页单页预览走 PreviewPanel 的 videoPage 分支；
+  // playerProps 仅 ExportPanel 等按雷达页消费，视频页兜底默认雷达配置避免类型/运行时错误。
   const playerProps = useMemo(
     () =>
       applyGlobalOverride(
@@ -257,6 +258,7 @@ export const RadarEditor: React.FC = () => {
             ? {
                 mode: "single" as const,
                 props: playerProps,
+                videoPage: isVideoPage(activePage) ? activePage : undefined,
                 musicUrl: config.musicUrl,
               }
             : { mode: "multi" as const, config: config })}
@@ -407,6 +409,7 @@ export const RadarEditor: React.FC = () => {
               props={playerProps}
               config={config}
               previewMode={previewMode}
+              activePage={activePage}
             />
           </TabsContent>
         </Tabs>
