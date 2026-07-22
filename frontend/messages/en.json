@@ -85,6 +85,47 @@
       }
     }
   },
+  "settings": {
+    "title": "Account settings",
+    "account": {
+      "heading": "Account info",
+      "email": "Email:",
+      "username": "Username:",
+      "usernameUnset": "Not set",
+      "verifyStatus": "Verification status:",
+      "verified": "Verified",
+      "unverified": "Unverified"
+    },
+    "username": {
+      "heading": "Username",
+      "label": "Set / change username",
+      "placeholder": "Enter username (3-64 characters)",
+      "submit": "Save username",
+      "saving": "Saving…",
+      "updated": "Username updated",
+      "failed": "Failed to set username"
+    },
+    "password": {
+      "heading": "Password",
+      "label": "Set / change password",
+      "placeholder": "Enter password (at least 8 characters)",
+      "hint": "Once set, you can sign in with a password",
+      "submit": "Save password",
+      "saving": "Saving…",
+      "updated": "Password set",
+      "failed": "Failed to set password"
+    },
+    "oauth": {
+      "heading": "OAuth account linking",
+      "description": "Linked OAuth accounts can be used to sign in",
+      "noInfo": "No info",
+      "unbind": "Unlink",
+      "unbound": "{provider} account unlinked",
+      "unbindFailed": "Unlink failed",
+      "empty": "No linked accounts"
+    },
+    "logout": "Sign out"
+  },
   "auth": {
     "login": {
       "title": "Sign in",

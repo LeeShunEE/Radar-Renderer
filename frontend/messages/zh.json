@@ -85,6 +85,47 @@
       }
     }
   },
+  "settings": {
+    "title": "账户设置",
+    "account": {
+      "heading": "账户信息",
+      "email": "邮箱：",
+      "username": "用户名：",
+      "usernameUnset": "未设置",
+      "verifyStatus": "验证状态：",
+      "verified": "已验证",
+      "unverified": "未验证"
+    },
+    "username": {
+      "heading": "用户名",
+      "label": "设置/修改用户名",
+      "placeholder": "输入用户名（3-64 字符）",
+      "submit": "保存用户名",
+      "saving": "保存中...",
+      "updated": "用户名已更新",
+      "failed": "设置用户名失败"
+    },
+    "password": {
+      "heading": "密码",
+      "label": "设置/修改密码",
+      "placeholder": "输入密码（至少 8 位）",
+      "hint": "设置密码后可使用密码登录",
+      "submit": "保存密码",
+      "saving": "保存中...",
+      "updated": "密码已设置",
+      "failed": "设置密码失败"
+    },
+    "oauth": {
+      "heading": "OAuth 账户绑定",
+      "description": "已绑定的 OAuth 账户可用于登录",
+      "noInfo": "无信息",
+      "unbind": "解绑",
+      "unbound": "{provider} 账户已解绑",
+      "unbindFailed": "解绑失败",
+      "empty": "暂无绑定账户"
+    },
+    "logout": "登出"
+  },
   "auth": {
     "login": {
       "title": "登录",
