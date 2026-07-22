@@ -4,7 +4,23 @@
     "description": "A Remotion-based tool for generating radar chart animation videos"
   },
   "common": {
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "reset": "Reset",
+    "close": "Close",
+    "add": "Add",
+    "remove": "Remove",
+    "edit": "Edit",
+    "done": "Done",
+    "yes": "Yes",
+    "no": "No",
+    "error": "Error"
+  },
+  "footer": {
+    "version": "Version {version}"
   },
   "language": {
     "label": "Language"
