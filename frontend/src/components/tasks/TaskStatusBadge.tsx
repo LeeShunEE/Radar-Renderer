@@ -3,11 +3,15 @@
  */
 "use client";
 
+import { useTranslations } from "next-intl";
+
 interface TaskStatusBadgeProps {
   status: string;
 }
 
 export function TaskStatusBadge({ status }: TaskStatusBadgeProps) {
+  const t = useTranslations("tasks.status");
+
   const getColorClass = () => {
     switch (status) {
       case "queued":
@@ -28,15 +32,15 @@ export function TaskStatusBadge({ status }: TaskStatusBadgeProps) {
   const getText = () => {
     switch (status) {
       case "queued":
-        return "排队中";
+        return t("queued");
       case "running":
-        return "渲染中";
+        return t("running");
       case "done":
-        return "完成";
+        return t("done");
       case "failed":
-        return "失败";
+        return t("failed");
       case "canceled":
-        return "已取消";
+        return t("canceled");
       default:
         return status;
     }

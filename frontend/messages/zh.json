@@ -25,6 +25,39 @@
   "language": {
     "label": "语言"
   },
+  "tasks": {
+    "status": {
+      "queued": "排队中",
+      "running": "渲染中",
+      "done": "完成",
+      "failed": "失败",
+      "canceled": "已取消"
+    },
+    "eta": "排队 #{position}，预计 {eta}",
+    "queuePending": "队列中 {count} 个任务待渲染",
+    "avgFps": "平均渲速 {fps} 帧/秒",
+    "avgFpsCalculating": "平均渲速 统计中",
+    "empty": "暂无渲染任务",
+    "mode": {
+      "single": "单页",
+      "all": "全部"
+    },
+    "outputCleaned": "产物已清理",
+    "remaining": "剩 {eta}",
+    "duration": "耗时 {seconds} 秒",
+    "delete": {
+      "title": {
+        "record": "删除任务记录",
+        "withOutput": "删除任务及产物",
+        "task": "删除任务"
+      },
+      "description": {
+        "record": "产物已被清理，确定删除任务记录？",
+        "withOutput": "确定删除任务及其渲染产物？产物将被永久删除。",
+        "task": "确定删除此任务？"
+      }
+    }
+  },
   "auth": {
     "login": {
       "title": "登录",

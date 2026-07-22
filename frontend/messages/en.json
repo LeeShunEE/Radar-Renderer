@@ -25,6 +25,39 @@
   "language": {
     "label": "Language"
   },
+  "tasks": {
+    "status": {
+      "queued": "Queued",
+      "running": "Rendering",
+      "done": "Done",
+      "failed": "Failed",
+      "canceled": "Canceled"
+    },
+    "eta": "Queued #{position}, est. {eta}",
+    "queuePending": "{count} task(s) waiting in queue",
+    "avgFps": "Avg. {fps} fps",
+    "avgFpsCalculating": "Avg. fps calculating",
+    "empty": "No render tasks yet",
+    "mode": {
+      "single": "Single page",
+      "all": "All pages"
+    },
+    "outputCleaned": "Output cleaned",
+    "remaining": "Remaining {eta}",
+    "duration": "Duration {seconds}s",
+    "delete": {
+      "title": {
+        "record": "Delete task record",
+        "withOutput": "Delete task and output",
+        "task": "Delete task"
+      },
+      "description": {
+        "record": "The output has been cleaned. Delete this task record?",
+        "withOutput": "Delete this task and its render output? The output will be permanently removed.",
+        "task": "Delete this task?"
+      }
+    }
+  },
   "auth": {
     "login": {
       "title": "Sign in",
