@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { Label } from "../ui/label";
 import { Switch } from "../ui/switch";
 import { Slider } from "../ui/slider";
@@ -67,6 +68,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
   config,
   onChange,
 }) => {
+  const t = useTranslations("editor.comparison");
   if (config.comparisons.length === 0) return null;
 
   const updateComparison = (
@@ -101,28 +103,28 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
 
   return (
     <div className="space-y-4 border border-unfocused-border-color rounded-lg p-4 bg-card">
-      <h3 className="text-sm font-semibold text-foreground">对比配置</h3>
+      <h3 className="text-sm font-semibold text-foreground">{t("title")}</h3>
 
       <div className="space-y-3 p-3 border border-unfocused-border-color rounded-md bg-muted/30">
         <h4 className="text-xs font-medium text-foreground">
-          对比箭头样式（所有对比共用）
+          {t("arrowStyle.title")}
         </h4>
         <p className="text-[11px] text-subtitle">
-          提示：叠加高亮布局的强弱箭头复用下方的「增强色 / 减弱色」。
+          {t("arrowStyle.hint")}
         </p>
 
         <div className="space-y-2">
-          <div className="text-[11px] text-subtitle">➜ 方向箭头</div>
+          <div className="text-[11px] text-subtitle">{t("arrowStyle.directionArrow")}</div>
           <div className="grid grid-cols-2 gap-3">
             <SliderField
-              label="字号"
+              label={t("fontSize")}
               value={arrowStyle.arrowFontSize}
               min={8}
               max={200}
               onChange={(v) => updateArrow({ arrowFontSize: v })}
             />
             <div className="flex items-center gap-2">
-              <Label className="text-xs text-subtitle shrink-0 w-12">颜色</Label>
+              <Label className="text-xs text-subtitle shrink-0 w-12">{t("color")}</Label>
               <ColorPicker
                 value={arrowStyle.arrowColor}
                 onChange={(v) => updateArrow({ arrowColor: v })}
@@ -132,14 +134,14 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
               </span>
             </div>
             <SliderField
-              label="X 偏移"
+              label={t("offsetX")}
               value={arrowStyle.arrowOffsetX}
               min={-200}
               max={200}
               onChange={(v) => updateArrow({ arrowOffsetX: v })}
             />
             <SliderField
-              label="Y 偏移"
+              label={t("offsetY")}
               value={arrowStyle.arrowOffsetY}
               min={-200}
               max={200}
@@ -149,10 +151,10 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
         </div>
 
         <div className="space-y-2">
-          <div className="text-[11px] text-subtitle">上下差异三角</div>
+          <div className="text-[11px] text-subtitle">{t("arrowStyle.diffTriangle")}</div>
           <div className="grid grid-cols-2 gap-3">
             <SliderField
-              label="字号"
+              label={t("fontSize")}
               value={arrowStyle.diffFontSize}
               min={8}
               max={200}
@@ -160,7 +162,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
             />
             <div /> {/* spacer */}
             <div className="flex items-center gap-2">
-              <Label className="text-xs text-subtitle shrink-0 w-12">增强色</Label>
+              <Label className="text-xs text-subtitle shrink-0 w-12">{t("enhanceColor")}</Label>
               <ColorPicker
                 value={arrowStyle.diffEnhanceColor}
                 onChange={(v) => updateArrow({ diffEnhanceColor: v })}
@@ -170,7 +172,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Label className="text-xs text-subtitle shrink-0 w-12">减弱色</Label>
+              <Label className="text-xs text-subtitle shrink-0 w-12">{t("weakenColor")}</Label>
               <ColorPicker
                 value={arrowStyle.diffWeakenColor}
                 onChange={(v) => updateArrow({ diffWeakenColor: v })}
@@ -180,14 +182,14 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
               </span>
             </div>
             <SliderField
-              label="X 偏移"
+              label={t("offsetX")}
               value={arrowStyle.diffOffsetX}
               min={-200}
               max={200}
               onChange={(v) => updateArrow({ diffOffsetX: v })}
             />
             <SliderField
-              label="Y 偏移"
+              label={t("offsetY")}
               value={arrowStyle.diffOffsetY}
               min={-200}
               max={200}
@@ -198,8 +200,8 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
       </div>
 
       {config.comparisons.map((comp, i) => {
-        const leftName = config.pages[comp.firstPageIndex]?.characterName || `页${comp.firstPageIndex + 1}`;
-        const rightName = config.pages[comp.secondPageIndex]?.characterName || `页${comp.secondPageIndex + 1}`;
+        const leftName = config.pages[comp.firstPageIndex]?.characterName || t("pageFallback", { n: comp.firstPageIndex + 1 });
+        const rightName = config.pages[comp.secondPageIndex]?.characterName || t("pageFallback", { n: comp.secondPageIndex + 1 });
         const update = (updates: Partial<ComparisonPairConfig>) =>
           updateComparison(i, updates);
         const layout = comp.layout ?? "transition";
@@ -211,15 +213,20 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
             className="space-y-3 p-3 border border-unfocused-border-color rounded-md bg-muted/30"
           >
             <h4 className="text-xs font-medium text-foreground">
-              页{comp.firstPageIndex + 1}（{leftName}）+ 页{comp.secondPageIndex + 1}（{rightName}）
+              {t("pairTitle", {
+                a: comp.firstPageIndex + 1,
+                leftName,
+                b: comp.secondPageIndex + 1,
+                rightName,
+              })}
             </h4>
 
             {/* 对比布局：切换过渡（A→B）/ 叠加高亮（同图双方） */}
             <div className="flex items-center justify-between">
-              <Label className="text-xs text-subtitle">对比布局</Label>
+              <Label className="text-xs text-subtitle">{t("layoutLabel")}</Label>
               <div data-field-id={`comparison:${i}:layout`}>
                 <select
-                  aria-label="对比布局"
+                  aria-label={t("layoutLabel")}
                   value={layout}
                   onChange={(e) =>
                     updateComparison(i, {
@@ -228,8 +235,8 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                   }
                   className="px-2 py-1 text-xs border border-unfocused-border-color rounded bg-background text-foreground"
                 >
-                  <option value="transition">切换过渡（A→B）</option>
-                  <option value="overlay">叠加高亮（同图双方）</option>
+                  <option value="transition">{t("layoutOption.transition")}</option>
+                  <option value="overlay">{t("layoutOption.overlay")}</option>
                 </select>
               </div>
             </div>
@@ -238,10 +245,10 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
               <>
                 {/* 叠加高亮：先高亮哪方 */}
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs text-subtitle">先高亮</Label>
+                  <Label className="text-xs text-subtitle">{t("highlightOrderLabel")}</Label>
                   <div data-field-id={`comparison:${i}:overlay.highlightOrder`}>
                     <select
-                      aria-label="先高亮"
+                      aria-label={t("highlightOrderLabel")}
                       value={ov.highlightOrder}
                       onChange={(e) =>
                         updateOverlay(i, {
@@ -250,8 +257,8 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                       }
                       className="px-2 py-1 text-xs border border-unfocused-border-color rounded bg-background text-foreground"
                     >
-                      <option value="left-first">左方优先</option>
-                      <option value="right-first">右方优先</option>
+                      <option value="left-first">{t("highlightOrderOption.leftFirst")}</option>
+                      <option value="right-first">{t("highlightOrderOption.rightFirst")}</option>
                     </select>
                   </div>
                 </div>
@@ -260,7 +267,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                 <div className="grid grid-cols-2 gap-3">
                   <div data-field-id={`comparison:${i}:overlay.delayAfterFill`}>
                     <SliderField
-                      label="落定→高亮延迟(帧)"
+                      label={t("overlay.delayAfterFill")}
                       value={ov.delayAfterFill}
                       min={0}
                       max={120}
@@ -269,7 +276,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                   </div>
                   <div data-field-id={`comparison:${i}:overlay.transitionFrames`}>
                     <SliderField
-                      label="高亮渐变(帧)"
+                      label={t("overlay.transitionFrames")}
                       value={ov.transitionFrames}
                       min={1}
                       max={60}
@@ -278,7 +285,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                   </div>
                   <div data-field-id={`comparison:${i}:overlay.holdFrames`}>
                     <SliderField
-                      label="每方停留(帧)"
+                      label={t("overlay.holdFrames")}
                       value={ov.holdFrames}
                       min={0}
                       max={240}
@@ -287,7 +294,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                   </div>
                   <div data-field-id={`comparison:${i}:overlay.holdTailFrames`}>
                     <SliderField
-                      label="尾部停留(帧)"
+                      label={t("overlay.holdTailFrames")}
                       value={ov.holdTailFrames}
                       min={0}
                       max={600}
@@ -300,7 +307,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                 <div className="grid grid-cols-2 gap-3">
                   <div data-field-id={`comparison:${i}:overlay.dimOpacity`}>
                     <SliderField
-                      label="压暗透明度"
+                      label={t("overlay.dimOpacity")}
                       value={ov.dimOpacity}
                       min={0}
                       max={1}
@@ -310,7 +317,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                   </div>
                   <div data-field-id={`comparison:${i}:overlay.glowRadius`}>
                     <SliderField
-                      label="高亮光晕半径"
+                      label={t("overlay.glowRadius")}
                       value={ov.glowRadius}
                       min={0}
                       max={60}
@@ -323,7 +330,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                 <div className="grid grid-cols-2 gap-3">
                   <div data-field-id={`comparison:${i}:overlay.arrowSize`}>
                     <SliderField
-                      label="箭头尺寸"
+                      label={t("overlay.arrowSize")}
                       value={ov.arrowSize}
                       min={8}
                       max={80}
@@ -332,7 +339,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                   </div>
                   <div data-field-id={`comparison:${i}:overlay.arrowSideOffset`}>
                     <SliderField
-                      label="箭头距中线 X"
+                      label={t("overlay.arrowSideOffset")}
                       value={ov.arrowSideOffset}
                       min={0}
                       max={300}
@@ -341,7 +348,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                   </div>
                   <div data-field-id={`comparison:${i}:overlay.arrowOffsetY`}>
                     <SliderField
-                      label="箭头 Y 微调"
+                      label={t("overlay.arrowOffsetY")}
                       value={ov.arrowOffsetY}
                       min={-200}
                       max={200}
@@ -354,7 +361,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                 <div className="grid grid-cols-2 gap-3">
                   <div data-field-id={`comparison:${i}:overlay.nameSideOffset`}>
                     <SliderField
-                      label="侧名距中线"
+                      label={t("overlay.nameSideOffset")}
                       value={ov.nameSideOffset}
                       min={100}
                       max={960}
@@ -363,7 +370,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                   </div>
                   <div data-field-id={`comparison:${i}:overlay.silhouetteBaseOpacity`}>
                     <SliderField
-                      label="剪影常态透明度"
+                      label={t("overlay.silhouetteBaseOpacity")}
                       value={ov.silhouetteBaseOpacity}
                       min={0}
                       max={1}
@@ -373,7 +380,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                   </div>
                   <div data-field-id={`comparison:${i}:overlay.silhouetteEmphasisOpacity`}>
                     <SliderField
-                      label="剪影高亮透明度"
+                      label={t("overlay.silhouetteEmphasisOpacity")}
                       value={ov.silhouetteEmphasisOpacity}
                       min={0}
                       max={1}
@@ -383,7 +390,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                   </div>
                   <div data-field-id={`comparison:${i}:overlay.silhouetteDimOpacity`}>
                     <SliderField
-                      label="剪影压暗透明度"
+                      label={t("overlay.silhouetteDimOpacity")}
                       value={ov.silhouetteDimOpacity}
                       min={0}
                       max={1}
@@ -398,7 +405,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                 {/* 延迟帧数 */}
                 <div data-field-id={`comparison:${i}:delayFrames`}>
                   <SliderField
-                    label="延迟帧数"
+                    label={t("transition.delayFrames")}
                     value={comp.delayFrames}
                     min={-120}
                     max={120}
@@ -409,7 +416,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                 {/* 切换动画时长 */}
                 <div data-field-id={`comparison:${i}:swapDurationFrames`}>
                   <SliderField
-                    label="切换动画时长(帧)"
+                    label={t("transition.swapDurationFrames")}
                     value={comp.swapDurationFrames}
                     min={1}
                     max={120}
@@ -419,9 +426,9 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
 
                 {/* 第二多边形模式 */}
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs text-subtitle">第二多边形模式</Label>
+                  <Label className="text-xs text-subtitle">{t("polygonModeLabel")}</Label>
                   <select
-                    aria-label="第二多边形模式"
+                    aria-label={t("polygonModeLabel")}
                     value={comp.polygonMode}
                     onChange={(e) =>
                       updateComparison(i, {
@@ -430,14 +437,14 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                     }
                     className="px-2 py-1 text-xs border border-unfocused-border-color rounded bg-background text-foreground"
                   >
-                    <option value="expand">从中心展开</option>
-                    <option value="extend">从A的值延伸</option>
+                    <option value="expand">{t("polygonModeOption.expand")}</option>
+                    <option value="extend">{t("polygonModeOption.extend")}</option>
                   </select>
                 </div>
 
                 {/* 显示图例 */}
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs text-subtitle">显示图例</Label>
+                  <Label className="text-xs text-subtitle">{t("showLegend")}</Label>
                   <Switch
                     checked={comp.showLegend}
                     onCheckedChange={(checked: boolean) =>
@@ -450,14 +457,14 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                 {/* 头像错位偏移 X */}
                 <div data-field-id={`comparison:${i}:silhouetteSwapOffset`}>
                   <SliderField
-                    label="头像错位 X"
+                    label={t("transition.silhouetteSwapX")}
                     value={comp.silhouetteSwapOffsetX}
                     min={-500}
                     max={500}
                     onChange={(v) => update({ silhouetteSwapOffsetX: v })}
                   />
                   <SliderField
-                    label="头像错位 Y"
+                    label={t("transition.silhouetteSwapY")}
                     value={comp.silhouetteSwapOffsetY}
                     min={-500}
                     max={500}
@@ -468,7 +475,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                 {/* 第一角色淡出透明度 */}
                 <div data-field-id={`comparison:${i}:silhouetteFadeOutOpacity`}>
                   <SliderField
-                    label="A 角色淡出透明度"
+                    label={t("transition.silhouetteFadeOut")}
                     value={comp.silhouetteFadeOutOpacity}
                     min={0}
                     max={1}
@@ -480,7 +487,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                 {/* 差异三角缩放 */}
                 <div data-field-id={`comparison:${i}:diffTriangleScale`}>
                   <SliderField
-                    label="差异三角缩放"
+                    label={t("transition.diffTriangleScale")}
                     value={comp.diffTriangleScale}
                     min={0.3}
                     max={3}
@@ -492,7 +499,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                 {/* 评分滑动时长 */}
                 <div data-field-id={`comparison:${i}:dualRatingSlideFrames`}>
                   <SliderField
-                    label="评分滑动时长(帧)"
+                    label={t("transition.dualRatingSlideFrames")}
                     value={comp.dualRatingSlideFrames}
                     min={1}
                     max={60}
@@ -503,7 +510,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                 {/* 评分淡入时长 */}
                 <div data-field-id={`comparison:${i}:dualRatingFadeFrames`}>
                   <SliderField
-                    label="评分淡入时长(帧)"
+                    label={t("transition.dualRatingFadeFrames")}
                     value={comp.dualRatingFadeFrames}
                     min={1}
                     max={60}
@@ -514,7 +521,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                 {/* 图例字号 */}
                 <div>
                   <SliderField
-                    label="图例字号"
+                    label={t("transition.legendFontSize")}
                     value={comp.legendFontSize}
                     min={12}
                     max={60}
@@ -525,7 +532,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                 {/* 图例圆点半径 */}
                 <div data-field-id={`comparison:${i}:legendDotRadius`}>
                   <SliderField
-                    label="图例圆点半径"
+                    label={t("transition.legendDotRadius")}
                     value={comp.legendDotRadius}
                     min={2}
                     max={30}
@@ -537,14 +544,14 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
                 {/* 图例 XY 偏移 */}
                 <div>
                   <SliderField
-                    label="图例 X 偏移"
+                    label={t("transition.legendOffsetX")}
                     value={comp.legendOffsetX}
                     min={-500}
                     max={500}
                     onChange={(v) => update({ legendOffsetX: v })}
                   />
                   <SliderField
-                    label="图例 Y 偏移"
+                    label={t("transition.legendOffsetY")}
                     value={comp.legendOffsetY}
                     min={-500}
                     max={500}
@@ -554,7 +561,7 @@ export const ComparisonConfigPanel: React.FC<ComparisonConfigPanelProps> = ({
 
                 {/* 图例字体 */}
                 <div className="flex items-center gap-2">
-                  <Label className="text-xs text-subtitle shrink-0 w-20">图例字体</Label>
+                  <Label className="text-xs text-subtitle shrink-0 w-20">{t("transition.legendFontFamily")}</Label>
                   <FontSelect
                     value={comp.legendFontFamily}
                     onChange={(v) => updateComparison(i, { legendFontFamily: v })}

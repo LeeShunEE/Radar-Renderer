@@ -9,12 +9,13 @@ export type OverrideFieldType =
 
 export type OverrideField = {
   path: string;
-  label: string;
   type: OverrideFieldType;
 };
 
 export type OverrideGroup = {
-  title: string;
+  // i18n key slug（在 GlobalOverridePanel 里映射为 editor.override.groups.<titleKey>）；
+  // 字段标签则由 path 派生（"." → "_"），不在此处存展示文案。
+  titleKey: string;
   fields: OverrideField[];
 };
 
@@ -22,175 +23,127 @@ export type OverrideGroup = {
 // silhouetteSrc, attribute values) are intentionally omitted.
 export const OVERRIDE_GROUPS: OverrideGroup[] = [
   {
-    title: "角色 / Slug",
+    titleKey: "roleSlug",
     fields: [
       {
         path: "characterNameAlign",
-        label: "角色名对齐",
         type: { kind: "enum", options: ["left", "center", "right"] },
       },
-      { path: "slug.fontFamily", label: "Slug 字体", type: { kind: "string" } },
-      {
-        path: "slug.fontSize",
-        label: "Slug 字号",
-        type: { kind: "number", min: 8, max: 200 },
-      },
-      { path: "slug.color", label: "Slug 颜色", type: { kind: "color" } },
-      {
-        path: "slug.offsetX",
-        label: "Slug X 偏移",
-        type: { kind: "number", min: -1000, max: 1000 },
-      },
-      {
-        path: "slug.offsetY",
-        label: "Slug Y 偏移",
-        type: { kind: "number", min: -1000, max: 1000 },
-      },
+      { path: "slug.fontFamily", type: { kind: "string" } },
+      { path: "slug.fontSize", type: { kind: "number", min: 8, max: 200 } },
+      { path: "slug.color", type: { kind: "color" } },
+      { path: "slug.offsetX", type: { kind: "number", min: -1000, max: 1000 } },
+      { path: "slug.offsetY", type: { kind: "number", min: -1000, max: 1000 } },
       {
         path: "slug.fadeOffsetFrames",
-        label: "Slug 淡入延迟",
         type: { kind: "number", min: -120, max: 120 },
       },
     ],
   },
   {
-    title: "主题配色",
+    titleKey: "theme",
     fields: [
-      { path: "theme.backgroundColor", label: "背景色", type: { kind: "color" } },
-      { path: "theme.gridColor", label: "网格色", type: { kind: "color" } },
-      { path: "theme.gridFillColor", label: "填充色", type: { kind: "color" } },
-      { path: "theme.gridStrokeColor", label: "描边色", type: { kind: "color" } },
-      { path: "theme.dotColor", label: "圆点色", type: { kind: "color" } },
-      { path: "theme.highValueDotColor", label: "高属性圆点色", type: { kind: "color" } },
-      { path: "theme.labelColor", label: "标签色", type: { kind: "color" } },
-      { path: "theme.valueColor", label: "数值色", type: { kind: "color" } },
-      { path: "theme.glowColor", label: "发光色", type: { kind: "color" } },
-      { path: "theme.enhanceArrowColor", label: "增强箭头色", type: { kind: "color" } },
-      { path: "theme.weakenArrowColor", label: "变弱箭头色", type: { kind: "color" } },
+      { path: "theme.backgroundColor", type: { kind: "color" } },
+      { path: "theme.gridColor", type: { kind: "color" } },
+      { path: "theme.gridFillColor", type: { kind: "color" } },
+      { path: "theme.gridStrokeColor", type: { kind: "color" } },
+      { path: "theme.dotColor", type: { kind: "color" } },
+      { path: "theme.highValueDotColor", type: { kind: "color" } },
+      { path: "theme.labelColor", type: { kind: "color" } },
+      { path: "theme.valueColor", type: { kind: "color" } },
+      { path: "theme.glowColor", type: { kind: "color" } },
+      { path: "theme.enhanceArrowColor", type: { kind: "color" } },
+      { path: "theme.weakenArrowColor", type: { kind: "color" } },
       {
         path: "theme.silhouetteOpacity",
-        label: "剪影透明度",
         type: { kind: "number", min: 0, max: 1, step: 0.01 },
       },
-      { path: "theme.vignetteEnabled", label: "暗角开启", type: { kind: "boolean" } },
+      { path: "theme.vignetteEnabled", type: { kind: "boolean" } },
       {
         path: "theme.vignetteBrightness",
-        label: "暗角亮度",
         type: { kind: "number", min: -100, max: 0 },
       },
-      {
-        path: "theme.vignetteCenterX",
-        label: "暗角中心 X",
-        type: { kind: "number", min: 0, max: 100 },
-      },
-      {
-        path: "theme.vignetteCenterY",
-        label: "暗角中心 Y",
-        type: { kind: "number", min: 0, max: 100 },
-      },
-      {
-        path: "theme.vignetteInnerStop",
-        label: "暗角内停",
-        type: { kind: "number", min: 0, max: 90 },
-      },
+      { path: "theme.vignetteCenterX", type: { kind: "number", min: 0, max: 100 } },
+      { path: "theme.vignetteCenterY", type: { kind: "number", min: 0, max: 100 } },
+      { path: "theme.vignetteInnerStop", type: { kind: "number", min: 0, max: 90 } },
       {
         path: "theme.vignetteOuterStop",
-        label: "暗角外停",
         type: { kind: "number", min: 10, max: 100 },
       },
     ],
   },
   {
-    title: "字体",
+    titleKey: "font",
     fields: [
-      { path: "font.characterName", label: "角色名 字号", type: { kind: "number", min: 30, max: 180 } },
-      { path: "font.characterNameFamily", label: "角色名 字体", type: { kind: "string" } },
-      { path: "font.attributeLabel", label: "属性标签 字号", type: { kind: "number", min: 18, max: 90 } },
-      { path: "font.attributeLabelFamily", label: "属性标签 字体", type: { kind: "string" } },
-      { path: "font.ratingLabel", label: "评级 字号", type: { kind: "number", min: 15, max: 75 } },
-      { path: "font.ratingLabelFamily", label: "评级 字体", type: { kind: "string" } },
-      { path: "font.valuePopup", label: "数值弹出 字号", type: { kind: "number", min: 18, max: 75 } },
-      { path: "font.valuePopupFamily", label: "数值弹出 字体", type: { kind: "string" } },
+      { path: "font.characterName", type: { kind: "number", min: 30, max: 180 } },
+      { path: "font.characterNameFamily", type: { kind: "string" } },
+      { path: "font.attributeLabel", type: { kind: "number", min: 18, max: 90 } },
+      { path: "font.attributeLabelFamily", type: { kind: "string" } },
+      { path: "font.ratingLabel", type: { kind: "number", min: 15, max: 75 } },
+      { path: "font.ratingLabelFamily", type: { kind: "string" } },
+      { path: "font.valuePopup", type: { kind: "number", min: 18, max: 75 } },
+      { path: "font.valuePopupFamily", type: { kind: "string" } },
     ],
   },
   {
-    title: "动画",
+    titleKey: "animation",
     fields: [
-      { path: "animation.fillDuration", label: "填充时长", type: { kind: "number", min: 10, max: 120 } },
-      { path: "animation.silhouetteDelay", label: "剪影延迟", type: { kind: "number", min: 0, max: 60 } },
-      { path: "animation.silhouetteFadeInDuration", label: "剪影淡入", type: { kind: "number", min: 5, max: 90 } },
-      { path: "animation.labelStagger", label: "标签错开", type: { kind: "number", min: 0, max: 15 } },
-      { path: "animation.highValueSpringDamping", label: "高值弹簧阻尼", type: { kind: "number", min: 2, max: 30 } },
-      { path: "animation.holdDuration", label: "保持时长", type: { kind: "number", min: 0, max: 600 } },
-      { path: "animation.nameFadeInDuration", label: "名称淡入", type: { kind: "number", min: 5, max: 60 } },
-      { path: "animation.nameAppearRatio", label: "名称出现比", type: { kind: "number", min: 0, max: 1, step: 0.01 } },
-      { path: "animation.labelStartOffset", label: "标签起点偏移", type: { kind: "number", min: -60, max: 60 } },
-      { path: "animation.fillStartOffset", label: "填充起点偏移", type: { kind: "number", min: -60, max: 60 } },
-      { path: "animation.effectsStartOffset", label: "特效起点偏移", type: { kind: "number", min: -120, max: 60 } },
-      { path: "animation.holdStartOffset", label: "保持起点偏移", type: { kind: "number", min: -60, max: 60 } },
+      { path: "animation.fillDuration", type: { kind: "number", min: 10, max: 120 } },
+      { path: "animation.silhouetteDelay", type: { kind: "number", min: 0, max: 60 } },
+      { path: "animation.silhouetteFadeInDuration", type: { kind: "number", min: 5, max: 90 } },
+      { path: "animation.labelStagger", type: { kind: "number", min: 0, max: 15 } },
+      { path: "animation.highValueSpringDamping", type: { kind: "number", min: 2, max: 30 } },
+      { path: "animation.holdDuration", type: { kind: "number", min: 0, max: 600 } },
+      { path: "animation.nameFadeInDuration", type: { kind: "number", min: 5, max: 60 } },
+      { path: "animation.nameAppearRatio", type: { kind: "number", min: 0, max: 1, step: 0.01 } },
+      { path: "animation.labelStartOffset", type: { kind: "number", min: -60, max: 60 } },
+      { path: "animation.fillStartOffset", type: { kind: "number", min: -60, max: 60 } },
+      { path: "animation.effectsStartOffset", type: { kind: "number", min: -120, max: 60 } },
+      { path: "animation.holdStartOffset", type: { kind: "number", min: -60, max: 60 } },
     ],
   },
   {
-    title: "特效",
+    titleKey: "effects",
     fields: [
-      { path: "animation.highValueThreshold", label: "高值阈值", type: { kind: "number", min: 50, max: 200 } },
-      { path: "animation.valuePopupEnabled", label: "数值弹出开启", type: { kind: "boolean" } },
+      { path: "animation.highValueThreshold", type: { kind: "number", min: 50, max: 200 } },
+      { path: "animation.valuePopupEnabled", type: { kind: "boolean" } },
       {
         path: "animation.valuePopupStyle",
-        label: "弹出样式",
         type: { kind: "enum", options: ["spring", "bounce", "fadeScale", "slideIn"] },
       },
-      { path: "animation.highValueGlowEnabled", label: "高值发光开启", type: { kind: "boolean" } },
+      { path: "animation.highValueGlowEnabled", type: { kind: "boolean" } },
       {
         path: "animation.highValueGlowStyle",
-        label: "发光样式",
         type: { kind: "enum", options: ["pulse", "ring", "ripple", "sparkle"] },
       },
     ],
   },
   {
-    title: "布局",
+    titleKey: "layout",
     fields: [
-      { path: "layout.radarCX", label: "雷达 X", type: { kind: "number", min: 200, max: 1800 } },
-      { path: "layout.radarCY", label: "雷达 Y", type: { kind: "number", min: 100, max: 900 } },
-      { path: "layout.gridRingCount", label: "网格环数", type: { kind: "number", min: 1, max: 10 } },
-      { path: "layout.gridStrokeWidth", label: "网格描边", type: { kind: "number", min: 0.2, max: 8, step: 0.1 } },
-      { path: "layout.silhouetteOffsetX", label: "剪影 X 偏移", type: { kind: "number", min: -500, max: 500 } },
-      { path: "layout.silhouetteOffsetY", label: "剪影 Y 偏移", type: { kind: "number", min: -500, max: 500 } },
-      { path: "layout.silhouetteScale", label: "剪影缩放", type: { kind: "number", min: 0.2, max: 3, step: 0.01 } },
-      { path: "layout.characterNameOffsetX", label: "名称 X 偏移", type: { kind: "number", min: -500, max: 500 } },
-      { path: "layout.characterNameOffsetY", label: "名称 Y 偏移", type: { kind: "number", min: -500, max: 500 } },
-      { path: "layout.syncSilhouetteOffset", label: "同步剪影/名称偏移", type: { kind: "boolean" } },
+      { path: "layout.radarCX", type: { kind: "number", min: 200, max: 1800 } },
+      { path: "layout.radarCY", type: { kind: "number", min: 100, max: 900 } },
+      { path: "layout.gridRingCount", type: { kind: "number", min: 1, max: 10 } },
+      { path: "layout.gridStrokeWidth", type: { kind: "number", min: 0.2, max: 8, step: 0.1 } },
+      { path: "layout.silhouetteOffsetX", type: { kind: "number", min: -500, max: 500 } },
+      { path: "layout.silhouetteOffsetY", type: { kind: "number", min: -500, max: 500 } },
+      { path: "layout.silhouetteScale", type: { kind: "number", min: 0.2, max: 3, step: 0.01 } },
+      { path: "layout.characterNameOffsetX", type: { kind: "number", min: -500, max: 500 } },
+      { path: "layout.characterNameOffsetY", type: { kind: "number", min: -500, max: 500 } },
+      { path: "layout.syncSilhouetteOffset", type: { kind: "boolean" } },
       {
         path: "layout.radarScale",
-        label: "雷达缩放倍率",
         type: { kind: "number", min: 0.3, max: 3, step: 0.01 },
       },
     ],
   },
   {
-    title: "标签全局偏移",
+    titleKey: "labelOffset",
     fields: [
-      {
-        path: "layout.attributeLabelOffsetX",
-        label: "属性名 X 偏移",
-        type: { kind: "number", min: -500, max: 500 },
-      },
-      {
-        path: "layout.attributeLabelOffsetY",
-        label: "属性名 Y 偏移",
-        type: { kind: "number", min: -500, max: 500 },
-      },
-      {
-        path: "layout.ratingLabelOffsetX",
-        label: "评级标签 X 偏移",
-        type: { kind: "number", min: -500, max: 500 },
-      },
-      {
-        path: "layout.ratingLabelOffsetY",
-        label: "评级标签 Y 偏移",
-        type: { kind: "number", min: -500, max: 500 },
-      },
+      { path: "layout.attributeLabelOffsetX", type: { kind: "number", min: -500, max: 500 } },
+      { path: "layout.attributeLabelOffsetY", type: { kind: "number", min: -500, max: 500 } },
+      { path: "layout.ratingLabelOffsetX", type: { kind: "number", min: -500, max: 500 } },
+      { path: "layout.ratingLabelOffsetY", type: { kind: "number", min: -500, max: 500 } },
     ],
   },
 ];

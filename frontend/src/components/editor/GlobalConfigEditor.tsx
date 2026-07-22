@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { ChevronDown, Clock3, Music2, Play } from "lucide-react";
 import { AssetSelector } from "../files/AssetSelector";
 import { Button } from "../ui/button";
@@ -35,7 +36,7 @@ type DurationRow = {
 };
 
 function selectedAssetName(path: string): string {
-  if (!path) return "未选择音乐";
+  if (!path) return "";
   const cleanPath = path.split(/[?#]/, 1)[0];
   const encodedName = cleanPath.split(/[\\/]/).filter(Boolean).at(-1) ?? path;
   try {
@@ -43,10 +44,6 @@ function selectedAssetName(path: string): string {
   } catch {
     return encodedName;
   }
-}
-
-function durationLabel(frames: number): string {
-  return `${frames} 帧 · ${(frames / VIDEO_FPS).toFixed(1)} 秒`;
 }
 
 export const GlobalConfigEditor: React.FC<GlobalConfigEditorProps> = ({
@@ -61,8 +58,12 @@ export const GlobalConfigEditor: React.FC<GlobalConfigEditorProps> = ({
   onReorderPageSequence,
   onPreviewAll,
 }) => {
+  const t = useTranslations("editor.global");
   const [musicExpanded, setMusicExpanded] = useState(false);
   const [durationExpanded, setDurationExpanded] = useState(false);
+
+  const durationText = (frames: number): string =>
+    t("frameSeconds", { frames, seconds: (frames / VIDEO_FPS).toFixed(1) });
 
   const comparedPageIndices = useMemo(
     () =>
@@ -141,7 +142,12 @@ export const GlobalConfigEditor: React.FC<GlobalConfigEditorProps> = ({
         );
         rows.push({
           id: `comparison-${pageIndex}-${comparison.secondPageIndex}`,
-          label: `对比组 · 页 ${pageIndex + 1} ${config.pages[pageIndex].characterName} + 页 ${comparison.secondPageIndex + 1} ${config.pages[comparison.secondPageIndex].characterName}`,
+          label: t("durationComparisonRow", {
+            a: pageIndex + 1,
+            aName: config.pages[pageIndex].characterName,
+            b: comparison.secondPageIndex + 1,
+            bName: config.pages[comparison.secondPageIndex].characterName,
+          }),
           frames,
         });
         consumedPages.add(pageIndex);
@@ -151,7 +157,10 @@ export const GlobalConfigEditor: React.FC<GlobalConfigEditorProps> = ({
 
       rows.push({
         id: `page-${pageIndex}`,
-        label: `页 ${pageIndex + 1} · ${config.pages[pageIndex].characterName}`,
+        label: t("durationPageRow", {
+          n: pageIndex + 1,
+          name: config.pages[pageIndex].characterName,
+        }),
         frames: calculateDuration(mergedPages[pageIndex].animation),
       });
       consumedPages.add(pageIndex);
@@ -161,15 +170,15 @@ export const GlobalConfigEditor: React.FC<GlobalConfigEditorProps> = ({
       durationRows: rows,
       totalFrames: rows.reduce((sum, row) => sum + row.frames, 0),
     };
-  }, [config.comparisons, config.globalOverride, config.pages]);
+  }, [config.comparisons, config.globalOverride, config.pages, t]);
 
   return (
     <>
       <div className="space-y-4 rounded-lg border border-unfocused-border-color bg-card p-4">
         <div>
-          <h3 className="text-sm font-semibold text-foreground">全局配置</h3>
+          <h3 className="text-sm font-semibold text-foreground">{t("title")}</h3>
           <p className="mt-0.5 text-[10px] text-muted-foreground">
-            编排页面顺序、统一媒体与输出节奏
+            {t("subtitle")}
           </p>
         </div>
 
@@ -190,7 +199,9 @@ export const GlobalConfigEditor: React.FC<GlobalConfigEditorProps> = ({
             type="button"
             aria-expanded={musicExpanded}
             aria-controls="global-music-selector"
-            aria-label={`${musicExpanded ? "收起" : "展开"}背景音乐选择器`}
+            aria-label={t("musicAria", {
+              action: musicExpanded ? t("collapse") : t("expand"),
+            })}
             onClick={() => setMusicExpanded((expanded) => !expanded)}
             className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
           >
@@ -199,10 +210,10 @@ export const GlobalConfigEditor: React.FC<GlobalConfigEditorProps> = ({
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-xs font-semibold text-foreground">
-                背景音乐
+                {t("music")}
               </span>
               <span className="block truncate text-[10px] text-muted-foreground">
-                {selectedAssetName(config.musicUrl)}
+                {config.musicUrl ? selectedAssetName(config.musicUrl) : t("noMusic")}
               </span>
             </span>
             <ChevronDown
@@ -230,7 +241,9 @@ export const GlobalConfigEditor: React.FC<GlobalConfigEditorProps> = ({
             type="button"
             aria-expanded={durationExpanded}
             aria-controls="global-duration-details"
-            aria-label={`${durationExpanded ? "收起" : "展开"}时长明细`}
+            aria-label={t("durationAria", {
+              action: durationExpanded ? t("collapse") : t("expand"),
+            })}
             onClick={() => setDurationExpanded((expanded) => !expanded)}
             className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
           >
@@ -239,10 +252,10 @@ export const GlobalConfigEditor: React.FC<GlobalConfigEditorProps> = ({
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-xs font-semibold text-foreground">
-                总时长
+                {t("totalLabel")}
               </span>
               <span className="block text-[10px] tabular-nums text-muted-foreground">
-                {durationLabel(totalFrames)} · 共 {config.pages.length} 页
+                {durationText(totalFrames)} · {t("pagesSuffix", { pages: config.pages.length })}
               </span>
             </span>
             <ChevronDown
@@ -261,7 +274,7 @@ export const GlobalConfigEditor: React.FC<GlobalConfigEditorProps> = ({
                 >
                   <span className="min-w-0 truncate">{row.label}</span>
                   <span className="shrink-0 tabular-nums">
-                    {durationLabel(row.frames)}
+                    {durationText(row.frames)}
                   </span>
                 </div>
               ))}
@@ -279,10 +292,10 @@ export const GlobalConfigEditor: React.FC<GlobalConfigEditorProps> = ({
           >
             <span className="flex items-center gap-2">
               <Play className="h-3.5 w-3.5" />
-              全局预览（{config.pages.length} 页拼接）
+              {t("previewAllComposited", { pages: config.pages.length })}
             </span>
             <span className="font-normal tabular-nums text-muted-foreground">
-              {durationLabel(totalFrames)}
+              {durationText(totalFrames)}
             </span>
           </Button>
         )}
