@@ -24,10 +24,11 @@ process.env.NODE_PATH = [
 (Module as unknown as { _initPaths: () => void })._initPaths();
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:13000";
 
-// i18n 增量迁移期间，应用默认 locale 为 en（见 src/i18n/config.ts），但多数 e2e
-// spec 仍按中文文案取选择器（编辑器/文件等域尚未迁移）。这里预置 NEXT_LOCALE=zh
-// Cookie，把整个应用（含已迁移的 auth 域）钉在中文，使既有中文选择器稳定可用。
-// 待各域迁移完成后可改为 data-testid 选择器，并新增 en 语言切换旅程 spec。
+// i18n 各域迁移已完成，应用硬默认 locale 为 en（见 src/i18n/config.ts）。既有旅程 spec
+// 仍按中文文案取选择器，故这里预置 NEXT_LOCALE=zh Cookie 作为「默认中文兜底」，把整个
+// 应用钉在中文，使既有中文选择器稳定可用（避免一次性把 8 个 spec 盲改为 data-testid 的回归风险）。
+// 例外：language-switch.spec.ts 用 test.use 覆盖为空 storageState，从硬默认 en 起步验证切换。
+// 后续可增量把各 spec 的文案选择器改为 data-testid，逐个解耦后再评估移除本兜底。
 const localeStorageState = {
   cookies: [
     {
