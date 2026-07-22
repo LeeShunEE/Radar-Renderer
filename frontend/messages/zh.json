@@ -85,6 +85,39 @@
       }
     }
   },
+  "editor": {
+    "tabs": {
+      "persistence": "保存/加载",
+      "global": "全局",
+      "comparison": "对比",
+      "values": "数值",
+      "pages": "动画细节",
+      "assets": "素材",
+      "export": "导出"
+    },
+    "tabTitles": {
+      "persistence": "保存当前配置到服务器，或加载、管理历史配置",
+      "global": "管理页面列表，并统一覆盖各页面共用的全局参数（背景、字体等）",
+      "comparison": "配置相邻两页之间的对比过渡动画（切换/叠加布局）",
+      "values": "以表格批量编辑各页面的属性名称与评分数值",
+      "pages": "逐页调整动画时序、特效与元素布局参数",
+      "assets": "管理上传的图片、视频、音乐等素材文件",
+      "export": "创建视频渲染任务并查看渲染队列进度"
+    },
+    "autoSaved": "已自动保存",
+    "renderQueue": "渲染队列",
+    "defaultCharacterName": "角色{n}",
+    "duplicateSuffix": "{name} (副本)",
+    "importFrom": "从某一页面导入",
+    "pageLabel": "页{n}",
+    "page": {
+      "title": "第{n}页：{name}",
+      "previewing": "预览中",
+      "preview": "预览",
+      "duplicate": "复制",
+      "remove": "删除"
+    }
+  },
   "settings": {
     "title": "账户设置",
     "account": {

@@ -85,6 +85,39 @@
       }
     }
   },
+  "editor": {
+    "tabs": {
+      "persistence": "Save / Load",
+      "global": "Global",
+      "comparison": "Compare",
+      "values": "Values",
+      "pages": "Animation details",
+      "assets": "Assets",
+      "export": "Export"
+    },
+    "tabTitles": {
+      "persistence": "Save the current config to the server, or load and manage saved configs",
+      "global": "Manage the page list and override global parameters shared across pages (background, fonts, etc.)",
+      "comparison": "Configure the comparison transition animation between two adjacent pages (switch / overlay layout)",
+      "values": "Batch-edit each page's attribute names and scores in a table",
+      "pages": "Adjust per-page animation timing, effects, and element layout parameters",
+      "assets": "Manage uploaded images, videos, music, and other asset files",
+      "export": "Create a video render task and view render queue progress"
+    },
+    "autoSaved": "Auto-saved",
+    "renderQueue": "Render queue",
+    "defaultCharacterName": "Character {n}",
+    "duplicateSuffix": "{name} (copy)",
+    "importFrom": "Import from a page",
+    "pageLabel": "Page {n}",
+    "page": {
+      "title": "Page {n}: {name}",
+      "previewing": "Previewing",
+      "preview": "Preview",
+      "duplicate": "Duplicate",
+      "remove": "Delete"
+    }
+  },
   "settings": {
     "title": "Account settings",
     "account": {

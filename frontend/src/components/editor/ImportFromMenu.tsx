@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { Popover } from "@base-ui/react/popover";
 
 export type ImportSource = { index: number; label: string };
@@ -14,15 +15,17 @@ type Props = {
 export const ImportFromMenu: React.FC<Props> = ({
   sources,
   onPick,
-  triggerLabel = "从某一页面导入",
+  triggerLabel,
 }) => {
+  const t = useTranslations("editor");
+  const label = triggerLabel ?? t("importFrom");
   if (sources.length === 0) return null;
   return (
     <Popover.Root>
       <Popover.Trigger
         className="text-[11px] px-1.5 py-0.5 rounded border border-unfocused-border-color text-muted-foreground hover:bg-muted hover:text-foreground"
       >
-        {triggerLabel} ▾
+        {label} ▾
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner sideOffset={4} align="end">
@@ -36,7 +39,7 @@ export const ImportFromMenu: React.FC<Props> = ({
                 <span className="text-muted-foreground mr-2">
                   #{s.index + 1}
                 </span>
-                {s.label || `页${s.index + 1}`}
+                {s.label || t("pageLabel", { n: s.index + 1 })}
               </Popover.Close>
             ))}
           </Popover.Popup>
