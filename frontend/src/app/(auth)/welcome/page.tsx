@@ -11,6 +11,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
 import { setPassword, setUsername } from "@/lib/auth-store";
 import { auth } from "@/lib/api-client";
@@ -20,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 
 export default function WelcomePage() {
+  const t = useTranslations("auth.welcome");
   const router = useRouter();
   const { user } = useAuth();
   const [username, setUsernameValue] = useState("");
@@ -57,13 +59,13 @@ export default function WelcomePage() {
     setError(null);
 
     if (username.length < 3 || username.length > 64) {
-      setError("用户名长度应为 3-64 字符");
+      setError(t("usernameLengthError"));
       return;
     }
 
     const passwordOptional = hasOAuth === true;
     if (!passwordOptional && password.length < 8) {
-      setError("密码长度应至少 8 位");
+      setError(t("passwordTooShort"));
       return;
     }
 
@@ -75,7 +77,7 @@ export default function WelcomePage() {
       }
       router.push("/app");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "设置失败");
+      setError(err instanceof Error ? err.message : t("setupFailed"));
       setLoading(false);
     }
   };
@@ -85,20 +87,18 @@ export default function WelcomePage() {
   return (
     <Card className="p-6 space-y-4">
       <div className="text-center">
-        <h1 className="text-xl font-semibold">欢迎加入！</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          完善账户信息以开始使用
-        </p>
+        <h1 className="text-xl font-semibold">{t("title")}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t("subtitle")}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="username">用户名</Label>
+          <Label htmlFor="username">{t("usernameLabel")}</Label>
           <Input
             id="username"
             value={username}
             onChange={(e) => setUsernameValue(e.target.value)}
-            placeholder="输入用户名（3-64 字符）"
+            placeholder={t("usernamePlaceholder")}
             required
             minLength={3}
             maxLength={64}
@@ -108,7 +108,8 @@ export default function WelcomePage() {
 
         <div className="space-y-2">
           <Label htmlFor="password">
-            密码{passwordOptional ? "（可选）" : ""}
+            {t("passwordLabel")}
+            {passwordOptional ? t("passwordOptionalSuffix") : ""}
           </Label>
           <Input
             id="password"
@@ -117,23 +118,23 @@ export default function WelcomePage() {
             onChange={(e) => setPasswordValue(e.target.value)}
             placeholder={
               passwordOptional
-                ? "设置密码后可用密码登录（可跳过）"
-                : "输入密码（至少 8 位）"
+                ? t("passwordPlaceholderOptional")
+                : t("passwordPlaceholderRequired")
             }
             minLength={passwordOptional ? undefined : 8}
             autoComplete="new-password"
           />
           <p className="text-xs text-muted-foreground">
             {passwordOptional
-              ? "您已绑定第三方登录，密码为备选登录方式"
-              : "邮箱注册用户需设置密码以便后续登录"}
+              ? t("passwordHintOptional")
+              : t("passwordHintRequired")}
           </p>
         </div>
 
         {error && <p className="text-sm text-red-500">{error}</p>}
 
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "设置中…" : "完成并开始使用"}
+          {loading ? t("submitting") : t("submit")}
         </Button>
       </form>
     </Card>

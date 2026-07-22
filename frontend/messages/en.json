@@ -1,0 +1,97 @@
+{
+  "metadata": {
+    "title": "Radar Chart Animation Generator",
+    "description": "A Remotion-based tool for generating radar chart animation videos"
+  },
+  "common": {
+    "loading": "Loading…"
+  },
+  "language": {
+    "label": "Language"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign in",
+      "subtitle": "Sign in to use the Radar Chart Animation Generator",
+      "identifierLabel": "Username or email",
+      "identifierPlaceholder": "Enter username or email",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter password",
+      "forgotPassword": "Forgot password?",
+      "submit": "Sign in",
+      "submitting": "Signing in…",
+      "noAccount": "No account yet?",
+      "registerLink": "Sign up",
+      "failed": "Sign-in failed"
+    },
+    "register": {
+      "title": "Sign up",
+      "subtitleEmail": "Enter your email to receive a verification code",
+      "emailLabel": "Email",
+      "emailPlaceholder": "Enter email",
+      "sendCode": "Send code",
+      "sending": "Sending…",
+      "submit": "Sign up",
+      "submitting": "Signing up…",
+      "oauthHint": "Or sign in quickly with GitHub / Google",
+      "haveAccount": "Already have an account?",
+      "loginLink": "Sign in",
+      "sendCodeFailed": "Failed to send verification code",
+      "registerFailed": "Sign-up failed"
+    },
+    "forgotPassword": {
+      "title": "Reset password",
+      "subtitleEmail": "Enter your registered email to receive a verification code",
+      "emailLabel": "Email",
+      "emailPlaceholder": "Enter registered email",
+      "sendCode": "Send code",
+      "sending": "Sending…",
+      "newPasswordLabel": "New password",
+      "newPasswordPlaceholder": "Enter new password (at least 8 characters)",
+      "confirmPasswordLabel": "Confirm new password",
+      "confirmPasswordPlaceholder": "Re-enter new password",
+      "submit": "Reset password",
+      "submitting": "Resetting…",
+      "rememberedPassword": "Remembered your password?",
+      "backToLogin": "Back to sign in",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "passwordMismatch": "The two passwords do not match",
+      "sendCodeFailed": "Failed to send verification code",
+      "resetFailed": "Failed to reset password"
+    },
+    "welcome": {
+      "title": "Welcome aboard!",
+      "subtitle": "Complete your account details to get started",
+      "usernameLabel": "Username",
+      "usernamePlaceholder": "Enter username (3-64 characters)",
+      "passwordLabel": "Password",
+      "passwordOptionalSuffix": " (optional)",
+      "passwordPlaceholderOptional": "Set a password to enable password sign-in (can skip)",
+      "passwordPlaceholderRequired": "Enter password (at least 8 characters)",
+      "passwordHintOptional": "You have linked a third-party login; a password is an alternative sign-in method",
+      "passwordHintRequired": "Email-registered users must set a password for future sign-in",
+      "submit": "Finish and get started",
+      "submitting": "Saving…",
+      "usernameLengthError": "Username must be 3-64 characters",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "setupFailed": "Setup failed"
+    },
+    "verify": {
+      "codeSent": "A verification code has been sent to {email}. Please check your inbox or spam folder",
+      "codeLabel": "Verification code",
+      "codePlaceholder": "Enter the 6-digit code",
+      "changeEmail": "Change email",
+      "resend": "Resend",
+      "resendCountdown": "Resend in {seconds}s"
+    },
+    "oauth": {
+      "divider": "Or continue with",
+      "google": "Continue with Google",
+      "github": "Continue with GitHub",
+      "failed": "OAuth sign-in failed"
+    },
+    "userMenu": {
+      "logout": "Sign out"
+    }
+  }
+}

@@ -9,6 +9,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   registerWithCode,
   sendVerificationCode,
@@ -22,6 +23,8 @@ import { OAuthButtons } from "@/components/auth/OAuthButtons";
 const RESEND_COUNTDOWN = 60;
 
 export default function RegisterPage() {
+  const t = useTranslations("auth.register");
+  const tv = useTranslations("auth.verify");
   const router = useRouter();
   const [step, setStep] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
@@ -52,7 +55,7 @@ export default function RegisterPage() {
       startCountdown();
       setStep("code");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "验证码发送失败");
+      setError(err instanceof Error ? err.message : t("sendCodeFailed"));
     } finally {
       setLoading(false);
     }
@@ -66,7 +69,7 @@ export default function RegisterPage() {
       await sendVerificationCode(email, "register");
       startCountdown();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "验证码发送失败");
+      setError(err instanceof Error ? err.message : t("sendCodeFailed"));
     } finally {
       setLoading(false);
     }
@@ -81,7 +84,7 @@ export default function RegisterPage() {
       // 邮箱注册用户 username 必空，统一进入 onboarding
       router.push("/welcome");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "注册失败");
+      setError(err instanceof Error ? err.message : t("registerFailed"));
     } finally {
       setLoading(false);
     }
@@ -90,24 +93,24 @@ export default function RegisterPage() {
   return (
     <Card className="p-6 space-y-4">
       <div className="text-center">
-        <h1 className="text-xl font-semibold">注册</h1>
+        <h1 className="text-xl font-semibold">{t("title")}</h1>
         <p className="text-sm text-muted-foreground mt-1">
           {step === "email"
-            ? "输入邮箱以接收验证码"
-            : `验证码已发送至 ${email}，请检查收件箱或垃圾邮件`}
+            ? t("subtitleEmail")
+            : tv("codeSent", { email })}
         </p>
       </div>
 
       {step === "email" ? (
         <form onSubmit={handleSendCode} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">邮箱</Label>
+            <Label htmlFor="email">{t("emailLabel")}</Label>
             <Input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="输入邮箱"
+              placeholder={t("emailPlaceholder")}
               required
               autoComplete="email"
             />
@@ -116,19 +119,19 @@ export default function RegisterPage() {
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "发送中…" : "发送验证码"}
+            {loading ? t("sending") : t("sendCode")}
           </Button>
         </form>
       ) : (
         <>
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="code">验证码</Label>
+              <Label htmlFor="code">{tv("codeLabel")}</Label>
               <Input
                 id="code"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                placeholder="输入 6 位验证码"
+                placeholder={tv("codePlaceholder")}
                 required
                 minLength={6}
                 maxLength={6}
@@ -140,7 +143,7 @@ export default function RegisterPage() {
             {error && <p className="text-sm text-red-500">{error}</p>}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "注册中…" : "注册"}
+              {loading ? t("submitting") : t("submit")}
             </Button>
 
             <div className="flex justify-between text-sm">
@@ -150,7 +153,7 @@ export default function RegisterPage() {
                 className="text-muted-foreground hover:underline"
                 disabled={loading}
               >
-                更换邮箱
+                {tv("changeEmail")}
               </button>
               <button
                 type="button"
@@ -162,22 +165,24 @@ export default function RegisterPage() {
                 }
                 disabled={countdown > 0 || loading}
               >
-                {countdown > 0 ? `${countdown}s 后可重发` : "重新发送"}
+                {countdown > 0
+                  ? tv("resendCountdown", { seconds: countdown })
+                  : tv("resend")}
               </button>
             </div>
           </form>
 
           <OAuthButtons />
           <p className="text-sm text-muted-foreground text-center">
-            或使用 GitHub / Google 快捷登录
+            {t("oauthHint")}
           </p>
         </>
       )}
 
       <div className="text-center text-sm text-muted-foreground">
-        已有账户？{" "}
+        {t("haveAccount")}{" "}
         <Link href="/login" className="text-primary hover:underline">
-          登录
+          {t("loginLink")}
         </Link>
       </div>
     </Card>

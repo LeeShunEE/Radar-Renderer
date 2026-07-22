@@ -1,15 +1,20 @@
 import { Metadata, Viewport } from "next";
 import "../../styles/global.css";
 import { Geist } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getTranslations } from "next-intl/server";
 import { cn } from "@/lib/utils";
 import { AuthProvider } from "@/contexts/AuthContext";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
-export const metadata: Metadata = {
-  title: "雷达图动画生成器",
-  description: "基于 Remotion 的雷达图动画视频生成工具",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("metadata");
+  return {
+    title: t("title"),
+    description: t("description"),
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -17,15 +22,19 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const locale = await getLocale();
+
   return (
-    <html lang="zh" className={cn("font-sans", geist.variable)}>
+    <html lang={locale} className={cn("font-sans", geist.variable)}>
       <body className="bg-background">
-        <AuthProvider>{children}</AuthProvider>
+        <NextIntlClientProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

@@ -19,6 +19,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { useTranslations } from "next-intl";
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 
 interface OAuthAccount {
   id: number;
@@ -29,6 +31,7 @@ interface OAuthAccount {
 }
 
 export default function SettingsPage() {
+  const tLang = useTranslations("language");
   const router = useRouter();
   const { user, logout } = useAuth();
   const [username, setUsernameValue] = useState("");
@@ -136,6 +139,14 @@ export default function SettingsPage() {
       <h1 className="text-2xl font-bold mb-6">账户设置</h1>
 
       <Card className="p-6 space-y-6">
+        {/* 语言 */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">{tLang("label")}</h2>
+          <LanguageSwitcher />
+        </div>
+
+        <Separator />
+
         {/* 用户信息 */}
         <div>
           <h2 className="text-lg font-semibold mb-2">账户信息</h2>

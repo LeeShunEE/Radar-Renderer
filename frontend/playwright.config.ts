@@ -24,6 +24,26 @@ process.env.NODE_PATH = [
 (Module as unknown as { _initPaths: () => void })._initPaths();
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:13000";
 
+// i18n 增量迁移期间，应用默认 locale 为 en（见 src/i18n/config.ts），但多数 e2e
+// spec 仍按中文文案取选择器（编辑器/文件等域尚未迁移）。这里预置 NEXT_LOCALE=zh
+// Cookie，把整个应用（含已迁移的 auth 域）钉在中文，使既有中文选择器稳定可用。
+// 待各域迁移完成后可改为 data-testid 选择器，并新增 en 语言切换旅程 spec。
+const localeStorageState = {
+  cookies: [
+    {
+      name: "NEXT_LOCALE",
+      value: "zh",
+      domain: new URL(baseURL).hostname,
+      path: "/",
+      expires: -1,
+      httpOnly: false,
+      secure: false,
+      sameSite: "Lax" as const,
+    },
+  ],
+  origins: [],
+};
+
 export default defineConfig({
   // e2e 代码位于仓库 tests 树下（§2.6 豁免 1:1 对齐，按旅程组织）。
   testDir: "../tests/testenv-integration/frontend",
@@ -35,6 +55,7 @@ export default defineConfig({
   reporter: process.env.CI ? "github" : "list",
   use: {
     baseURL,
+    storageState: localeStorageState,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
