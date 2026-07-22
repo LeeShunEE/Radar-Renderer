@@ -34,10 +34,14 @@ test.describe("全局页面编排", () => {
         name: `拖动对比组 ${originalNames[0]} 与 ${originalNames[1]}`,
       })
       .first();
-    const lastPage = page.getByRole("button", {
-      name: `选择页面 ${originalNames[2]}`,
-    });
-    await groupHandle.dragTo(lastPage);
+    await groupHandle.focus();
+    await groupHandle.press("Space");
+    await expect(groupHandle).toHaveAttribute("aria-pressed", "true");
+    await groupHandle.press("ArrowDown");
+    await expect(page.getByRole("status")).toContainText(
+      `当前位于页面 ${originalNames[2]}`,
+    );
+    await groupHandle.press("Space");
 
     await expect
       .poll(async () =>
