@@ -32,9 +32,9 @@ const SAMPLE_BG_VIDEO = path.join(
 // 区别于剪影（image/*）与音乐（audio/*）的文件输入。
 const BG_FILE_INPUT = 'input[accept="image/*,video/*"]';
 
-/** 进入页面 Tab（第 1 页默认展开，背景配置可见）。 */
+/** 进入动画细节 Tab（原「页面」Tab，第 1 页默认展开，背景配置可见）。 */
 async function openPagePanel(page: Page): Promise<void> {
-  await page.getByRole("tab", { name: "页面" }).click();
+  await page.getByRole("tab", { name: "动画细节" }).click();
   await expect(page.getByRole("heading", { name: "背景配置" })).toBeVisible();
 }
 

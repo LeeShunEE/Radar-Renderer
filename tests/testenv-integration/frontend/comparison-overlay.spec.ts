@@ -140,7 +140,7 @@ test.describe("对比模式叠加高亮 (overlay) 旅程", () => {
 
     // 配置存档：保存到 localStorage（useSavedConfigs STORAGE_KEY）
     const configName = `e2e_overlay_${Date.now()}`;
-    await page.getByRole("tab", { name: "配置" }).click();
+    await page.getByRole("tab", { name: "保存/加载" }).click();
     await page.getByPlaceholder("输入配置名称").fill(configName);
     await page.getByRole("button", { name: "保存", exact: true }).click();
     await expect(page.getByText("已保存!")).toBeVisible();
@@ -150,7 +150,7 @@ test.describe("对比模式叠加高亮 (overlay) 旅程", () => {
     await expect(page).toHaveURL(/\/app$/, { timeout: 10_000 });
 
     // 从存档加载（loadConfig 经 MultiPageSchema.safeParse 反序列化，zod 回填在此触发）
-    await page.getByRole("tab", { name: "配置" }).click();
+    await page.getByRole("tab", { name: "保存/加载" }).click();
     await page.getByText("选择已保存配置").click();
     await page
       .getByRole("option", { name: configName, exact: true })
