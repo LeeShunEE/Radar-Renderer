@@ -213,7 +213,7 @@ describe("auth-store（集成）", () => {
 
     it("无 refresh token 时抛错", async () => {
       clearTokens();
-      await expect(refreshTokens()).rejects.toThrow("无 refresh token");
+      await expect(refreshTokens()).rejects.toThrow("No refresh token");
     });
   });
 
