@@ -222,13 +222,14 @@ describe("AssetSelector", () => {
     expect(upload).toHaveBeenCalled();
   });
 
-  it("加载中且无资源 → 显示「加载中...」", () => {
+  it("加载中且无资源 → 显示加载文案", () => {
     assets.loading = true;
     assets.silhouettes = [];
     fileMgmt.loading = false;
     fileMgmt.files = [];
     render(<AssetSelector category="silhouettes" value="" onChange={vi.fn()} />);
-    expect(screen.getByText("加载中...")).toBeInTheDocument();
+    // 复用 common.loading（zh.json: "加载中…"）
+    expect(screen.getByText("加载中…")).toBeInTheDocument();
   });
 
   it("无任何资源 → 显示「暂无资源」", () => {

@@ -22,6 +22,33 @@
   "footer": {
     "version": "版本 {version}"
   },
+  "files": {
+    "category": {
+      "silhouettes": "剪影图片",
+      "music": "背景音乐",
+      "backgroundImage": "背景图片",
+      "backgroundVideo": "背景视频",
+      "backgrounds": "背景媒体"
+    },
+    "selected": "选中",
+    "clearSelection": "清除选择",
+    "publicAssets": "公共资源",
+    "myUploads": "我的上传",
+    "empty": "暂无资源，点击上传按钮添加",
+    "emptyUploads": "暂无上传文件",
+    "pasteHint": "悬停此处按 Ctrl+V（⌘V）可粘贴图片",
+    "pasteHintFull": "支持 Ctrl+V（Mac 为 ⌘V）直接粘贴图片上传",
+    "pasting": "已粘贴图片，正在上传 {name}…",
+    "pasted": "已上传粘贴图片 {name}",
+    "pastedSelected": "已上传并选中 {name}",
+    "quotaUsed": "已用 {used} / {limit}",
+    "storageAlmostFull": "存储空间即将用尽",
+    "uploading": "上传中...",
+    "uploadFile": "上传文件",
+    "refreshCategory": "刷新{label}资源",
+    "uploadCategory": "上传{label}",
+    "confirmDelete": "确定删除 \"{name}\"？"
+  },
   "language": {
     "label": "语言"
   },

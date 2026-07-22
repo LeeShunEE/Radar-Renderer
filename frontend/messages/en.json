@@ -22,6 +22,33 @@
   "footer": {
     "version": "Version {version}"
   },
+  "files": {
+    "category": {
+      "silhouettes": "Silhouettes",
+      "music": "Background music",
+      "backgroundImage": "Background image",
+      "backgroundVideo": "Background video",
+      "backgrounds": "Background media"
+    },
+    "selected": "Selected",
+    "clearSelection": "Clear selection",
+    "publicAssets": "Public assets",
+    "myUploads": "My uploads",
+    "empty": "No assets yet. Click the upload button to add.",
+    "emptyUploads": "No uploaded files",
+    "pasteHint": "Hover here and press Ctrl+V (⌘V) to paste an image",
+    "pasteHintFull": "You can paste an image with Ctrl+V (⌘V on Mac) to upload it",
+    "pasting": "Image pasted, uploading {name}…",
+    "pasted": "Pasted image uploaded: {name}",
+    "pastedSelected": "Uploaded and selected: {name}",
+    "quotaUsed": "Used {used} / {limit}",
+    "storageAlmostFull": "Storage almost full",
+    "uploading": "Uploading…",
+    "uploadFile": "Upload file",
+    "refreshCategory": "Refresh {label}",
+    "uploadCategory": "Upload {label}",
+    "confirmDelete": "Delete \"{name}\"?"
+  },
   "language": {
     "label": "Language"
   },

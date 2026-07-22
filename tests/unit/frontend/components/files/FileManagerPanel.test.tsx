@@ -63,10 +63,11 @@ describe("FileManagerPanel", () => {
     expect(screen.getByText("暂无上传文件")).toBeInTheDocument();
   });
 
-  it("加载中且无文件显示「加载中...」", () => {
+  it("加载中且无文件显示加载文案", () => {
     fm.state.loading = true;
     render(<FileManagerPanel />);
-    expect(screen.getByText("加载中...")).toBeInTheDocument();
+    // 复用 common.loading（zh.json: "加载中…"）
+    expect(screen.getByText("加载中…")).toBeInTheDocument();
   });
 
   it("显示错误文案", () => {
