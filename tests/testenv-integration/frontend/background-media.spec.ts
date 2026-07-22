@@ -28,13 +28,9 @@ const SAMPLE_BG_VIDEO = path.join(
   "../../data/frontend/background-media/sample-bg.mp4",
 );
 
-// backgrounds 的 AssetSelector 文件输入用 accept="image/*,video/*" 唯一标识，
-// 区别于剪影（image/*）与音乐（audio/*）的文件输入。
-const BG_FILE_INPUT = 'input[accept="image/*,video/*"]';
-
-/** 进入页面 Tab（第 1 页默认展开，背景配置可见）。 */
+/** 进入动画细节 Tab（原「页面」Tab，第 1 页默认展开，背景配置可见）。 */
 async function openPagePanel(page: Page): Promise<void> {
-  await page.getByRole("tab", { name: "页面" }).click();
+  await page.getByRole("tab", { name: "动画细节" }).click();
   await expect(page.getByRole("heading", { name: "背景配置" })).toBeVisible();
 }
 
@@ -49,10 +45,17 @@ async function switchBackgroundType(
 /** 上传一个背景素材并在“我的上传”网格中选中它。 */
 async function uploadAndSelectBackground(
   page: Page,
+  mediaType: "图片" | "视频",
   filePath: string,
   fileName: string,
 ): Promise<void> {
-  await page.locator(BG_FILE_INPUT).setInputFiles(filePath);
+  const uploadButton = page.getByRole("button", {
+    name: `上传背景${mediaType}`,
+  });
+  await uploadButton
+    .locator("..")
+    .locator('input[type="file"]')
+    .setInputFiles(filePath);
   // 上传完成后缩略图按钮出现（grid 项 title=文件名）。
   const thumb = page.locator(`button[title="${fileName}"]`);
   await expect(thumb).toBeVisible({ timeout: 15_000 });
@@ -67,7 +70,12 @@ test.describe("背景媒体旅程", () => {
   test("图片背景：上传选中后在预览中真实渲染（Task 2.4）", async ({ page }) => {
     await openPagePanel(page);
     await switchBackgroundType(page, "图片");
-    await uploadAndSelectBackground(page, SAMPLE_BG_IMAGE, "sample-bg.png");
+    await uploadAndSelectBackground(
+      page,
+      "图片",
+      SAMPLE_BG_IMAGE,
+      "sample-bg.png",
+    );
 
     // 预览（Remotion Player）应渲染出背景图层元素。
     await expect(page.locator('[data-testid="background-media-image"]')).toBeAttached({
@@ -83,7 +91,12 @@ test.describe("背景媒体旅程", () => {
   }) => {
     await openPagePanel(page);
     await switchBackgroundType(page, "视频");
-    await uploadAndSelectBackground(page, SAMPLE_BG_VIDEO, "sample-bg.mp4");
+    await uploadAndSelectBackground(
+      page,
+      "视频",
+      SAMPLE_BG_VIDEO,
+      "sample-bg.mp4",
+    );
 
     // 预览应渲染出背景视频图层。
     await expect(page.locator('[data-testid="background-media-video"]')).toBeAttached({
@@ -108,7 +121,12 @@ test.describe("背景媒体旅程", () => {
     test.setTimeout(150_000);
     await openPagePanel(page);
     await switchBackgroundType(page, "图片");
-    await uploadAndSelectBackground(page, SAMPLE_BG_IMAGE, "sample-bg.png");
+    await uploadAndSelectBackground(
+      page,
+      "图片",
+      SAMPLE_BG_IMAGE,
+      "sample-bg.png",
+    );
     await expect(page.locator('[data-testid="background-media-image"]')).toBeAttached({
       timeout: 10_000,
     });
@@ -129,7 +147,12 @@ test.describe("背景媒体旅程", () => {
 
     await openPagePanel(page);
     await switchBackgroundType(page, "视频");
-    await uploadAndSelectBackground(page, SAMPLE_BG_VIDEO, "sample-bg.mp4");
+    await uploadAndSelectBackground(
+      page,
+      "视频",
+      SAMPLE_BG_VIDEO,
+      "sample-bg.mp4",
+    );
     await expect(page.locator('[data-testid="background-media-video"]')).toBeAttached({
       timeout: 10_000,
     });
