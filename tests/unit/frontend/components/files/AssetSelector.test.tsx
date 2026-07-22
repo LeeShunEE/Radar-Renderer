@@ -120,6 +120,25 @@ describe("AssetSelector", () => {
     expect(screen.getAllByText("▶").length).toBeGreaterThan(0);
   });
 
+  it("embedded 模式隐藏重复标题并为头部操作提供可访问名称", () => {
+    render(
+      <AssetSelector
+        category="music"
+        value=""
+        onChange={vi.fn()}
+        embedded
+      />,
+    );
+
+    expect(screen.queryByText("背景音乐")).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "刷新背景音乐资源" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "上传背景音乐" }),
+    ).toBeInTheDocument();
+  });
+
   it("music 类别：上传的 flac 出现在「我的上传」（bug 回归）", () => {
     fileMgmt.files = [{ name: "my-song.flac" }];
     render(<AssetSelector category="music" value="" onChange={vi.fn()} />);

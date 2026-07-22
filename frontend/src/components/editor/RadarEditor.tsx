@@ -160,10 +160,6 @@ export const RadarEditor: React.FC = () => {
     setActivePageIndex(result.activePageIndex);
   };
 
-  const moveSinglePage = (from: number, to: number) => {
-    reorderPages(`page:${from}`, `page:${to}`);
-  };
-
   const playerProps = useMemo(
     () => applyGlobalOverride(activePage, config.globalOverride),
     [activePage, config.globalOverride],
@@ -251,7 +247,6 @@ export const RadarEditor: React.FC = () => {
               onAddPage={addPage}
               onDuplicatePage={duplicatePage}
               onRemovePage={removePage}
-              onMovePage={moveSinglePage}
               onReorderPageSequence={reorderPages}
               onPreviewAll={() => setPreviewMode("multi")}
             />

@@ -53,6 +53,8 @@ interface AssetSelectorProps {
    * 不传则图片视频混排（历史行为，背景类型不匹配会导致渲染端报错）。
    */
   mediaKind?: BackgroundMediaKind;
+  /** 嵌入上级折叠面板时隐藏重复标题，仅保留资源操作区。 */
+  embedded?: boolean;
 }
 
 /** 文件名扩展名过滤正则（清单见 asset-exts.ts，与后端保持一致） */
@@ -71,6 +73,7 @@ export function AssetSelector({
   onChange,
   showPlayButton = false,
   mediaKind,
+  embedded = false,
 }: AssetSelectorProps) {
   const {
     silhouettes,
@@ -292,10 +295,14 @@ export function AssetSelector({
         hoveredRef.current = false;
       }}
     >
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">{headerLabel}</span>
+      <div className={`flex items-center ${embedded ? "justify-end" : "justify-between"}`}>
+        {!embedded && (
+          <span className="text-xs text-muted-foreground">{headerLabel}</span>
+        )}
         <div className="flex items-center gap-1">
           <Button
+            type="button"
+            aria-label={`刷新${headerLabel}资源`}
             onClick={refreshAssets}
             disabled={loading}
             variant="ghost"
@@ -305,6 +312,8 @@ export function AssetSelector({
             <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
           </Button>
           <Button
+            type="button"
+            aria-label={`上传${headerLabel}`}
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
             variant="ghost"
