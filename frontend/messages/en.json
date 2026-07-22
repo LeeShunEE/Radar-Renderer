@@ -110,6 +110,44 @@
     "duplicateSuffix": "{name} (copy)",
     "importFrom": "Import from a page",
     "pageLabel": "Page {n}",
+    "values": {
+      "title": "Radar values table",
+      "syncHeader": "Sync header to all pages",
+      "syncHeaderTip": "Copy each attribute's short and full labels from page 1 (first row) to the corresponding columns on all other pages, so every page shares the same header; page values are unaffected.",
+      "addPage": "Add new page",
+      "roleAttr": "Character / Attribute",
+      "swapLeft": "Swap with left column",
+      "swapRight": "Swap with right column",
+      "shortLabel": "Short",
+      "fullLabel": "Full",
+      "characterName": "Character name",
+      "setPreviewPage": "Set as preview page",
+      "wheelTip": "Focus then scroll to adjust: Shift=±10, Alt=±0.5",
+      "hint": "Value range 0–200. Click the leading number of a row to set that page as preview. Editing the first row's attribute names overwrites the matching names on all pages. Use the ◀ ▶ buttons in the header to swap two columns (applies to all pages)."
+    },
+    "attributes": {
+      "title": "Attribute editor",
+      "namePlaceholder": "Attribute name",
+      "offsetX": "X offset: {value}",
+      "offsetY": "Y offset: {value}",
+      "thresholdHint": "Attributes above the threshold ({threshold}) trigger effects"
+    },
+    "fontFields": {
+      "characterName": "Character name",
+      "attributeLabel": "Attribute label",
+      "ratingLabel": "Rating label",
+      "valuePopup": "Value popup"
+    },
+    "fontSize": {
+      "title": "Font size"
+    },
+    "fontFamily": {
+      "title": "Font",
+      "search": "Search fonts…",
+      "curated": "Curated fonts",
+      "all": "All fonts",
+      "notFound": "No matching fonts"
+    },
     "page": {
       "title": "Page {n}: {name}",
       "previewing": "Previewing",

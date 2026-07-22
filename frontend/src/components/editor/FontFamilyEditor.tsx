@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useRef, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { Popover } from "@base-ui/react/popover";
 import { Input } from "../ui/input";
 import { CURATED_FONTS } from "../../lib/fonts";
@@ -12,11 +13,11 @@ type FontFamilyEditorProps = {
   importMenu?: React.ReactNode;
 };
 
-const fields: { key: keyof FontConfig; label: string }[] = [
-  { key: "characterNameFamily", label: "角色名称" },
-  { key: "attributeLabelFamily", label: "属性标签" },
-  { key: "ratingLabelFamily", label: "评级标签" },
-  { key: "valuePopupFamily", label: "数值弹出" },
+const fields: { key: keyof FontConfig; labelKey: string }[] = [
+  { key: "characterNameFamily", labelKey: "characterName" },
+  { key: "attributeLabelFamily", labelKey: "attributeLabel" },
+  { key: "ratingLabelFamily", labelKey: "ratingLabel" },
+  { key: "valuePopupFamily", labelKey: "valuePopup" },
 ];
 
 type FontOption = { name: string; label: string };
@@ -28,6 +29,7 @@ export function FontSelect({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const t = useTranslations("editor.fontFamily");
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -94,7 +96,7 @@ export function FontSelect({
                 ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="搜索字体..."
+                placeholder={t("search")}
                 className="h-6 text-xs"
                 autoFocus
               />
@@ -103,7 +105,7 @@ export function FontSelect({
               {filteredCurated.length > 0 && (
                 <>
                   <div className="px-2 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                    精选字体
+                    {t("curated")}
                   </div>
                   {filteredCurated.map((font) => (
                     <FontItem
@@ -118,7 +120,7 @@ export function FontSelect({
               {filteredAll.length > 0 && (
                 <>
                   <div className="px-2 py-1 mt-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                    全部字体
+                    {t("all")}
                   </div>
                   {filteredAll.map((font) => (
                     <FontItem
@@ -132,7 +134,7 @@ export function FontSelect({
               )}
               {filteredCurated.length === 0 && filteredAll.length === 0 && (
                 <div className="px-2 py-3 text-xs text-muted-foreground text-center">
-                  未找到匹配字体
+                  {t("notFound")}
                 </div>
               )}
             </div>
@@ -173,6 +175,7 @@ export const FontFamilyEditor: React.FC<FontFamilyEditorProps> = ({
   onChange,
   importMenu,
 }) => {
+  const t = useTranslations("editor");
   const update = (key: keyof FontConfig, value: string) => {
     onChange({ ...font, [key]: value });
   };
@@ -180,13 +183,13 @@ export const FontFamilyEditor: React.FC<FontFamilyEditorProps> = ({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">字体</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t("fontFamily.title")}</h3>
         {importMenu}
       </div>
-      {fields.map(({ key, label }) => (
+      {fields.map(({ key, labelKey }) => (
         <div key={key} className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground w-16 shrink-0">
-            {label}
+            {t(`fontFields.${labelKey}`)}
           </span>
           <FontSelect
             value={font[key] as string}

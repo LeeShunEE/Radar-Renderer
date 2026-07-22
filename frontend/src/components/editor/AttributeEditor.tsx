@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { Input } from "../ui/input";
 import { Slider } from "../ui/slider";
 import type { RadarAttribute, AnimationConfig } from "../../types/radar";
@@ -19,6 +20,7 @@ export const AttributeEditor: React.FC<AttributeEditorProps> = ({
   onChange,
   importMenu,
 }) => {
+  const t = useTranslations("editor.attributes");
   const updateAttribute = (
     index: number,
     field: keyof RadarAttribute,
@@ -32,7 +34,7 @@ export const AttributeEditor: React.FC<AttributeEditorProps> = ({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">属性编辑</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t("title")}</h3>
         {importMenu}
       </div>
       {attributes.map((attr, i) => {
@@ -54,7 +56,7 @@ export const AttributeEditor: React.FC<AttributeEditorProps> = ({
                   value={attr.label}
                   onChange={(e) => updateAttribute(i, "label", e.target.value)}
                   className="flex-1 text-xs"
-                  placeholder="属性名"
+                  placeholder={t("namePlaceholder")}
                 />
                 <span
                   className={`text-sm font-mono w-8 text-right ${isHighValue ? "text-amber-400 font-bold" : "text-subtitle"}`}
@@ -79,7 +81,7 @@ export const AttributeEditor: React.FC<AttributeEditorProps> = ({
             </div>
             {/* 右半：XY 偏移 */}
             <div className="w-48 space-y-1">
-              <span className="text-xs text-subtitle">X偏移: {attr.labelOffsetX ?? 0}</span>
+              <span className="text-xs text-subtitle">{t("offsetX", { value: attr.labelOffsetX ?? 0 })}</span>
               <Slider
                 value={[attr.labelOffsetX ?? 0]}
                 onValueChange={(v) => updateAttribute(i, "labelOffsetX", Array.isArray(v) ? v[0] : v)}
@@ -87,7 +89,7 @@ export const AttributeEditor: React.FC<AttributeEditorProps> = ({
                 max={200}
                 step={1}
               />
-              <span className="text-xs text-subtitle">Y偏移: {attr.labelOffsetY ?? 0}</span>
+              <span className="text-xs text-subtitle">{t("offsetY", { value: attr.labelOffsetY ?? 0 })}</span>
               <Slider
                 value={[attr.labelOffsetY ?? 0]}
                 onValueChange={(v) => updateAttribute(i, "labelOffsetY", Array.isArray(v) ? v[0] : v)}
@@ -100,7 +102,7 @@ export const AttributeEditor: React.FC<AttributeEditorProps> = ({
         );
       })}
       <p className="text-xs text-subtitle">
-        超过阈值 ({animation.highValueThreshold}) 的属性会触发特效
+        {t("thresholdHint", { threshold: animation.highValueThreshold })}
       </p>
     </div>
   );

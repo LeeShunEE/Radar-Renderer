@@ -110,6 +110,44 @@
     "duplicateSuffix": "{name} (副本)",
     "importFrom": "从某一页面导入",
     "pageLabel": "页{n}",
+    "values": {
+      "title": "雷达数值表",
+      "syncHeader": "同步表头到全部页面",
+      "syncHeaderTip": "将第 1 页（首行）的各属性「简称」与「全称」复制到其余所有页面的对应列，使全部页面共用同一套表头；各页数值不受影响。",
+      "addPage": "添加新页",
+      "roleAttr": "角色 / 属性",
+      "swapLeft": "与左侧列交换",
+      "swapRight": "与右侧列交换",
+      "shortLabel": "简称",
+      "fullLabel": "全称",
+      "characterName": "角色名",
+      "setPreviewPage": "设为预览页",
+      "wheelTip": "聚焦后滚轮调整：Shift=±10，Alt=±0.5",
+      "hint": "数值范围 0–200。点击行首数字可将该页设为预览。修改首行属性名会同步覆盖所有页面的对应属性名。使用表头 ◀ ▶ 按钮可交换两列（对所有页面生效）。"
+    },
+    "attributes": {
+      "title": "属性编辑",
+      "namePlaceholder": "属性名",
+      "offsetX": "X偏移: {value}",
+      "offsetY": "Y偏移: {value}",
+      "thresholdHint": "超过阈值 ({threshold}) 的属性会触发特效"
+    },
+    "fontFields": {
+      "characterName": "角色名称",
+      "attributeLabel": "属性标签",
+      "ratingLabel": "评级标签",
+      "valuePopup": "数值弹出"
+    },
+    "fontSize": {
+      "title": "字体大小"
+    },
+    "fontFamily": {
+      "title": "字体",
+      "search": "搜索字体...",
+      "curated": "精选字体",
+      "all": "全部字体",
+      "notFound": "未找到匹配字体"
+    },
     "page": {
       "title": "第{n}页：{name}",
       "previewing": "预览中",
