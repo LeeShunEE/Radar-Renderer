@@ -21,8 +21,10 @@ async function createComparisonPair(page: Page): Promise<void> {
   await page.getByRole("tab", { name: "全局" }).click();
   // 默认只有 1 页，⚡对比按钮需 totalPages > 1 才渲染，故先加页。
   await page.getByRole("button", { name: /添加页面/ }).click();
-  // 相邻页（页1 + 页2）间的对比 toggle，未激活态 title="对比渲染"。
-  await page.locator('button[title="对比渲染"]').click();
+  // 相邻页（页1 + 页2）间的对比 toggle 位于首个页面条最右侧。
+  await page
+    .getByRole("button", { name: /^将 .+ 与 .+ 设为对比$/ })
+    .click();
 }
 
 test.describe("对比模式叠加高亮 (overlay) 旅程", () => {

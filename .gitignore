@@ -98,3 +98,4 @@ pnpm-debug.log*
 .tmp
 /tmp
 out/
+.worktrees/

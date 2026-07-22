@@ -40,12 +40,32 @@ vi.mock("@/components/editor/GlobalConfigEditor", () => ({
     <div>
       <span data-testid="page-count">{p.config.pages.length}</span>
       <span data-testid="comp-count">{p.config.comparisons.length}</span>
+      <span data-testid="page-order">
+        {p.config.pages
+          .map((page: { characterName: string }) => page.characterName)
+          .join(",")}
+      </span>
+      <span data-testid="active-index">{p.activePageIndex}</span>
+      <span data-testid="comparison-pairs">
+        {p.config.comparisons
+          .map(
+            (comparison: { firstPageIndex: number; secondPageIndex: number }) =>
+              `${comparison.firstPageIndex}-${comparison.secondPageIndex}`,
+          )
+          .join(",")}
+      </span>
       <button data-testid="add" onClick={p.onAddPage}>add</button>
       <button data-testid="remove" onClick={() => p.onRemovePage(0)}>remove</button>
       <button data-testid="remove-mid" onClick={() => p.onRemovePage(1)}>remove-mid</button>
       <button data-testid="dup" onClick={() => p.onDuplicatePage(0)}>dup</button>
-      <button data-testid="move-fwd" onClick={() => p.onMovePage(0, 2)}>move-fwd</button>
-      <button data-testid="move-back" onClick={() => p.onMovePage(2, 0)}>move-back</button>
+      <button
+        data-testid="reorder-groups"
+        onClick={() =>
+          p.onReorderPageSequence("comparison:0:1", "comparison:2:3")
+        }
+      >
+        reorder-groups
+      </button>
       <button data-testid="set-active" onClick={() => p.onSetActive(2)}>set-active</button>
       <button data-testid="preview-all" onClick={p.onPreviewAll}>preview-all</button>
     </div>
@@ -115,6 +135,9 @@ vi.mock("@/components/ui/tabs", () => ({
 
 const count = () => Number(screen.getByTestId("page-count").textContent);
 const compCount = () => Number(screen.getByTestId("comp-count").textContent);
+const pageOrder = () => screen.getByTestId("page-order").textContent;
+const activeIndex = () => Number(screen.getByTestId("active-index").textContent);
+const comparisonPairs = () => screen.getByTestId("comparison-pairs").textContent;
 
 describe("RadarEditor", () => {
   it("渲染预览与初始页面数", () => {
@@ -221,13 +244,16 @@ describe("RadarEditor", () => {
       expect(compCount()).toBe(2);
     });
 
-    it("前移（from<to）与后移（from>to）页面均不崩溃", () => {
+    it("整组重排时保持组内顺序并同步对比与当前页索引", () => {
       render(<RadarEditor />);
       fireEvent.click(screen.getByTestId("load"));
-      fireEvent.click(screen.getByTestId("move-fwd"));
-      expect(count()).toBe(4);
-      fireEvent.click(screen.getByTestId("move-back"));
-      expect(count()).toBe(4);
+      fireEvent.click(screen.getByTestId("set-active"));
+
+      fireEvent.click(screen.getByTestId("reorder-groups"));
+
+      expect(pageOrder()).toBe("P2,P3,P0,P1");
+      expect(comparisonPairs()).toBe("0-1,2-3");
+      expect(activeIndex()).toBe(0);
     });
 
     it("setActive 与 previewAll 回调触发", () => {
