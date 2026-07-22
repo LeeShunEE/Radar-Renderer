@@ -69,8 +69,9 @@ test.describe("本地浏览器渲染旅程", () => {
     // 先添加第二页（「添加页面」入口在「全局」Tab 的 GlobalConfigEditor）
     await page.getByRole("tab", { name: "全局" }).click();
     await page.getByRole("button", { name: "添加页面" }).click();
-    // 「全局」Tab 内汇总行（页2（角色2）…）也含「角色2」文本，用 button 精确匹配页面列表项避免歧义
-    await expect(page.getByRole("button", { name: "角色2" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "选择页面 角色2" }),
+    ).toBeVisible();
 
     // 切到导出面板
     await page.getByRole("tab", { name: "导出" }).click();
