@@ -565,4 +565,3 @@ gh pr create --base main --head feat/global-page-sequence-dnd --title "feat(edit
 ```
 
 PR 正文必须包含：方案 A 摘要、对比原子组规则、复制/删除规则、测试命令与结果、Playwright 是否运行、设计文档链接；创建后删除未跟踪的临时 `.pr-body.md` 或在创建前将其放到工作树外的临时目录。
-
