@@ -154,6 +154,60 @@
       "preview": "Preview",
       "duplicate": "Duplicate",
       "remove": "Delete"
+    },
+    "character": {
+      "title": "Character",
+      "nameLabel": "Character name",
+      "namePlaceholder": "Enter character name (\\n for line breaks)",
+      "align": {
+        "left": "L",
+        "center": "C",
+        "right": "R"
+      },
+      "alignTip": {
+        "left": "Align left",
+        "center": "Align center",
+        "right": "Align right"
+      },
+      "fontSize": "Size",
+      "nameOffsetX": "Name X offset: {value}",
+      "nameOffsetY": "Name Y offset: {value}",
+      "layoutDisabledTip": "In comparison mode this page acts as the second character; its layout follows the first character, so this setting is not rendered",
+      "slug": {
+        "title": "Slug tagline (top-left)",
+        "newlineHint": "\\n for line breaks",
+        "placeholder": "e.g. Gemini 3.1 Pro",
+        "font": "Font",
+        "fontSize": "Size",
+        "color": "Color",
+        "offsetX": "Slug X offset: {value}",
+        "offsetY": "Slug Y offset: {value}",
+        "fadeDelay": "Fade delay: {value} frames"
+      },
+      "silhouette": {
+        "opacity": "Silhouette opacity: {value}%",
+        "scale": "Silhouette scale: {value}x",
+        "syncOffset": "Sync silhouette with name offset",
+        "offsetX": "Silhouette X",
+        "offsetY": "Silhouette Y",
+        "imagePath": "Image path"
+      }
+    },
+    "theme": {
+      "title": "Theme colors",
+      "colors": {
+        "backgroundColor": "Background",
+        "gridColor": "Grid",
+        "gridFillColor": "Fill",
+        "gridStrokeColor": "Stroke",
+        "dotColor": "Dot",
+        "highValueDotColor": "High-value dot",
+        "labelColor": "Label",
+        "valueColor": "Value",
+        "glowColor": "Glow",
+        "enhanceArrowColor": "Enhance arrow",
+        "weakenArrowColor": "Weaken arrow"
+      }
     }
   },
   "settings": {
