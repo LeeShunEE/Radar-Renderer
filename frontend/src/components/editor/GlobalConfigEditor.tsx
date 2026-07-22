@@ -23,6 +23,7 @@ type GlobalConfigEditorProps = {
   onDuplicatePage: (index: number) => void;
   onRemovePage: (index: number) => void;
   onMovePage: (from: number, to: number) => void;
+  onReorderPageSequence: (activeId: string, overId: string) => void;
   onPreviewAll: () => void;
 };
 

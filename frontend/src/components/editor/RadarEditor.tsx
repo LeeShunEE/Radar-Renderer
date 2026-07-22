@@ -13,6 +13,11 @@ import { FileManagerPanel } from "../files/FileManagerPanel";
 import { TaskQueuePanel } from "../tasks/TaskQueuePanel";
 import { FieldFocusProvider } from "./FieldFocusContext";
 import { applyGlobalOverride } from "../../lib/global-override";
+import {
+  duplicatePageInSequence,
+  removePageFromSequence,
+  reorderPageSequence,
+} from "../../lib/page-sequence";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
 import { useAutoSave } from "../../hooks/useAutoSave";
 import type { MultiPageConfig, RadarVideoProps } from "../../types/radar";
@@ -121,73 +126,42 @@ export const RadarEditor: React.FC = () => {
     }));
   };
 
-  const remapComparisons = (
-    comparisons: MultiPageConfig["comparisons"],
-    remap: (oldIndex: number) => number | null,
-  ) =>
-    comparisons.flatMap((c) => {
-      const a = remap(c.firstPageIndex);
-      const b = remap(c.secondPageIndex);
-      if (a === null || b === null || a === b) return [];
-      return [{ ...c, firstPageIndex: a, secondPageIndex: b }];
-    });
-
   const removePage = (index: number) => {
-    setConfig((prev) => {
-      if (prev.pages.length <= 1) return prev;
-      const pages = prev.pages.filter((_, i) => i !== index);
-      const comparisons = remapComparisons(prev.comparisons, (i) =>
-        i === index ? null : i > index ? i - 1 : i,
-      );
-      return { ...prev, pages, comparisons };
+    const result = removePageFromSequence(config, activePageIndex, index);
+    setConfig({
+      ...config,
+      pages: result.pages,
+      comparisons: result.comparisons,
     });
-    setActivePageIndex((prev) => {
-      if (prev >= config.pages.length - 1) {
-        return Math.max(0, config.pages.length - 2);
-      }
-      return prev;
-    });
+    setActivePageIndex(result.activePageIndex);
   };
 
   const duplicatePage = (index: number) => {
-    setConfig((prev) => {
-      const pages = [...prev.pages];
-      const copy = JSON.parse(JSON.stringify(pages[index])) as RadarVideoProps;
-      copy.characterName = `${copy.characterName} (副本)`;
-      pages.splice(index + 1, 0, copy);
-      // Indices > index shift by +1 (insertion point is index+1).
-      const comparisons = remapComparisons(prev.comparisons, (i) =>
-        i > index ? i + 1 : i,
-      );
-      return { ...prev, pages, comparisons };
+    const result = duplicatePageInSequence(config, index);
+    setConfig({
+      ...config,
+      pages: result.pages,
+      comparisons: result.comparisons,
     });
   };
 
-  const movePage = (from: number, to: number) => {
-    setConfig((prev) => {
-      const pages = [...prev.pages];
-      const [moved] = pages.splice(from, 1);
-      pages.splice(to, 0, moved);
-      const comparisons = remapComparisons(prev.comparisons, (i) => {
-        if (i === from) return to;
-        // After removing `from`, items shift; after inserting at `to`, items shift back.
-        if (from < to) {
-          // Range (from, to] shifts down by 1.
-          if (i > from && i <= to) return i - 1;
-          return i;
-        } else {
-          // Range [to, from) shifts up by 1.
-          if (i >= to && i < from) return i + 1;
-          return i;
-        }
-      });
-      return { ...prev, pages, comparisons };
+  const reorderPages = (activeId: string, overId: string) => {
+    const result = reorderPageSequence(
+      config,
+      activePageIndex,
+      activeId,
+      overId,
+    );
+    setConfig({
+      ...config,
+      pages: result.pages,
+      comparisons: result.comparisons,
     });
-    if (activePageIndex === from) {
-      setActivePageIndex(to);
-    } else if (activePageIndex === to) {
-      setActivePageIndex(from);
-    }
+    setActivePageIndex(result.activePageIndex);
+  };
+
+  const moveSinglePage = (from: number, to: number) => {
+    reorderPages(`page:${from}`, `page:${to}`);
   };
 
   const playerProps = useMemo(
@@ -277,7 +251,8 @@ export const RadarEditor: React.FC = () => {
               onAddPage={addPage}
               onDuplicatePage={duplicatePage}
               onRemovePage={removePage}
-              onMovePage={movePage}
+              onMovePage={moveSinglePage}
+              onReorderPageSequence={reorderPages}
               onPreviewAll={() => setPreviewMode("multi")}
             />
           </TabsContent>
