@@ -61,7 +61,10 @@ vi.mock("@/components/editor/GlobalConfigEditor", () => ({
       <button
         data-testid="reorder-groups"
         onClick={() =>
-          p.onReorderPageSequence("comparison:0:1", "comparison:2:3")
+          p.onReorderPageSequence(
+            `comparison:${p.pageIds[0]}:${p.pageIds[1]}`,
+            `comparison:${p.pageIds[2]}:${p.pageIds[3]}`,
+          )
         }
       >
         reorder-groups

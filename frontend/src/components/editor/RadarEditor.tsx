@@ -61,6 +61,25 @@ export const RadarEditor: React.FC = () => {
 
   const activePage = config.pages[activePageIndex] ?? config.pages[0];
 
+  // 为每个页面对象派生随身份稳定的 id：重排只搬运页面对象引用，id 因此跨重排
+  // 保持不变，dnd-kit 才能正确 FLIP，修复"松手回弹再闪烁"。编辑/新增/复制会
+  // 产生新对象引用，自然获得新 id，均不在拖拽过程中，无副作用。
+  const pageIdMapRef = useRef(new WeakMap<RadarVideoProps, string>());
+  const pageIdSeqRef = useRef(0);
+  const pageIds = useMemo(
+    () =>
+      config.pages.map((page) => {
+        let id = pageIdMapRef.current.get(page);
+        if (!id) {
+          pageIdSeqRef.current += 1;
+          id = `p${pageIdSeqRef.current}`;
+          pageIdMapRef.current.set(page, id);
+        }
+        return id;
+      }),
+    [config.pages],
+  );
+
   const updatePage = (index: number, updates: Partial<RadarVideoProps>) => {
     setConfig((prev) => {
       const pages = [...prev.pages];
@@ -151,6 +170,7 @@ export const RadarEditor: React.FC = () => {
       activePageIndex,
       activeId,
       overId,
+      pageIds,
     );
     setConfig({
       ...config,
@@ -241,6 +261,7 @@ export const RadarEditor: React.FC = () => {
           <TabsContent value="global" className="overflow-y-auto p-6 space-y-4">
             <GlobalConfigEditor
               config={config}
+              pageIds={pageIds}
               activePageIndex={activePageIndex}
               onChange={setConfig}
               onSetActive={setActivePageIndex}
