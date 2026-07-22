@@ -457,6 +457,116 @@
         "ripple": "涟漪",
         "sparkle": "闪烁"
       }
+    },
+    "preview": {
+      "music": "音乐",
+      "offset": "偏移",
+      "unitFrame": "帧",
+      "mute": "静音",
+      "play": "▶ 播放",
+      "pause": "⏸ 暂停",
+      "frameInfo": "帧 {frame} / {total} · {sec}s",
+      "side": {
+        "left": "左方",
+        "right": "右方"
+      },
+      "targets": {
+        "radar-label": "属性标签",
+        "radar-rating": "评分",
+        "radar-octagon": "数据多边形",
+        "avatar": "头像",
+        "name": "角色名称",
+        "legend": "图例"
+      },
+      "behaviors": {
+        "labelFadeIn": "标签淡入",
+        "ratingFadeIn": "评分淡入",
+        "polygonFill": "多边形填充",
+        "avatarFadeIn": "头像淡入",
+        "nameFadeIn": "名称淡入",
+        "highGlow": "高分发光",
+        "ratingPopup": "评分弹出",
+        "avatarFadeOut": "头像淡出",
+        "nameFadeOut": "名称淡出",
+        "polygonTransition": "多边形过渡",
+        "ratingSlideFadeIn": "评分滑动+淡入",
+        "legendFadeIn": "图例淡入",
+        "dualSilhouetteHighlight": "双剪影高亮联动",
+        "diffArrows": "强弱箭头",
+        "sideHighlight": "{side}高亮"
+      }
+    },
+    "export": {
+      "title": "导出",
+      "mode": {
+        "label": "渲染方式：",
+        "server": "服务端",
+        "local": "本地浏览器"
+      },
+      "localHint": "本地渲染输出 MP4 格式（带音频），需要浏览器支持 WebCodecs。",
+      "localFallback": "当前浏览器不支持，将导出无音频 WebM。",
+      "serverHint": "服务器资源有限，渲染较慢、排队较久（可在下方任务列表查看当前负载与平均渲速）。建议仅在需要关闭浏览器的场景使用服务端渲染。",
+      "rangeLabel": "渲染范围：",
+      "rangeCurrentDisabledTip": "当前已经选中全局了",
+      "rangeCurrent": "渲染当前页",
+      "rangeAllTip": "当前只有 1 页",
+      "rangeAll": "渲染全部页面",
+      "status": {
+        "submitting": "提交任务...",
+        "queued": "排队中（第 {pos} 位 / 共 {size} 个，预计 {eta}）",
+        "downloading": "完成！正在下载...",
+        "done": "下载完成",
+        "failed": "失败：{error}"
+      },
+      "progress": {
+        "rendering": "渲染中 第 {rendered}/{total} 帧",
+        "etaSuffix": " · 预计剩余 {eta}",
+        "renderingNoFrames": "渲染中..."
+      },
+      "localStatus": {
+        "rendering": "本地渲染中... {progress}%",
+        "failed": "失败：{error}"
+      },
+      "exportCurrentLine": "导出当前页：{name}（{frames} 帧 / {seconds} 秒）",
+      "exportAllLine": "导出全部页面：{pages} 页，共 {frames} 帧 / {seconds} 秒",
+      "currentMp4": "导出当前页 MP4",
+      "currentGif": "导出当前页 GIF",
+      "allMp4": "导出全部 MP4",
+      "allGif": "导出全部 GIF",
+      "cancelTask": "取消任务",
+      "buttonRendering": "渲染中...",
+      "localCurrentMp4": "导出当前页 MP4（本地）",
+      "localAllMp4": "导出全部 MP4（本地）",
+      "cancelLocal": "取消渲染"
+    },
+    "persistence": {
+      "title": "配置存档",
+      "namePlaceholder": "输入配置名称",
+      "save": "保存",
+      "saved": "已保存!",
+      "overwriteHint": "已存在同名配置，保存将覆盖",
+      "loaded": "已加载!",
+      "confirmDelete": "确定删除配置\"{name}\"吗？",
+      "deleted": "已删除!",
+      "selectPlaceholder": "选择已保存配置",
+      "noneSaved": "暂无保存的配置",
+      "load": "加载",
+      "delete": "删除",
+      "exportFileTitle": "将当前配置下载为 JSON 文件",
+      "importFileTitle": "从 JSON 文件加载配置",
+      "exportFile": "导出到文件",
+      "importFile": "从文件导入",
+      "exportedFile": "已导出文件!",
+      "exportFailed": "导出失败：{error}",
+      "invalidConfig": "配置不合法：{error}",
+      "unknownError": "未知错误",
+      "loadedFromFile": "已从文件加载!",
+      "importFailed": "导入失败：{error}"
+    },
+    "localRender": {
+      "captureElNotFound": "无法找到 Player 内层容器",
+      "cancelled": "渲染已取消",
+      "failed": "渲染失败"
     }
   },
   "settings": {

@@ -9,6 +9,7 @@
 "use client";
 
 import React, { useRef, useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Player, type PlayerRef } from "@remotion/player";
 import type { RadarVideoProps, MultiPageConfig } from "@/types/radar";
 import { calculateDuration, calculateComparisonDuration, VIDEO_FPS, VIDEO_WIDTH, VIDEO_HEIGHT } from "@/types/constants";
@@ -84,6 +85,7 @@ function readRenderOverride(): LocalRenderOverride {
 
 export const LocalRenderStage: React.FC<LocalRenderStageProps> = (stageProps) => {
   const { mode, props, config, musicUrl, onProgress, onDone, onError, signal } = stageProps;
+  const t = useTranslations("editor.localRender");
 
   const playerRef = useRef<PlayerRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -131,7 +133,7 @@ export const LocalRenderStage: React.FC<LocalRenderStageProps> = (stageProps) =>
           ".remotion-player-container > div",
         ) as HTMLElement;
         if (!captureEl) {
-          onError?.("无法找到 Player 内层容器");
+          onError?.(t("captureElNotFound"));
           return;
         }
 
@@ -151,15 +153,15 @@ export const LocalRenderStage: React.FC<LocalRenderStageProps> = (stageProps) =>
         onDone?.(result);
       } catch (e) {
         if (signal?.aborted) {
-          onError?.("渲染已取消");
+          onError?.(t("cancelled"));
         } else {
-          onError?.(e instanceof Error ? e.message : "渲染失败");
+          onError?.(e instanceof Error ? e.message : t("failed"));
         }
       }
     };
 
     runRender();
-  }, [ready, renderParams, musicUrl, onProgress, onDone, onError, signal]);
+  }, [ready, renderParams, musicUrl, onProgress, onDone, onError, signal, t]);
 
   // Player 就绪检测
   useEffect(() => {

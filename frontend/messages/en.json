@@ -457,6 +457,116 @@
         "ripple": "Ripple",
         "sparkle": "Sparkle"
       }
+    },
+    "preview": {
+      "music": "Music",
+      "offset": "Offset",
+      "unitFrame": "f",
+      "mute": "Mute",
+      "play": "▶ Play",
+      "pause": "⏸ Pause",
+      "frameInfo": "Frame {frame} / {total} · {sec}s",
+      "side": {
+        "left": "Left",
+        "right": "Right"
+      },
+      "targets": {
+        "radar-label": "Attribute label",
+        "radar-rating": "Rating",
+        "radar-octagon": "Data polygon",
+        "avatar": "Avatar",
+        "name": "Character name",
+        "legend": "Legend"
+      },
+      "behaviors": {
+        "labelFadeIn": "Label fade-in",
+        "ratingFadeIn": "Rating fade-in",
+        "polygonFill": "Polygon fill",
+        "avatarFadeIn": "Avatar fade-in",
+        "nameFadeIn": "Name fade-in",
+        "highGlow": "High-score glow",
+        "ratingPopup": "Rating popup",
+        "avatarFadeOut": "Avatar fade-out",
+        "nameFadeOut": "Name fade-out",
+        "polygonTransition": "Polygon transition",
+        "ratingSlideFadeIn": "Rating slide + fade-in",
+        "legendFadeIn": "Legend fade-in",
+        "dualSilhouetteHighlight": "Dual silhouette highlight",
+        "diffArrows": "Diff arrows",
+        "sideHighlight": "{side} highlight"
+      }
+    },
+    "export": {
+      "title": "Export",
+      "mode": {
+        "label": "Render mode:",
+        "server": "Server",
+        "local": "Local browser"
+      },
+      "localHint": "Local rendering outputs MP4 (with audio); requires browser WebCodecs support.",
+      "localFallback": "Not supported in this browser; will export WebM without audio.",
+      "serverHint": "Server resources are limited, so rendering is slow and the queue can be long (check the current load and average speed in the task list below). Prefer server rendering only when you need to close the browser.",
+      "rangeLabel": "Render range:",
+      "rangeCurrentDisabledTip": "Global is already selected",
+      "rangeCurrent": "Render current page",
+      "rangeAllTip": "Only 1 page",
+      "rangeAll": "Render all pages",
+      "status": {
+        "submitting": "Submitting task…",
+        "queued": "Queued (position {pos} / {size} total, ETA {eta})",
+        "downloading": "Done! Downloading…",
+        "done": "Download complete",
+        "failed": "Failed: {error}"
+      },
+      "progress": {
+        "rendering": "Rendering frame {rendered}/{total}",
+        "etaSuffix": " · ~{eta} left",
+        "renderingNoFrames": "Rendering…"
+      },
+      "localStatus": {
+        "rendering": "Local rendering… {progress}%",
+        "failed": "Failed: {error}"
+      },
+      "exportCurrentLine": "Export current page: {name} ({frames} frames / {seconds} s)",
+      "exportAllLine": "Export all pages: {pages} pages, {frames} frames / {seconds} s",
+      "currentMp4": "Export current MP4",
+      "currentGif": "Export current GIF",
+      "allMp4": "Export all MP4",
+      "allGif": "Export all GIF",
+      "cancelTask": "Cancel task",
+      "buttonRendering": "Rendering…",
+      "localCurrentMp4": "Export current MP4 (local)",
+      "localAllMp4": "Export all MP4 (local)",
+      "cancelLocal": "Cancel render"
+    },
+    "persistence": {
+      "title": "Saved configs",
+      "namePlaceholder": "Enter a config name",
+      "save": "Save",
+      "saved": "Saved!",
+      "overwriteHint": "A config with this name exists; saving will overwrite it",
+      "loaded": "Loaded!",
+      "confirmDelete": "Delete config \"{name}\"?",
+      "deleted": "Deleted!",
+      "selectPlaceholder": "Select a saved config",
+      "noneSaved": "No saved configs",
+      "load": "Load",
+      "delete": "Delete",
+      "exportFileTitle": "Download the current config as a JSON file",
+      "importFileTitle": "Load a config from a JSON file",
+      "exportFile": "Export to file",
+      "importFile": "Import from file",
+      "exportedFile": "Exported to file!",
+      "exportFailed": "Export failed: {error}",
+      "invalidConfig": "Invalid config: {error}",
+      "unknownError": "Unknown error",
+      "loadedFromFile": "Loaded from file!",
+      "importFailed": "Import failed: {error}"
+    },
+    "localRender": {
+      "captureElNotFound": "Could not find the Player inner container",
+      "cancelled": "Render cancelled",
+      "failed": "Render failed"
     }
   },
   "settings": {
