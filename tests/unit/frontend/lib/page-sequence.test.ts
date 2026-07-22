@@ -44,6 +44,16 @@ describe("buildPageSequence", () => {
       { id: "page:2", type: "page", pageIndices: [2] },
     ]);
   });
+
+  it("传入 pageIds 时序列项 id 跟随页面身份而非数组位置", () => {
+    const config = makeConfig(["A", "B", "C", "D"], [[1, 2]]);
+
+    expect(buildPageSequence(config, ["pa", "pb", "pc", "pd"])).toEqual([
+      { id: "page:pa", type: "page", pageIndices: [0] },
+      { id: "comparison:pb:pc", type: "comparison", pageIndices: [1, 2] },
+      { id: "page:pd", type: "page", pageIndices: [3] },
+    ]);
+  });
 });
 
 describe("reorderPageSequence", () => {
@@ -113,6 +123,26 @@ describe("reorderPageSequence", () => {
     expect(result.comparisons).toEqual([
       expect.objectContaining({ firstPageIndex: 0, secondPageIndex: 1 }),
       expect.objectContaining({ firstPageIndex: 2, secondPageIndex: 3 }),
+    ]);
+    expect(result.activePageIndex).toBe(2);
+  });
+
+  it("按身份 pageIds 重排时用稳定 id 定位并同步索引", () => {
+    const config = makeConfig(["A", "B", "C"], []);
+    const pageIds = ["pa", "pb", "pc"];
+
+    const result = reorderPageSequence(
+      config,
+      0,
+      "page:pa",
+      "page:pc",
+      pageIds,
+    );
+
+    expect(result.pages.map((page) => page.characterName)).toEqual([
+      "B",
+      "C",
+      "A",
     ]);
     expect(result.activePageIndex).toBe(2);
   });

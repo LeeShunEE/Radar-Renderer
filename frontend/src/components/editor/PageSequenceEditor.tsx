@@ -3,14 +3,12 @@
 import React, { useMemo, useState } from "react";
 import {
   DndContext,
-  DragOverlay,
   KeyboardSensor,
   PointerSensor,
   closestCenter,
   useSensor,
   useSensors,
   type DragEndEvent,
-  type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -37,6 +35,7 @@ import type { MultiPageConfig } from "@/types/radar";
 
 type PageSequenceEditorProps = {
   config: MultiPageConfig;
+  pageIds?: readonly string[];
   activePageIndex: number;
   onSetActive: (index: number) => void;
   onAddPage: () => void;
@@ -113,7 +112,7 @@ function PageBar({
     <div
       className={`flex min-w-0 items-center gap-1.5 rounded-md border px-2 py-1.5 transition-colors ${
         active
-          ? "border-primary bg-primary text-primary-foreground"
+          ? "border-primary bg-primary/10 text-primary"
           : "border-unfocused-border-color bg-card text-foreground hover:border-muted-foreground/50"
       }`}
     >
@@ -224,10 +223,21 @@ function SortableSequenceItem({
     transition,
     isDragging,
   } = useSortable({ id: item.id });
+  // 拖拽项原位跟随光标（无 DragOverlay）：轻微放大 + 阴影表达"浮起"，宽度与颜色
+  // 天然等于真实 PageBar，避免松手时的尺寸/配色跳变。
   const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
+    transform: transform
+      ? `${CSS.Transform.toString({ ...transform, scaleX: 1, scaleY: 1 })}${
+          isDragging ? " scale(1.02)" : ""
+        }`
+      : undefined,
     transition,
-    opacity: isDragging ? 0.35 : 1,
+    zIndex: isDragging ? 10 : undefined,
+    boxShadow: isDragging
+      ? "0 8px 24px rgba(0, 0, 0, 0.18)"
+      : undefined,
+    borderRadius: isDragging ? "0.5rem" : undefined,
+    cursor: isDragging ? "grabbing" : undefined,
   };
   const canRemove = config.pages.length > 1;
 
@@ -332,32 +342,9 @@ function SortableSequenceItem({
   );
 }
 
-function SequenceItemPreview({
-  item,
-  config,
-}: {
-  item: PageSequenceItem;
-  config: MultiPageConfig;
-}) {
-  if (item.type === "comparison") {
-    return (
-      <div className="w-[420px] rounded-lg border-2 border-amber-500 bg-card p-3 text-xs shadow-xl">
-        <div className="font-semibold">
-          {pageName(config, item.pageIndices[0])} + {pageName(config, item.pageIndices[1])}
-        </div>
-        <div className="mt-1 text-amber-600 dark:text-amber-400">整组拖动</div>
-      </div>
-    );
-  }
-  return (
-    <div className="w-[420px] rounded-lg border border-primary bg-card p-3 text-xs font-semibold shadow-xl">
-      {pageName(config, item.pageIndices[0])}
-    </div>
-  );
-}
-
 export const PageSequenceEditor: React.FC<PageSequenceEditorProps> = ({
   config,
+  pageIds,
   activePageIndex,
   onSetActive,
   onAddPage,
@@ -366,8 +353,10 @@ export const PageSequenceEditor: React.FC<PageSequenceEditorProps> = ({
   onReorderPageSequence,
   onToggleComparison,
 }) => {
-  const items = useMemo(() => buildPageSequence(config), [config]);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const items = useMemo(
+    () => buildPageSequence(config, pageIds),
+    [config, pageIds],
+  );
   const [pendingDeleteIndex, setPendingDeleteIndex] = useState<number | null>(
     null,
   );
@@ -375,7 +364,6 @@ export const PageSequenceEditor: React.FC<PageSequenceEditorProps> = ({
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
-  const activeItem = items.find((item) => item.id === activeId) ?? null;
   const pendingComparison =
     pendingDeleteIndex === null
       ? undefined
@@ -389,12 +377,7 @@ export const PageSequenceEditor: React.FC<PageSequenceEditorProps> = ({
     onRemovePage(pageIndex);
   };
 
-  const handleDragStart = ({ active }: DragStartEvent) => {
-    setActiveId(String(active.id));
-  };
-
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
-    setActiveId(null);
     if (!over || active.id === over.id) return;
     onReorderPageSequence(String(active.id), String(over.id));
   };
@@ -419,8 +402,6 @@ export const PageSequenceEditor: React.FC<PageSequenceEditorProps> = ({
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragCancel={() => setActiveId(null)}
         onDragEnd={handleDragEnd}
         accessibility={{
           announcements: {
@@ -468,11 +449,6 @@ export const PageSequenceEditor: React.FC<PageSequenceEditorProps> = ({
             ))}
           </div>
         </SortableContext>
-        <DragOverlay>
-          {activeItem ? (
-            <SequenceItemPreview item={activeItem} config={config} />
-          ) : null}
-        </DragOverlay>
       </DndContext>
 
       <ConfirmDialog

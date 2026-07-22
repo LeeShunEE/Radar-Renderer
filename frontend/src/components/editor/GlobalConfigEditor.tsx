@@ -17,6 +17,7 @@ import { applyGlobalOverride } from "../../lib/global-override";
 
 type GlobalConfigEditorProps = {
   config: MultiPageConfig;
+  pageIds?: readonly string[];
   activePageIndex: number;
   onChange: (config: MultiPageConfig) => void;
   onSetActive: (index: number) => void;
@@ -50,6 +51,7 @@ function durationLabel(frames: number): string {
 
 export const GlobalConfigEditor: React.FC<GlobalConfigEditorProps> = ({
   config,
+  pageIds,
   activePageIndex,
   onChange,
   onSetActive,
@@ -173,6 +175,7 @@ export const GlobalConfigEditor: React.FC<GlobalConfigEditorProps> = ({
 
         <PageSequenceEditor
           config={config}
+          pageIds={pageIds}
           activePageIndex={activePageIndex}
           onSetActive={onSetActive}
           onAddPage={onAddPage}

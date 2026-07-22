@@ -1,12 +1,8 @@
 import type { MultiPageConfig, RadarVideoProps } from "@/types/radar";
 
 export type PageSequenceItem =
-  | { id: `page:${number}`; type: "page"; pageIndices: [number] }
-  | {
-      id: `comparison:${number}:${number}`;
-      type: "comparison";
-      pageIndices: [number, number];
-    };
+  | { id: string; type: "page"; pageIndices: [number] }
+  | { id: string; type: "comparison"; pageIndices: [number, number] };
 
 export type PageSequenceResult = Pick<
   MultiPageConfig,
@@ -26,7 +22,22 @@ function unchangedResult(
   };
 }
 
-export function buildPageSequence(config: SequenceConfig): PageSequenceItem[] {
+/**
+ * 派生序列项的稳定标识。
+ *
+ * 传入 `pageIds`（按页面下标索引的身份 id）时，序列项 id 会跟随页面内容而非
+ * 数组位置。重排后同一页面仍是同一 id，dnd-kit 才能正确完成 FLIP 过渡，
+ * 避免"松手回弹再闪烁"。未传入时回退到位置型 id（`page:0` / `comparison:1:2`），
+ * 保持既有纯函数调用方的行为不变。
+ */
+function pageToken(pageIndex: number, pageIds?: readonly string[]): string {
+  return pageIds?.[pageIndex] ?? String(pageIndex);
+}
+
+export function buildPageSequence(
+  config: SequenceConfig,
+  pageIds?: readonly string[],
+): PageSequenceItem[] {
   const comparisonByFirst = new Map(
     config.comparisons.map((comparison) => [
       comparison.firstPageIndex,
@@ -42,7 +53,7 @@ export function buildPageSequence(config: SequenceConfig): PageSequenceItem[] {
       comparison.secondPageIndex < config.pages.length
     ) {
       items.push({
-        id: `comparison:${pageIndex}:${comparison.secondPageIndex}`,
+        id: `comparison:${pageToken(pageIndex, pageIds)}:${pageToken(comparison.secondPageIndex, pageIds)}`,
         type: "comparison",
         pageIndices: [pageIndex, comparison.secondPageIndex],
       });
@@ -51,7 +62,7 @@ export function buildPageSequence(config: SequenceConfig): PageSequenceItem[] {
     }
 
     items.push({
-      id: `page:${pageIndex}`,
+      id: `page:${pageToken(pageIndex, pageIds)}`,
       type: "page",
       pageIndices: [pageIndex],
     });
@@ -72,8 +83,9 @@ export function reorderPageSequence(
   activePageIndex: number,
   activeId: string,
   overId: string,
+  pageIds?: readonly string[],
 ): PageSequenceResult {
-  const items = buildPageSequence(config);
+  const items = buildPageSequence(config, pageIds);
   const fromIndex = items.findIndex((item) => item.id === activeId);
   const toIndex = items.findIndex((item) => item.id === overId);
   if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) {
