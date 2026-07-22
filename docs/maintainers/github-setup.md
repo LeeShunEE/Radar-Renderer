@@ -44,12 +44,14 @@ gh issue create --repo LeeShunEE/Radar-Renderer \
 # then pin it in the web UI (Pin issue)
 ```
 
-## 5. Branch protection for `main` / 分支保护
+## 5. Ruleset for `main` / `main` 分支规则
 
-- [ ] Settings → Branches → Add rule for `main`:
+- [ ] Settings → Rules → Rulesets → Add a branch ruleset for `main`:
   - [ ] Require a pull request before merging.
-  - [ ] Require status checks to pass: select **CI / Backend**, **CI / Frontend**,
-        and **DCO / Check Signed-off-by**.
+  - [ ] Require status checks to pass: select **Backend (unit + dev-integration + coverage)**,
+        **Frontend (unit + integration + coverage)**, and **Check Signed-off-by**.
+  - [ ] Do **not** require **Playwright E2E (testenv)**. It runs on every PR and
+        reports failures, but remains advisory so it cannot block merging.
   - [ ] Require branches to be up to date before merging.
   - [ ] (Optional) Require review from Code Owners.
 

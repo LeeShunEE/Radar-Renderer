@@ -61,6 +61,8 @@ Fix a missing sign-off with `git commit --amend -s` or
 - Keep PRs focused; link issues with `Closes #123`.
 - Fill in the [PR template](./.github/PULL_REQUEST_TEMPLATE.md) checklist.
 - CI (lint + unit + dev-integration + coverage) must be green before merge.
+- Every PR also runs the Playwright E2E workflow. It is an advisory check: a
+  failure stays visible for investigation but does not block merging.
 
 ### 4. Commit message convention
 
@@ -215,6 +217,8 @@ git commit -s -m "feat(api): ..."
 - PR 聚焦单一主题；用 `Closes #123` 关联 issue。
 - 填写 [PR 模板](./.github/PULL_REQUEST_TEMPLATE.md)检查清单。
 - 合并前 CI（lint + 单元 + dev-integration + 覆盖率）必须全绿。
+- 每个 PR 也会运行 Playwright E2E；该检查为提示性检查，失败会保留供排查，
+  但不阻塞合并。
 
 ### 4. Commit message 规范
 

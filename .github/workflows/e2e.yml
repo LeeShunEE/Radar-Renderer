@@ -1,6 +1,9 @@
 name: E2E Tests
 
 on:
+  # PRs run E2E by default. Repository rulesets decide whether this check blocks merging.
+  pull_request:
+    branches: [main]
   # 发版时触发：push 到 main 分支（合并 PR 后自动部署前）
   push:
     branches: [main]
