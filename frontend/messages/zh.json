@@ -439,6 +439,24 @@
         "innerStop": "内圈位置",
         "outerStop": "外圈位置"
       }
+    },
+    "effects": {
+      "title": "特效配置",
+      "threshold": "高属性阈值: {value}",
+      "valuePopup": "数值弹窗",
+      "glow": "高数值光晕",
+      "popupStyle": {
+        "spring": "弹簧",
+        "bounce": "弹跳",
+        "fadeScale": "淡入缩放",
+        "slideIn": "滑入"
+      },
+      "glowStyle": {
+        "pulse": "脉冲",
+        "ring": "扩散环",
+        "ripple": "涟漪",
+        "sparkle": "闪烁"
+      }
     }
   },
   "settings": {

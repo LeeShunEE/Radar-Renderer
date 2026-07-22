@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { Label } from "../ui/label";
 import { Slider } from "../ui/slider";
 import { Switch } from "../ui/switch";
@@ -13,19 +14,9 @@ type EffectsConfigEditorProps = {
   importMenu?: React.ReactNode;
 };
 
-const popupStyles: { value: PopupStyle; label: string }[] = [
-  { value: "spring", label: "弹簧" },
-  { value: "bounce", label: "弹跳" },
-  { value: "fadeScale", label: "淡入缩放" },
-  { value: "slideIn", label: "滑入" },
-];
+const popupStyles: PopupStyle[] = ["spring", "bounce", "fadeScale", "slideIn"];
 
-const glowStyles: { value: GlowStyle; label: string }[] = [
-  { value: "pulse", label: "脉冲" },
-  { value: "ring", label: "扩散环" },
-  { value: "ripple", label: "涟漪" },
-  { value: "sparkle", label: "闪烁" },
-];
+const glowStyles: GlowStyle[] = ["pulse", "ring", "ripple", "sparkle"];
 
 export const EffectsConfigEditor: React.FC<EffectsConfigEditorProps> = ({
   pageIndex,
@@ -33,6 +24,7 @@ export const EffectsConfigEditor: React.FC<EffectsConfigEditorProps> = ({
   onChange,
   importMenu,
 }) => {
+  const t = useTranslations("editor.effects");
   const update = <K extends keyof AnimationConfig>(
     key: K,
     value: AnimationConfig[K],
@@ -43,7 +35,7 @@ export const EffectsConfigEditor: React.FC<EffectsConfigEditorProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">特效配置</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t("title")}</h3>
         {importMenu}
       </div>
 
@@ -52,7 +44,7 @@ export const EffectsConfigEditor: React.FC<EffectsConfigEditorProps> = ({
         className="space-y-1"
         data-field-id={`page:${pageIndex}:animation.highValueThreshold`}
       >
-        <Label className="text-xs">高属性阈值: {animation.highValueThreshold}</Label>
+        <Label className="text-xs">{t("threshold", { value: animation.highValueThreshold })}</Label>
         <Slider
           value={[animation.highValueThreshold]}
           onValueChange={(v) => update("highValueThreshold", Array.isArray(v) ? v[0] : v)}
@@ -68,7 +60,7 @@ export const EffectsConfigEditor: React.FC<EffectsConfigEditorProps> = ({
         data-field-id={`page:${pageIndex}:animation.valuePopupEnabled`}
       >
         <div className="flex items-center justify-between">
-          <Label className="text-xs">数值弹窗</Label>
+          <Label className="text-xs">{t("valuePopup")}</Label>
           <Switch
             checked={animation.valuePopupEnabled}
             onCheckedChange={(v) => update("valuePopupEnabled", v)}
@@ -81,15 +73,15 @@ export const EffectsConfigEditor: React.FC<EffectsConfigEditorProps> = ({
           >
             {popupStyles.map((s) => (
               <button
-                key={s.value}
-                onClick={() => update("valuePopupStyle", s.value)}
+                key={s}
+                onClick={() => update("valuePopupStyle", s)}
                 className={`px-2 py-1 text-xs rounded border transition-colors ${
-                  animation.valuePopupStyle === s.value
+                  animation.valuePopupStyle === s
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-card text-foreground border-border hover:bg-accent"
                 }`}
               >
-                {s.label}
+                {t(`popupStyle.${s}`)}
               </button>
             ))}
           </div>
@@ -102,7 +94,7 @@ export const EffectsConfigEditor: React.FC<EffectsConfigEditorProps> = ({
         data-field-id={`page:${pageIndex}:animation.highValueGlowEnabled`}
       >
         <div className="flex items-center justify-between">
-          <Label className="text-xs">高数值光晕</Label>
+          <Label className="text-xs">{t("glow")}</Label>
           <Switch
             checked={animation.highValueGlowEnabled}
             onCheckedChange={(v) => update("highValueGlowEnabled", v)}
@@ -115,15 +107,15 @@ export const EffectsConfigEditor: React.FC<EffectsConfigEditorProps> = ({
           >
             {glowStyles.map((s) => (
               <button
-                key={s.value}
-                onClick={() => update("highValueGlowStyle", s.value)}
+                key={s}
+                onClick={() => update("highValueGlowStyle", s)}
                 className={`px-2 py-1 text-xs rounded border transition-colors ${
-                  animation.highValueGlowStyle === s.value
+                  animation.highValueGlowStyle === s
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-card text-foreground border-border hover:bg-accent"
                 }`}
               >
-                {s.label}
+                {t(`glowStyle.${s}`)}
               </button>
             ))}
           </div>

@@ -439,6 +439,24 @@
         "innerStop": "Inner stop",
         "outerStop": "Outer stop"
       }
+    },
+    "effects": {
+      "title": "Effects",
+      "threshold": "High-value threshold: {value}",
+      "valuePopup": "Value popup",
+      "glow": "High-value glow",
+      "popupStyle": {
+        "spring": "Spring",
+        "bounce": "Bounce",
+        "fadeScale": "Fade & scale",
+        "slideIn": "Slide in"
+      },
+      "glowStyle": {
+        "pulse": "Pulse",
+        "ring": "Ring",
+        "ripple": "Ripple",
+        "sparkle": "Sparkle"
+      }
     }
   },
   "settings": {
