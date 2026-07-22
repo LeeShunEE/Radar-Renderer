@@ -63,8 +63,13 @@ export function FontSelect({
     return allFonts.filter((f) => f.name.toLowerCase().includes(q)).slice(0, 100);
   }, [query, allFonts]);
 
-  const displayValue =
-    CURATED_FONTS.find((f) => f.name === value)?.label ?? value;
+  // sans-serif 的展示名走 i18n「默认」；其余用字体自带 label。
+  const labelOf = (name: string, fallback: string) =>
+    name === "sans-serif" ? t("defaultFont") : fallback;
+  const displayValue = labelOf(
+    value,
+    CURATED_FONTS.find((f) => f.name === value)?.label ?? value,
+  );
 
   const handleSelect = useCallback(
     (name: string) => {
@@ -111,6 +116,7 @@ export function FontSelect({
                     <FontItem
                       key={font.name}
                       font={font}
+                      label={labelOf(font.name, font.label)}
                       selected={font.name === value}
                       onSelect={handleSelect}
                     />
@@ -126,6 +132,7 @@ export function FontSelect({
                     <FontItem
                       key={font.name}
                       font={font}
+                      label={labelOf(font.name, font.label)}
                       selected={font.name === value}
                       onSelect={handleSelect}
                     />
@@ -147,10 +154,12 @@ export function FontSelect({
 
 function FontItem({
   font,
+  label,
   selected,
   onSelect,
 }: {
   font: FontOption;
+  label: string;
   selected: boolean;
   onSelect: (name: string) => void;
 }) {
@@ -162,7 +171,7 @@ function FontItem({
       }`}
       onClick={() => onSelect(font.name)}
     >
-      <span className="truncate flex-1 text-left">{font.label}</span>
+      <span className="truncate flex-1 text-left">{label}</span>
       {selected && (
         <span className="text-primary text-[10px]">✓</span>
       )}

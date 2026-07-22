@@ -182,7 +182,7 @@ export function TaskQueuePanel() {
                       ? `${task.rendered_frames}/${task.total_frames}`
                       : t("status.running")}
                     {task.eta_seconds !== null && task.eta_seconds > 0
-                      ? ` · ${t("remaining", { eta: formatEtaSeconds(task.eta_seconds) })}`
+                      ? ` · ${t("remaining", { eta: formatEtaSeconds(task.eta_seconds, locale as "en" | "zh") })}`
                       : ""}
                   </span>
                 </div>

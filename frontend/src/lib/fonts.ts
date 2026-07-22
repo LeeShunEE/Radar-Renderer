@@ -13,7 +13,8 @@ import { loadFont as loadPressStart2P } from "@remotion/google-fonts/PressStart2
 import { loadFont as loadBlackOpsOne } from "@remotion/google-fonts/BlackOpsOne";
 
 export const CURATED_FONTS = [
-  { name: "sans-serif", label: "默认 (sans-serif)", supportsChinese: true },
+  // label 为兜底展示；sans-serif 的「默认」前缀由 FontSelect 用 i18n 覆盖（editor.fontFamily.defaultFont）。
+  { name: "sans-serif", label: "Default (sans-serif)", supportsChinese: true },
   { name: "Noto Sans SC", label: "Noto Sans SC", supportsChinese: true },
   { name: "Noto Serif SC", label: "Noto Serif SC", supportsChinese: true },
   { name: "ZCOOL QingKe HuangYou", label: "ZCOOL QingKe HuangYou", supportsChinese: true },

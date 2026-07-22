@@ -288,7 +288,7 @@ describe("api-client", () => {
     it("非 2xx 且响应体非 JSON 时使用默认错误消息", async () => {
       mockFetch.mockResolvedValueOnce({ ok: false, status: 500, json: async () => { throw new Error("not json"); } });
 
-      await expect(auth.me()).rejects.toThrow("未知错误");
+      await expect(auth.me()).rejects.toThrow("Unknown error");
     });
 
     it("抛出的 ApiError 携带 code 与 status", async () => {

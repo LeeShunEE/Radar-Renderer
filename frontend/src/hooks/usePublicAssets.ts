@@ -2,6 +2,7 @@
  * 公共资源 hook：获取公共 silhouettes / music 列表。
  */
 import { useState, useCallback, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { assets } from "@/lib/api-client";
 
 export interface PublicAsset {
@@ -18,6 +19,7 @@ export interface PublicAssetsState {
 }
 
 export function usePublicAssets() {
+  const tr = useTranslations("errors");
   const [state, setState] = useState<PublicAssetsState>({
     silhouettes: [],
     music: [],
@@ -43,10 +45,10 @@ export function usePublicAssets() {
       setState((prev) => ({
         ...prev,
         loading: false,
-        error: e instanceof Error ? e.message : "获取公共资源失败",
+        error: e instanceof Error ? e.message : tr("publicAssetsFailed"),
       }));
     }
-  }, []);
+  }, [tr]);
 
   /** 初始化时自动加载。 */
   useEffect(() => {

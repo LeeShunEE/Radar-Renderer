@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
 import { MultiPageSchema, type MultiPageConfig } from "../types/radar";
 
 const STORAGE_KEY = "radar-editor-saved-configs";
@@ -29,6 +30,7 @@ function writeMap(map: SavedMap): void {
 }
 
 export function useSavedConfigs() {
+  const t = useTranslations("errors");
   const [savedNames, setSavedNames] = useState<string[]>([]);
 
   useEffect(() => {
@@ -49,18 +51,18 @@ export function useSavedConfigs() {
 
   const saveConfig = useCallback(
     (name: string, config: MultiPageConfig): { ok: true } | { ok: false; error: string } => {
-      if (!name.trim()) return { ok: false, error: "名称不能为空" };
+      if (!name.trim()) return { ok: false, error: t("nameEmpty") };
       const map = readMap();
       map[name] = { name, config, savedAt: new Date().toISOString() };
       try {
         writeMap(map);
       } catch {
-        return { ok: false, error: "保存失败：存储空间不足" };
+        return { ok: false, error: t("saveQuotaExceeded") };
       }
       refresh();
       return { ok: true };
     },
-    [refresh],
+    [refresh, t],
   );
 
   const loadConfig = useCallback((name: string): MultiPageConfig | null => {

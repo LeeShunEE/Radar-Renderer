@@ -38,15 +38,23 @@ export interface BackgroundVideoMeta {
   sizeBytes: number;
 }
 
-/** 返回警告文案数组；空数组表示无警告。边界值（恰好等于阈值）不警告。 */
-export function checkBackgroundVideo(meta: BackgroundVideoMeta): string[] {
-  const warnings: string[] = [];
+/**
+ * 结构化警告：code + 插值参数，展示文案由消费端（AssetSelector）用 i18n 渲染。
+ * 纯函数不能用 next-intl，故不在此处产出中文文案。
+ */
+export type BackgroundVideoWarning =
+  | { code: "size"; mb: string }
+  | { code: "resolution"; width: number; height: number };
+
+/** 返回警告数组；空数组表示无警告。边界值（恰好等于阈值）不警告。 */
+export function checkBackgroundVideo(meta: BackgroundVideoMeta): BackgroundVideoWarning[] {
+  const warnings: BackgroundVideoWarning[] = [];
   if (meta.sizeBytes > BG_VIDEO_SIZE_WARN_BYTES) {
     const mb = (meta.sizeBytes / (1024 * 1024)).toFixed(0);
-    warnings.push(`视频体积较大（${mb}MB，建议 ≤50MB），渲染较慢且占用较高`);
+    warnings.push({ code: "size", mb });
   }
   if (meta.width > BG_VIDEO_MAX_WIDTH || meta.height > BG_VIDEO_MAX_HEIGHT) {
-    warnings.push(`视频分辨率较高（${meta.width}×${meta.height}，建议 ≤1920×1080），渲染较慢`);
+    warnings.push({ code: "resolution", width: meta.width, height: meta.height });
   }
   return warnings;
 }

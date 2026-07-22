@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { useTranslations } from "next-intl";
 import type { MultiPageConfig } from "../types/radar";
 
 const STORAGE_KEY = "radar-editor-auto-save";
@@ -11,14 +12,14 @@ type AutoSaveEntry = {
   title: string;
 };
 
-function generateTitle(): string {
+function generateTitle(prefix: string): string {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const day = String(now.getDate()).padStart(2, "0");
   const hour = String(now.getHours()).padStart(2, "0");
   const minute = String(now.getMinutes()).padStart(2, "0");
-  return `自动保存 - ${year}-${month}-${day} ${hour}:${minute}`;
+  return `${prefix} - ${year}-${month}-${day} ${hour}:${minute}`;
 }
 
 function readEntry(): AutoSaveEntry | null {
@@ -41,14 +42,15 @@ function writeEntry(entry: AutoSaveEntry): boolean {
 }
 
 export function useAutoSave() {
+  const t = useTranslations("editor");
   const saveAuto = useCallback((config: MultiPageConfig): boolean => {
     const entry: AutoSaveEntry = {
       config,
       savedAt: new Date().toISOString(),
-      title: generateTitle(),
+      title: generateTitle(t("autoSaveName")),
     };
     return writeEntry(entry);
-  }, []);
+  }, [t]);
 
   const loadAuto = useCallback((): MultiPageConfig | null => {
     const entry = readEntry();

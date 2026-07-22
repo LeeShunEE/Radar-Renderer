@@ -17,7 +17,26 @@
     "done": "Done",
     "yes": "Yes",
     "no": "No",
-    "error": "Error"
+    "error": "Error",
+    "pickColor": "Pick a color",
+    "eyedropper": "Pick color from screen"
+  },
+  "errors": {
+    "fileListFailed": "Failed to load file list",
+    "uploadFailed": "Upload failed",
+    "deleteFailed": "Delete failed",
+    "downloadFailed": "Download failed",
+    "publicAssetsFailed": "Failed to load public assets",
+    "nameEmpty": "Name cannot be empty",
+    "saveQuotaExceeded": "Save failed: storage quota exceeded",
+    "renderFailed": "Render failed",
+    "taskCancelled": "Task cancelled",
+    "submitRenderFailed": "Failed to submit render",
+    "cancelTaskFailed": "Failed to cancel task",
+    "taskStatusFailed": "Failed to fetch task status",
+    "taskListFailed": "Failed to load task list",
+    "taskDeleteFailed": "Failed to delete task",
+    "renderCancelled": "Render cancelled"
   },
   "footer": {
     "version": "Version {version}"
@@ -47,7 +66,13 @@
     "uploadFile": "Upload file",
     "refreshCategory": "Refresh {label}",
     "uploadCategory": "Upload {label}",
-    "confirmDelete": "Delete \"{name}\"?"
+    "uploadVideoOnly": "Current mode is video background; please choose a video file (mp4 / webm / mov)",
+    "uploadImageOnly": "Current mode is image background; please choose an image file (png / jpg / gif / webp / svg)",
+    "confirmDelete": "Delete \"{name}\"?",
+    "videoWarn": {
+      "size": "Large video ({mb}MB, recommended ≤50MB); rendering is slower and uses more resources",
+      "resolution": "High resolution ({width}×{height}, recommended ≤1920×1080); rendering is slower"
+    }
   },
   "language": {
     "label": "Language"
@@ -105,6 +130,7 @@
       "export": "Create a video render task and view render queue progress"
     },
     "autoSaved": "Auto-saved",
+    "autoSaveName": "Auto-save",
     "renderQueue": "Render queue",
     "defaultCharacterName": "Character {n}",
     "duplicateSuffix": "{name} (copy)",
@@ -146,7 +172,8 @@
       "search": "Search fonts…",
       "curated": "Curated fonts",
       "all": "All fonts",
-      "notFound": "No matching fonts"
+      "notFound": "No matching fonts",
+      "defaultFont": "Default (sans-serif)"
     },
     "page": {
       "title": "Page {n}: {name}",
@@ -690,6 +717,13 @@
       "google": "Continue with Google",
       "github": "Continue with GitHub",
       "failed": "OAuth sign-in failed"
+    },
+    "callback": {
+      "title": "OAuth sign-in",
+      "processing": "Processing sign-in…",
+      "missingParams": "OAuth callback parameters are missing",
+      "failed": "OAuth sign-in failed",
+      "backToLogin": "Back to login"
     },
     "userMenu": {
       "logout": "Sign out"

@@ -29,9 +29,26 @@ function interpolate(message: string, values?: Record<string, unknown>): string 
   );
 }
 
+/**
+ * 按 namespace 缓存翻译函数，返回稳定引用。
+ *
+ * 真实 next-intl 的 useTranslations 返回稳定函数；本替身若每次渲染都新建闭包，会让把
+ * t 放进 useCallback/useEffect 依赖的 hook（如 useTaskQueue 的自动轮询）反复失效 → 无限重渲染。
+ * namespace + zh.json 均为静态，按 namespace 缓存即安全稳定。
+ */
+const translatorCache = new Map<
+  string,
+  (key: string, values?: Record<string, unknown>) => string
+>();
+
 export function useTranslations(namespace = "") {
-  return (key: string, values?: Record<string, unknown>) =>
-    interpolate(lookup(namespace, key), values);
+  let translate = translatorCache.get(namespace);
+  if (!translate) {
+    translate = (key: string, values?: Record<string, unknown>) =>
+      interpolate(lookup(namespace, key), values);
+    translatorCache.set(namespace, translate);
+  }
+  return translate;
 }
 
 export function useLocale(): string {

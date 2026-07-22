@@ -3,7 +3,7 @@
  */
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { formatEtaSeconds } from "@/lib/format";
 
 interface TaskEtaDisplayProps {
@@ -13,6 +13,7 @@ interface TaskEtaDisplayProps {
 
 export function TaskEtaDisplay({ etaSeconds, position }: TaskEtaDisplayProps) {
   const t = useTranslations("tasks");
+  const locale = useLocale() as "en" | "zh";
 
   if (etaSeconds === null || etaSeconds <= 0) {
     return null;
@@ -20,7 +21,7 @@ export function TaskEtaDisplay({ etaSeconds, position }: TaskEtaDisplayProps) {
 
   return (
     <span className="text-xs text-muted-foreground">
-      {t("eta", { position, eta: formatEtaSeconds(etaSeconds) })}
+      {t("eta", { position, eta: formatEtaSeconds(etaSeconds, locale) })}
     </span>
   );
 }

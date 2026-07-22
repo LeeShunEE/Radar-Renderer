@@ -17,7 +17,26 @@
     "done": "完成",
     "yes": "是",
     "no": "否",
-    "error": "错误"
+    "error": "错误",
+    "pickColor": "选择颜色",
+    "eyedropper": "屏幕取色"
+  },
+  "errors": {
+    "fileListFailed": "获取文件列表失败",
+    "uploadFailed": "上传失败",
+    "deleteFailed": "删除失败",
+    "downloadFailed": "下载失败",
+    "publicAssetsFailed": "获取公共资源失败",
+    "nameEmpty": "名称不能为空",
+    "saveQuotaExceeded": "保存失败：存储空间不足",
+    "renderFailed": "渲染失败",
+    "taskCancelled": "任务已取消",
+    "submitRenderFailed": "提交渲染失败",
+    "cancelTaskFailed": "取消任务失败",
+    "taskStatusFailed": "获取任务状态失败",
+    "taskListFailed": "获取任务列表失败",
+    "taskDeleteFailed": "删除任务失败",
+    "renderCancelled": "渲染已取消"
   },
   "footer": {
     "version": "版本 {version}"
@@ -47,7 +66,13 @@
     "uploadFile": "上传文件",
     "refreshCategory": "刷新{label}资源",
     "uploadCategory": "上传{label}",
-    "confirmDelete": "确定删除 \"{name}\"？"
+    "uploadVideoOnly": "当前为视频背景，请选择视频文件（mp4 / webm / mov）",
+    "uploadImageOnly": "当前为图片背景，请选择图片文件（png / jpg / gif / webp / svg）",
+    "confirmDelete": "确定删除 \"{name}\"？",
+    "videoWarn": {
+      "size": "视频体积较大（{mb}MB，建议 ≤50MB），渲染较慢且占用较高",
+      "resolution": "视频分辨率较高（{width}×{height}，建议 ≤1920×1080），渲染较慢"
+    }
   },
   "language": {
     "label": "语言"
@@ -105,6 +130,7 @@
       "export": "创建视频渲染任务并查看渲染队列进度"
     },
     "autoSaved": "已自动保存",
+    "autoSaveName": "自动保存",
     "renderQueue": "渲染队列",
     "defaultCharacterName": "角色{n}",
     "duplicateSuffix": "{name} (副本)",
@@ -146,7 +172,8 @@
       "search": "搜索字体...",
       "curated": "精选字体",
       "all": "全部字体",
-      "notFound": "未找到匹配字体"
+      "notFound": "未找到匹配字体",
+      "defaultFont": "默认 (sans-serif)"
     },
     "page": {
       "title": "第{n}页：{name}",
@@ -690,6 +717,13 @@
       "google": "使用 Google 登录",
       "github": "使用 GitHub 登录",
       "failed": "OAuth 登录失败"
+    },
+    "callback": {
+      "title": "OAuth 登录",
+      "processing": "正在处理登录...",
+      "missingParams": "OAuth 回调参数缺失",
+      "failed": "OAuth 登录失败",
+      "backToLogin": "返回登录页面"
     },
     "userMenu": {
       "logout": "登出"

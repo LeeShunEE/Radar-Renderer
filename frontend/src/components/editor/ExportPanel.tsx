@@ -6,7 +6,7 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { Progress } from "../ui/progress";
@@ -26,6 +26,7 @@ type ExportPanelProps = {
 
 export function ExportPanel({ props, config, previewMode }: ExportPanelProps) {
   const t = useTranslations("editor.export");
+  const locale = useLocale() as "en" | "zh";
   const serverRender = useServerRender();
   const localRender = useLocalRender();
   const [exportMode, setExportMode] = useState<"server" | "local">("server");
@@ -81,7 +82,7 @@ export function ExportPanel({ props, config, previewMode }: ExportPanelProps) {
         const pos = serverRender.currentTask?.position ?? 0;
         const eta = serverRender.currentTask?.eta_seconds ?? 0;
         const size = serverRender.currentTask?.queue_size ?? 0;
-        return t("status.queued", { pos, size, eta: formatEtaSeconds(eta) });
+        return t("status.queued", { pos, size, eta: formatEtaSeconds(eta, locale) });
       }
       case "rendering":
         return null;
@@ -110,7 +111,7 @@ export function ExportPanel({ props, config, previewMode }: ExportPanelProps) {
         <p className="text-xs text-muted-foreground">
           {hasFrames
             ? t("progress.rendering", { rendered, total }) +
-              (eta !== null ? t("progress.etaSuffix", { eta: formatEtaSeconds(eta) }) : "")
+              (eta !== null ? t("progress.etaSuffix", { eta: formatEtaSeconds(eta, locale) }) : "")
             : t("progress.renderingNoFrames")}
         </p>
       </div>

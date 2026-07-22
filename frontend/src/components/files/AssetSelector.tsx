@@ -11,7 +11,11 @@ import { usePublicAssets } from "@/hooks/usePublicAssets";
 import { useFileManagement } from "@/hooks/useFileManagement";
 import { useUploadObjectUrls } from "@/hooks/useUploadObjectUrls";
 import { RefreshCw, Upload, ClipboardPaste } from "lucide-react";
-import { checkBackgroundVideo, type BackgroundMediaKind } from "@/lib/media-guard";
+import {
+  checkBackgroundVideo,
+  type BackgroundMediaKind,
+  type BackgroundVideoWarning,
+} from "@/lib/media-guard";
 import { extractPastedImage, pastedImageName } from "@/lib/clipboard-image";
 import { AUDIO_EXTS, IMAGE_EXTS, VIDEO_EXTS, extRegex } from "@/lib/asset-exts";
 import { Progress } from "@/components/ui/progress";
@@ -101,7 +105,7 @@ export function AssetSelector({
   const [playing, setPlaying] = useState(false);
   const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
   // 背景视频上传软警告（决策 Q7）：仅提示，不拦截上传
-  const [bgWarnings, setBgWarnings] = useState<string[]>([]);
+  const [bgWarnings, setBgWarnings] = useState<BackgroundVideoWarning[]>([]);
   // 上传类型不符的硬拦截提示（如视频背景模式下选了图片）
   const [uploadError, setUploadError] = useState<string | null>(null);
   // 背景媒体过滤：仅 backgrounds 类别生效
@@ -159,12 +163,12 @@ export function AssetSelector({
     // 背景媒体类型硬拦截：accept 属性可被系统文件对话框的「所有文件」绕过，
     // 类型不符的文件传给渲染端会直接报错（图片进 <Video> / 视频进 <Img>），故在此拦下。
     if (bgKind === "video" && !isVideoFile) {
-      setUploadError("当前为视频背景，请选择视频文件（mp4 / webm / mov）");
+      setUploadError(t("uploadVideoOnly"));
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
     if (bgKind === "image" && !isImageFile) {
-      setUploadError("当前为图片背景，请选择图片文件（png / jpg / gif / webp / svg）");
+      setUploadError(t("uploadImageOnly"));
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
@@ -368,7 +372,9 @@ export function AssetSelector({
         <div className="rounded-md border border-yellow-400/50 bg-yellow-50/10 px-2 py-1.5 space-y-0.5">
           {bgWarnings.map((w, i) => (
             <p key={i} className="text-xs text-yellow-600 dark:text-yellow-400">
-              ⚠ {w}
+              ⚠ {w.code === "size"
+                ? t("videoWarn.size", { mb: w.mb })
+                : t("videoWarn.resolution", { width: w.width, height: w.height })}
             </p>
           ))}
         </div>

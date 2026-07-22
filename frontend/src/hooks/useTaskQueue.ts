@@ -2,6 +2,7 @@
  * 任务队列 hook：任务列表 + 轮询刷新 + 删除任务。
  */
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { tasks, TaskResponse } from "@/lib/api-client";
 
 const POLL_INTERVAL_MS = 5000;
@@ -24,6 +25,7 @@ export interface UseTaskQueueResult {
 }
 
 export function useTaskQueue(): UseTaskQueueResult {
+  const tr = useTranslations("errors");
   const [taskList, setTaskList] = useState<TaskResponse[]>([]);
   const [queueSize, setQueueSize] = useState(0);
   const [avgFps, setAvgFps] = useState<number | null>(null);
@@ -41,11 +43,11 @@ export function useTaskQueue(): UseTaskQueueResult {
       setQueueSize(data.queue_size);
       setAvgFps(data.avg_fps ?? null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "获取任务列表失败");
+      setError(e instanceof Error ? e.message : tr("taskListFailed"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tr]);
 
   /** 删除任务。 */
   const deleteTask = useCallback(async (id: number) => {
@@ -54,9 +56,9 @@ export function useTaskQueue(): UseTaskQueueResult {
       // 删除成功后刷新列表
       await refreshTasks();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "删除任务失败");
+      setError(e instanceof Error ? e.message : tr("taskDeleteFailed"));
     }
-  }, [refreshTasks]);
+  }, [refreshTasks, tr]);
 
   /** 初始化加载。 */
   useEffect(() => {

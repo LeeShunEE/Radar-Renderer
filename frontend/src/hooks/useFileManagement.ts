@@ -2,6 +2,7 @@
  * 文件管理 hook：封装用户上传文件的 CRUD + 配额查询。
  */
 import { useState, useCallback, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { files } from "@/lib/api-client";
 
 export interface UserFile {
@@ -27,6 +28,7 @@ export interface FileManagementState {
 }
 
 export function useFileManagement() {
+  const tr = useTranslations("errors");
   const [state, setState] = useState<FileManagementState>({
     files: [],
     quota: null,
@@ -53,10 +55,10 @@ export function useFileManagement() {
       setState((prev) => ({
         ...prev,
         loading: false,
-        error: e instanceof Error ? e.message : "获取文件列表失败",
+        error: e instanceof Error ? e.message : tr("fileListFailed"),
       }));
     }
-  }, []);
+  }, [tr]);
 
   /** 初始化时自动加载。 */
   useEffect(() => {
@@ -77,11 +79,11 @@ export function useFileManagement() {
         ...prev,
         uploading: false,
         uploadProgress: null,
-        error: e instanceof Error ? e.message : "上传失败",
+        error: e instanceof Error ? e.message : tr("uploadFailed"),
       }));
       throw e;
     }
-  }, [refresh]);
+  }, [refresh, tr]);
 
   /** 删除文件。 */
   const deleteFile = useCallback(async (name: string) => {
@@ -94,11 +96,11 @@ export function useFileManagement() {
       setState((prev) => ({
         ...prev,
         loading: false,
-        error: e instanceof Error ? e.message : "删除失败",
+        error: e instanceof Error ? e.message : tr("deleteFailed"),
       }));
       throw e;
     }
-  }, [refresh]);
+  }, [refresh, tr]);
 
   /** 获取上传文件的下载 URL（用于在素材中按 URL 引用，渲染端按需鉴权）。 */
   const getDownloadUrl = useCallback((name: string) => {
@@ -123,10 +125,10 @@ export function useFileManagement() {
     } catch (e) {
       setState((prev) => ({
         ...prev,
-        error: e instanceof Error ? e.message : "下载失败",
+        error: e instanceof Error ? e.message : tr("downloadFailed"),
       }));
     }
-  }, []);
+  }, [tr]);
 
   /** 格式化配额显示。 */
   const formatQuota = useCallback((bytes: number): string => {

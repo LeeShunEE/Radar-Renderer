@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { Popover } from "@base-ui/react/popover";
 import { RgbaColorPicker } from "react-colorful";
 
@@ -60,6 +61,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
   onChange,
   className,
 }) => {
+  const t = useTranslations("common");
   const color = parseColor(value);
   const hasEyeDropper =
     typeof window !== "undefined" && "EyeDropper" in window;
@@ -67,7 +69,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
     <Popover.Root>
       <Popover.Trigger
         className={`h-8 w-8 shrink-0 rounded border border-unfocused-border-color cursor-pointer relative overflow-hidden ${className ?? ""}`}
-        aria-label="选择颜色"
+        aria-label={t("pickColor")}
       >
         <span className="absolute inset-0" style={CHECKER_STYLE} />
         <span
@@ -107,7 +109,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({
                       /* user canceled */
                     }
                   }}
-                  title="屏幕取色"
+                  title={t("eyedropper")}
                   className="shrink-0 h-7 w-7 flex items-center justify-center rounded border border-unfocused-border-color text-subtitle hover:text-foreground hover:bg-muted"
                 >
                   <svg

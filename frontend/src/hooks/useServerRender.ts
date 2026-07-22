@@ -2,6 +2,7 @@
  * 服务端渲染 hook：提交任务 → 轮询状态 → 完成后下载。
  */
 import { useState, useCallback, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { render, files, tasks, TaskResponse } from "@/lib/api-client";
 import { useTaskPolling } from "./useTaskPolling";
 
@@ -19,6 +20,7 @@ export interface UseServerRenderResult {
 }
 
 export function useServerRender(): UseServerRenderResult {
+  const tr = useTranslations("errors");
   const [status, setStatus] = useState<"idle" | "submitting" | "queued" | "rendering" | "downloading" | "done" | "failed">("idle");
   const [error, setError] = useState<string | null>(null);
   const { task, error: pollingError, start: startPolling, stop: stopPolling } = useTaskPolling();
@@ -44,10 +46,10 @@ export function useServerRender(): UseServerRenderResult {
       stopPolling();
     } catch (e) {
       setStatus("failed");
-      setError(e instanceof Error ? e.message : "下载失败");
+      setError(e instanceof Error ? e.message : tr("downloadFailed"));
       stopPolling();
     }
-  }, [stopPolling]);
+  }, [stopPolling, tr]);
 
   /** 监听任务状态变化。 */
   useEffect(() => {
@@ -69,14 +71,14 @@ export function useServerRender(): UseServerRenderResult {
       triggerDownload(task);
     } else if (taskStatus === "failed") {
       setStatus("failed");
-      setError(task.error || "渲染失败");
+      setError(task.error || tr("renderFailed"));
       stopPolling();
     } else if (taskStatus === "canceled") {
       setStatus("idle");
-      setError("任务已取消");
+      setError(tr("taskCancelled"));
       stopPolling();
     }
-  }, [task, status, triggerDownload, stopPolling]);
+  }, [task, status, triggerDownload, stopPolling, tr]);
 
   /** 提交渲染任务。 */
   const submitRender = useCallback(async (
@@ -94,9 +96,9 @@ export function useServerRender(): UseServerRenderResult {
       startPolling(taskData.id);
     } catch (e) {
       setStatus("failed");
-      setError(e instanceof Error ? e.message : "提交渲染失败");
+      setError(e instanceof Error ? e.message : tr("submitRenderFailed"));
     }
-  }, [startPolling, stopPolling]);
+  }, [startPolling, stopPolling, tr]);
 
   /** 取消渲染任务。 */
   const cancelRender = useCallback(async () => {
@@ -105,12 +107,12 @@ export function useServerRender(): UseServerRenderResult {
         await tasks.delete(task.id);
         stopPolling();
         setStatus("idle");
-        setError("任务已取消");
+        setError(tr("taskCancelled"));
       } catch (e) {
-        setError(e instanceof Error ? e.message : "取消任务失败");
+        setError(e instanceof Error ? e.message : tr("cancelTaskFailed"));
       }
     }
-  }, [task, stopPolling]);
+  }, [task, stopPolling, tr]);
 
   /** 合并 polling error。 */
   const finalError = error || pollingError;
