@@ -391,6 +391,54 @@
         "extend": "从A的值延伸"
       },
       "showLegend": "显示图例"
+    },
+    "animation": {
+      "title": "动画配置",
+      "stageOffsetHeading": "阶段时序偏移（负值=提前重叠）",
+      "unitFrame": "帧",
+      "ignoreGlobal": "无视全局",
+      "ignoredGlobal": "已无视全局",
+      "ignoreTipOn": "点击让本页忽略全局覆盖",
+      "ignoreTipOff": "本页已忽略全局覆盖",
+      "fields": {
+        "fillDuration": "填充时长",
+        "silhouetteDelay": "剪影延迟",
+        "silhouetteFadeInDuration": "剪影淡入时长",
+        "labelStagger": "标签交错",
+        "highValueSpringDamping": "弹簧阻尼",
+        "holdDuration": "保持时长",
+        "nameFadeInDuration": "名称淡入时长",
+        "nameAppearRatio": "名称出现占比",
+        "labelStartOffset": "标签开始偏移",
+        "fillStartOffset": "填充开始偏移",
+        "effectsStartOffset": "特效开始偏移",
+        "holdStartOffset": "保持开始偏移"
+      }
+    },
+    "background": {
+      "title": "背景配置",
+      "type": {
+        "gradient": "渐变",
+        "image": "图片",
+        "video": "视频"
+      },
+      "opacity": "不透明度",
+      "blur": "模糊",
+      "scale": "缩放",
+      "position": "位置",
+      "loop": "循环",
+      "playbackRate": "播放速率",
+      "startFrom": "起始位置 (ms)",
+      "sound": "声音",
+      "audioNotice": "⚠ 背景视频声音仅在服务端渲染成片中生效；浏览器即时导出不含背景视频声音（音乐轨道不受影响）。",
+      "vignette": {
+        "title": "暗角效果",
+        "brightness": "亮度偏移",
+        "centerX": "中心 X",
+        "centerY": "中心 Y",
+        "innerStop": "内圈位置",
+        "outerStop": "外圈位置"
+      }
     }
   },
   "settings": {

@@ -391,6 +391,54 @@
         "extend": "Extend from A's value"
       },
       "showLegend": "Show legend"
+    },
+    "animation": {
+      "title": "Animation",
+      "stageOffsetHeading": "Stage timing offsets (negative = earlier overlap)",
+      "unitFrame": "f",
+      "ignoreGlobal": "Ignore global",
+      "ignoredGlobal": "Global ignored",
+      "ignoreTipOn": "Click to make this page ignore the global override",
+      "ignoreTipOff": "This page already ignores the global override",
+      "fields": {
+        "fillDuration": "Fill duration",
+        "silhouetteDelay": "Silhouette delay",
+        "silhouetteFadeInDuration": "Silhouette fade-in",
+        "labelStagger": "Label stagger",
+        "highValueSpringDamping": "Spring damping",
+        "holdDuration": "Hold duration",
+        "nameFadeInDuration": "Name fade-in",
+        "nameAppearRatio": "Name appear ratio",
+        "labelStartOffset": "Label start offset",
+        "fillStartOffset": "Fill start offset",
+        "effectsStartOffset": "Effects start offset",
+        "holdStartOffset": "Hold start offset"
+      }
+    },
+    "background": {
+      "title": "Background",
+      "type": {
+        "gradient": "Gradient",
+        "image": "Image",
+        "video": "Video"
+      },
+      "opacity": "Opacity",
+      "blur": "Blur",
+      "scale": "Scale",
+      "position": "Position",
+      "loop": "Loop",
+      "playbackRate": "Playback rate",
+      "startFrom": "Start from (ms)",
+      "sound": "Sound",
+      "audioNotice": "⚠ Background video audio only takes effect in server-side rendered output; instant browser export does not include background video audio (the music track is unaffected).",
+      "vignette": {
+        "title": "Vignette",
+        "brightness": "Brightness offset",
+        "centerX": "Center X",
+        "centerY": "Center Y",
+        "innerStop": "Inner stop",
+        "outerStop": "Outer stop"
+      }
     }
   },
   "settings": {
