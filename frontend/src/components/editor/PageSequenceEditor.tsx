@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   DndContext,
   KeyboardSensor,
@@ -33,6 +34,9 @@ import {
 } from "@/lib/page-sequence";
 import type { MultiPageConfig } from "@/types/radar";
 
+/** 本组件内共享的翻译函数类型（namespace "editor.sequence"）。 */
+type SequenceT = ReturnType<typeof useTranslations>;
+
 type PageSequenceEditorProps = {
   config: MultiPageConfig;
   pageIds?: readonly string[];
@@ -53,18 +57,29 @@ type ComparisonAction = {
   onClick: () => void;
 };
 
-function pageName(config: MultiPageConfig, pageIndex: number): string {
-  return config.pages[pageIndex]?.characterName || `页面 ${pageIndex + 1}`;
+function pageName(
+  config: MultiPageConfig,
+  pageIndex: number,
+  t: SequenceT,
+): string {
+  return (
+    config.pages[pageIndex]?.characterName ||
+    t("pageFallback", { n: pageIndex + 1 })
+  );
 }
 
 function itemDescription(
   item: PageSequenceItem,
   config: MultiPageConfig,
+  t: SequenceT,
 ): string {
   if (item.type === "page") {
-    return `页面 ${pageName(config, item.pageIndices[0])}`;
+    return t("itemPage", { name: pageName(config, item.pageIndices[0], t) });
   }
-  return `对比组 ${pageName(config, item.pageIndices[0])} 与 ${pageName(config, item.pageIndices[1])}`;
+  return t("itemComparison", {
+    a: pageName(config, item.pageIndices[0], t),
+    b: pageName(config, item.pageIndices[1], t),
+  });
 }
 
 function findComparisonForPage(
@@ -107,7 +122,8 @@ function PageBar({
   onDuplicatePage,
   onRequestRemove,
 }: PageBarProps) {
-  const name = pageName(config, pageIndex);
+  const t = useTranslations("editor.sequence");
+  const name = pageName(config, pageIndex, t);
   return (
     <div
       className={`flex min-w-0 items-center gap-1.5 rounded-md border px-2 py-1.5 transition-colors ${
@@ -128,7 +144,7 @@ function PageBar({
       </button>
       <button
         type="button"
-        aria-label={`选择页面 ${name}`}
+        aria-label={t("selectPage", { name })}
         aria-current={active ? "true" : undefined}
         onClick={() => onSetActive(pageIndex)}
         className="flex min-w-0 flex-1 items-center gap-2 rounded px-1 py-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -143,8 +159,8 @@ function PageBar({
           type="button"
           variant="ghost"
           size="xs"
-          aria-label={`复制 ${name}`}
-          title={`复制 ${name}`}
+          aria-label={t("duplicateName", { name })}
+          title={t("duplicateName", { name })}
           onClick={(event) => {
             event.stopPropagation();
             onDuplicatePage(pageIndex);
@@ -152,14 +168,14 @@ function PageBar({
           className="px-1.5"
         >
           <Copy />
-          <span className="hidden xl:inline">复制</span>
+          <span className="hidden xl:inline">{t("duplicate")}</span>
         </Button>
         <Button
           type="button"
           variant="ghost"
           size="xs"
-          aria-label={`删除 ${name}`}
-          title={`删除 ${name}`}
+          aria-label={t("deleteName", { name })}
+          title={t("deleteName", { name })}
           disabled={!canRemove}
           onClick={(event) => {
             event.stopPropagation();
@@ -168,7 +184,7 @@ function PageBar({
           className="px-1.5 text-destructive hover:text-destructive"
         >
           <Trash2 />
-          <span className="hidden xl:inline">删除</span>
+          <span className="hidden xl:inline">{t("delete")}</span>
         </Button>
         <Button
           type="button"
@@ -214,6 +230,7 @@ function SortableSequenceItem({
   onRequestRemove,
   onToggleComparison,
 }: SortableSequenceItemProps) {
+  const t = useTranslations("editor.sequence");
   const {
     attributes,
     listeners,
@@ -243,15 +260,15 @@ function SortableSequenceItem({
 
   if (item.type === "comparison") {
     const [firstPageIndex, secondPageIndex] = item.pageIndices;
-    const firstName = pageName(config, firstPageIndex);
-    const secondName = pageName(config, secondPageIndex);
-    const dragLabel = `拖动对比组 ${firstName} 与 ${secondName}`;
+    const firstName = pageName(config, firstPageIndex, t);
+    const secondName = pageName(config, secondPageIndex, t);
+    const dragLabel = t("dragComparison", { a: firstName, b: secondName });
     return (
       <div
         ref={setNodeRef}
         style={style}
         role="group"
-        aria-label={`对比绑定：${firstName} 与 ${secondName}`}
+        aria-label={t("comparisonGroupAria", { a: firstName, b: secondName })}
         className="rounded-lg border border-amber-500/60 bg-amber-500/10 p-1 shadow-[inset_3px_0_0_rgba(245,158,11,0.8)]"
       >
         <PageBar
@@ -267,8 +284,8 @@ function SortableSequenceItem({
           onDuplicatePage={onDuplicatePage}
           onRequestRemove={onRequestRemove}
           comparisonAction={{
-            label: `解除 ${firstName} 与 ${secondName} 的对比`,
-            visibleLabel: "解除对比",
+            label: t("unbindCompareLabel", { a: firstName, b: secondName }),
+            visibleLabel: t("unbindCompare"),
             disabled: false,
             active: true,
             onClick: () => onToggleComparison(firstPageIndex, secondPageIndex),
@@ -276,7 +293,7 @@ function SortableSequenceItem({
         />
         <div className="flex h-5 items-center gap-1.5 pl-10 text-[10px] font-medium text-amber-700 dark:text-amber-300">
           <Link2 className="h-3 w-3" />
-          <span>对比绑定 · 整组拖动</span>
+          <span>{t("comparisonBound")}</span>
         </div>
         <PageBar
           config={config}
@@ -290,8 +307,8 @@ function SortableSequenceItem({
           onDuplicatePage={onDuplicatePage}
           onRequestRemove={onRequestRemove}
           comparisonAction={{
-            label: `${secondName} 已参与对比`,
-            visibleLabel: "与下一页对比",
+            label: t("alreadyCompared", { name: secondName }),
+            visibleLabel: t("compareNext"),
             disabled: true,
             active: false,
             onClick: () => undefined,
@@ -302,15 +319,15 @@ function SortableSequenceItem({
   }
 
   const pageIndex = item.pageIndices[0];
-  const name = pageName(config, pageIndex);
+  const name = pageName(config, pageIndex, t);
   const nextItem = allItems[itemIndex + 1];
   const nextPageIndex = nextItem?.type === "page" ? nextItem.pageIndices[0] : null;
   const canCompare = nextPageIndex === pageIndex + 1;
   const compareLabel = canCompare
-    ? `将 ${name} 与 ${pageName(config, nextPageIndex)} 设为对比`
+    ? t("setCompareLabel", { a: name, b: pageName(config, nextPageIndex, t) })
     : pageIndex === config.pages.length - 1
-      ? `${name} 没有下一页`
-      : `${name} 无法与下一页对比`;
+      ? t("noNextPage", { name })
+      : t("cannotCompareNext", { name });
 
   return (
     <div ref={setNodeRef} style={style}>
@@ -318,7 +335,7 @@ function SortableSequenceItem({
         config={config}
         pageIndex={pageIndex}
         active={activePageIndex === pageIndex}
-        dragLabel={`拖动页面 ${name}`}
+        dragLabel={t("dragPage", { name })}
         dragAttributes={attributes}
         dragListeners={listeners}
         dragHandleRef={setActivatorNodeRef}
@@ -328,7 +345,7 @@ function SortableSequenceItem({
         onRequestRemove={onRequestRemove}
         comparisonAction={{
           label: compareLabel,
-          visibleLabel: "与下一页对比",
+          visibleLabel: t("compareNext"),
           disabled: !canCompare,
           active: false,
           onClick: () => {
@@ -353,6 +370,7 @@ export const PageSequenceEditor: React.FC<PageSequenceEditorProps> = ({
   onReorderPageSequence,
   onToggleComparison,
 }) => {
+  const t = useTranslations("editor.sequence");
   const items = useMemo(
     () => buildPageSequence(config, pageIds),
     [config, pageIds],
@@ -387,15 +405,15 @@ export const PageSequenceEditor: React.FC<PageSequenceEditorProps> = ({
       <div className="flex items-center justify-between gap-3">
         <div>
           <h4 id="page-sequence-heading" className="text-xs font-semibold text-foreground">
-            页面编排
+            {t("heading")}
           </h4>
           <p className="mt-0.5 text-[10px] text-muted-foreground">
-            拖动页面调整最终播放顺序
+            {t("subtitle")}
           </p>
         </div>
         <Button type="button" variant="outline" size="sm" onClick={onAddPage}>
           <Plus />
-          添加页面
+          {t("addPage")}
         </Button>
       </div>
 
@@ -408,22 +426,27 @@ export const PageSequenceEditor: React.FC<PageSequenceEditorProps> = ({
             onDragStart({ active }) {
               const item = items.find((candidate) => candidate.id === active.id);
               return item
-                ? `已拿起${itemDescription(item, config)}`
-                : "已开始拖动";
+                ? t("announceGrab", { desc: itemDescription(item, config, t) })
+                : t("announceDragStart");
             },
             onDragOver({ over }) {
               const item = items.find((candidate) => candidate.id === over?.id);
-              return item ? `当前位于${itemDescription(item, config)}` : undefined;
+              return item
+                ? t("announceOver", { desc: itemDescription(item, config, t) })
+                : undefined;
             },
             onDragEnd({ active, over }) {
               const source = items.find((candidate) => candidate.id === active.id);
               const target = items.find((candidate) => candidate.id === over?.id);
               return source && target
-                ? `${itemDescription(source, config)}已放到${itemDescription(target, config)}的位置`
-                : "拖动已结束";
+                ? t("announceDropped", {
+                    source: itemDescription(source, config, t),
+                    target: itemDescription(target, config, t),
+                  })
+                : t("announceDragEnd");
             },
             onDragCancel() {
-              return "已取消拖动";
+              return t("announceCancel");
             },
           },
         }}
@@ -458,15 +481,18 @@ export const PageSequenceEditor: React.FC<PageSequenceEditorProps> = ({
         }}
         title={
           pendingDeleteIndex === null
-            ? "删除页面"
-            : `删除页面 ${pageName(config, pendingDeleteIndex)}？`
+            ? t("deleteTitle")
+            : t("deleteTitleNamed", { name: pageName(config, pendingDeleteIndex, t) })
         }
         description={
           pendingDeleteIndex === null || !pendingComparison
-            ? "删除后无法恢复。"
-            : `删除后将解除 ${pageName(config, pendingComparison.firstPageIndex)} 与 ${pageName(config, pendingComparison.secondPageIndex)} 的对比，但会保留另一页面。`
+            ? t("deleteDescSimple")
+            : t("deleteDescComparison", {
+                a: pageName(config, pendingComparison.firstPageIndex, t),
+                b: pageName(config, pendingComparison.secondPageIndex, t),
+              })
         }
-        confirmLabel="确认删除"
+        confirmLabel={t("confirmDelete")}
         danger
         onConfirm={() => {
           if (pendingDeleteIndex !== null) {

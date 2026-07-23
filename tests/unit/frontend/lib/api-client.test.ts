@@ -461,18 +461,18 @@ describe("api-client", () => {
       await expect(promise).rejects.toThrow("太大");
     });
 
-    it("非 2xx 且响应体非 JSON 时回退「上传失败」", async () => {
+    it("非 2xx 且响应体非 JSON 时回退「Upload failed」", async () => {
       const { promise, xhr } = startUpload();
       xhr.status = 500;
       xhr.responseText = "Internal Server Error";
       xhr.onload!();
-      await expect(promise).rejects.toThrow("上传失败");
+      await expect(promise).rejects.toThrow("Upload failed");
     });
 
-    it("onerror 抛出「上传失败」", async () => {
+    it("onerror 抛出「Upload failed」", async () => {
       const { promise, xhr } = startUpload();
       xhr.onerror!();
-      await expect(promise).rejects.toThrow("上传失败");
+      await expect(promise).rejects.toThrow("Upload failed");
     });
 
     it("onprogress 回调百分比（四舍五入）", async () => {
