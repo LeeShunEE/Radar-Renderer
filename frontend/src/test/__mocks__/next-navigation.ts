@@ -9,6 +9,7 @@ import { vi } from "vitest";
 export const __router = {
   push: vi.fn(),
   replace: vi.fn(),
+  refresh: vi.fn(),
 };
 
 export function useRouter() {

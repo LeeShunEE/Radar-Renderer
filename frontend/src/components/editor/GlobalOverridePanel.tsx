@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Input } from "../ui/input";
 import { Switch } from "../ui/switch";
 import { Slider } from "../ui/slider";
@@ -22,6 +23,7 @@ type Props = {
 const isFontField = (path: string) => path.endsWith("Family") || path === "slug.fontFamily";
 
 export const GlobalOverridePanel: React.FC<Props> = ({ config, onChange }) => {
+  const t = useTranslations("editor.override");
   const override: GlobalOverrideConfig = config.globalOverride ?? {
     enabled: {},
     values: config.pages[0],
@@ -157,10 +159,10 @@ export const GlobalOverridePanel: React.FC<Props> = ({ config, onChange }) => {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-semibold text-foreground">
-            全局覆盖（Global Override）
+            {t("title")}
           </h3>
           <p className="text-[11px] text-subtitle mt-0.5">
-            勾选某个字段后，所有页面在渲染时都会使用此处的值覆盖各自的设置（不会修改页面原始数据）。当前启用 {enabledCount} 项。
+            {t("description", { count: enabledCount })}
           </p>
         </div>
         {enabledCount > 0 && (
@@ -169,7 +171,7 @@ export const GlobalOverridePanel: React.FC<Props> = ({ config, onChange }) => {
             onClick={() => setOverride({ ...override, enabled: {} })}
             className="text-[11px] px-2 py-1 rounded border border-unfocused-border-color text-muted-foreground hover:bg-muted hover:text-foreground"
           >
-            全部关闭
+            {t("closeAll")}
           </button>
         )}
       </div>
@@ -179,16 +181,16 @@ export const GlobalOverridePanel: React.FC<Props> = ({ config, onChange }) => {
           const groupEnabled = group.fields.filter(
             (f) => override.enabled[f.path],
           ).length;
-          const isCollapsed = collapsed[group.title] ?? true;
+          const isCollapsed = collapsed[group.titleKey] ?? true;
           return (
             <div
-              key={group.title}
+              key={group.titleKey}
               className="border border-unfocused-border-color rounded"
             >
               <button
                 type="button"
                 onClick={() =>
-                  setCollapsed((p) => ({ ...p, [group.title]: !isCollapsed }))
+                  setCollapsed((p) => ({ ...p, [group.titleKey]: !isCollapsed }))
                 }
                 className="w-full flex items-center justify-between px-3 py-2 hover:bg-muted/30"
               >
@@ -196,7 +198,7 @@ export const GlobalOverridePanel: React.FC<Props> = ({ config, onChange }) => {
                   <span className="text-xs text-muted-foreground">
                     {isCollapsed ? "▸" : "▾"}
                   </span>
-                  <span className="text-xs font-medium">{group.title}</span>
+                  <span className="text-xs font-medium">{t(`groups.${group.titleKey}`)}</span>
                   {groupEnabled > 0 && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/15 text-primary">
                       {groupEnabled} / {group.fields.length}
@@ -219,7 +221,7 @@ export const GlobalOverridePanel: React.FC<Props> = ({ config, onChange }) => {
                           checked={enabled}
                           onCheckedChange={(v) => toggleEnabled(field.path, v)}
                         />
-                        <Label className="text-xs flex-1">{field.label}</Label>
+                        <Label className="text-xs flex-1">{t(`fields.${field.path.replace(/\./g, "_")}`)}</Label>
                         {renderControl(field)}
                       </div>
                     );

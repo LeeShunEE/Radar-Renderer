@@ -49,7 +49,7 @@ export function clearTokens(): void {
 async function refreshAccessToken(): Promise<string> {
   const existingRefresh = getRefreshToken();
   if (!existingRefresh) {
-    throw new Error("无 refresh token");
+    throw new Error("No refresh token");
   }
   // 单飞：已有刷新进行中，等待其完成
   if (_refreshPromise) {
@@ -64,7 +64,7 @@ async function refreshAccessToken(): Promise<string> {
       });
       if (!res.ok) {
         clearTokens();
-        throw new Error("Token 刷新失败");
+        throw new Error("Token refresh failed");
       }
       const data = await res.json();
       setTokens(data.access_token, data.refresh_token);
@@ -106,7 +106,7 @@ async function authFetch<T>(
   }
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({ error: "未知错误" }));
+    const body = await res.json().catch(() => ({ error: "Unknown error" }));
     throw new ApiError(body.error ?? `HTTP ${res.status}`, {
       code: body.code,
       status: res.status,
@@ -272,10 +272,10 @@ export const files = {
           try {
             resolve(JSON.parse(xhr.responseText));
           } catch {
-            reject(new Error("上传失败"));
+            reject(new Error("Upload failed"));
           }
         } else {
-          let message = "上传失败";
+          let message = "Upload failed";
           try {
             message = JSON.parse(xhr.responseText).error ?? message;
           } catch {
@@ -284,17 +284,17 @@ export const files = {
           reject(new Error(message));
         }
       };
-      xhr.onerror = () => reject(new Error("上传失败"));
+      xhr.onerror = () => reject(new Error("Upload failed"));
       xhr.send(formData);
     }),
   downloadUpload: (name: string) => `${API_BASE}/api/v1/files/uploads/${name}`,
   downloadOutput: (taskId: number) => `${API_BASE}/api/v1/files/outputs/${taskId}`,
   /** 带认证拉取渲染产物为 Blob（见 authFetchBlob）。 */
   fetchOutputBlob: (taskId: number): Promise<Blob> =>
-    authFetchBlob(`${API_BASE}/api/v1/files/outputs/${taskId}`, "下载产物失败"),
+    authFetchBlob(`${API_BASE}/api/v1/files/outputs/${taskId}`, "Failed to download output"),
   /** 带认证拉取用户上传文件为 Blob（见 authFetchBlob）。 */
   fetchUploadBlob: (name: string): Promise<Blob> =>
-    authFetchBlob(`${API_BASE}/api/v1/files/uploads/${encodeURIComponent(name)}`, "下载文件失败"),
+    authFetchBlob(`${API_BASE}/api/v1/files/uploads/${encodeURIComponent(name)}`, "Failed to download file"),
   delete: (name: string) =>
     authFetch<void>(`/api/v1/files/${encodeURIComponent(name)}`, { method: "DELETE" }),
 };

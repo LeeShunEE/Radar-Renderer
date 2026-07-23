@@ -4,11 +4,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 
 export function UserMenu() {
+  const t = useTranslations("auth.userMenu");
   const { user, logout } = useAuth();
   const router = useRouter();
 
@@ -31,7 +33,7 @@ export function UserMenu() {
         className="h-8 px-2"
       >
         <LogOut className="w-4 h-4 mr-1" />
-        登出
+        {t("logout")}
       </Button>
     </div>
   );

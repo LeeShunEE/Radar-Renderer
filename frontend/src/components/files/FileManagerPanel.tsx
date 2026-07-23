@@ -4,6 +4,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useFileManagement } from "@/hooks/useFileManagement";
@@ -18,6 +19,8 @@ import {
 import { extractPastedImage, pastedImageName } from "@/lib/clipboard-image";
 
 export function FileManagerPanel() {
+  const t = useTranslations("files");
+  const tc = useTranslations("common");
   const {
     files,
     quota,
@@ -59,10 +62,10 @@ export function FileManagerPanel() {
       if (uploading || (quota?.available_bytes ?? Infinity) <= 0) return;
       e.preventDefault();
       const name = pastedImageName(image);
-      setPasteHint(`已粘贴图片，正在上传 ${name}…`);
+      setPasteHint(t("pasting", { name }));
       try {
         await upload(new File([image], name, { type: image.type }));
-        setPasteHint(`已上传粘贴图片 ${name}`);
+        setPasteHint(t("pasted", { name }));
       } catch {
         // 错误已在 hook 中处理并展示
         setPasteHint(null);
@@ -77,7 +80,7 @@ export function FileManagerPanel() {
   }, [handlePaste]);
 
   const handleDelete = async (name: string) => {
-    if (!confirm(`确定删除 "${name}"？`)) return;
+    if (!confirm(t("confirmDelete", { name }))) return;
     setDeleting(name);
     try {
       await deleteFile(name);
@@ -95,7 +98,10 @@ export function FileManagerPanel() {
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs">
             <span className="text-muted-foreground">
-              已用 {formatQuota(quota.used_bytes)} / {formatQuota(quota.limit_bytes)}
+              {t("quotaUsed", {
+                used: formatQuota(quota.used_bytes),
+                limit: formatQuota(quota.limit_bytes),
+              })}
             </span>
             <span className="text-muted-foreground">
               {quotaPercent.toFixed(1)}%
@@ -105,7 +111,7 @@ export function FileManagerPanel() {
           {quotaPercent >= 90 && (
             <p className="text-xs text-geist-warning flex items-center gap-1">
               <AlertCircle className="w-3 h-3" />
-              存储空间即将用尽
+              {t("storageAlmostFull")}
             </p>
           )}
         </div>
@@ -119,7 +125,7 @@ export function FileManagerPanel() {
           size="sm"
         >
           <Upload className="w-4 h-4 mr-1" />
-          {uploading ? "上传中..." : "上传文件"}
+          {uploading ? t("uploading") : t("uploadFile")}
         </Button>
         <Button
           onClick={refresh}
@@ -151,7 +157,7 @@ export function FileManagerPanel() {
       {/* 粘贴提示：告知用户可直接 Ctrl+V / Cmd+V 粘贴图片上传 */}
       <p className="text-xs text-muted-foreground flex items-center gap-1">
         <ClipboardPaste className="w-3 h-3 shrink-0" />
-        {pasteHint ?? "支持 Ctrl+V（Mac 为 ⌘V）直接粘贴图片上传"}
+        {pasteHint ?? t("pasteHintFull")}
       </p>
 
       {/* 错误提示 */}
@@ -164,10 +170,10 @@ export function FileManagerPanel() {
 
       {/* 文件列表 */}
       {loading && files.length === 0 ? (
-        <p className="text-xs text-muted-foreground">加载中...</p>
+        <p className="text-xs text-muted-foreground">{tc("loading")}</p>
       ) : files.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-4">
-          暂无上传文件
+          {t("emptyUploads")}
         </p>
       ) : (
         <div className="border border-unfocused-border-color rounded-md overflow-hidden">

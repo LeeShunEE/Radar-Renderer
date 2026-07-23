@@ -110,10 +110,10 @@ describe("ALL_OVERRIDE_FIELDS", () => {
   it("is non-empty", () => {
     expect(ALL_OVERRIDE_FIELDS.length).toBeGreaterThan(0);
   });
-  it("each field has path and label", () => {
+  it("each field has path and type (label 已移到 i18n，由 path 派生)", () => {
     for (const f of ALL_OVERRIDE_FIELDS) {
       expect(f.path).toBeTruthy();
-      expect(f.label).toBeTruthy();
+      expect(f.type?.kind).toBeTruthy();
     }
   });
 });

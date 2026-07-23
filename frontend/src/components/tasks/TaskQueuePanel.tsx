@@ -4,6 +4,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations, useLocale } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ConfirmDialog } from "@/components/ui/dialog";
@@ -15,6 +16,9 @@ import { files, TaskResponse } from "@/lib/api-client";
 import { formatEtaSeconds } from "@/lib/format";
 
 export function TaskQueuePanel() {
+  const t = useTranslations("tasks");
+  const tc = useTranslations("common");
+  const locale = useLocale();
   const { tasks, queueSize, avgFps, loading, error, refreshTasks, deleteTask } = useTaskQueue();
 
   // 删除确认 Dialog 状态
@@ -48,22 +52,22 @@ export function TaskQueuePanel() {
 
   const getDeleteDialogTitle = (task: TaskResponse) => {
     if (task.file_expired) {
-      return "删除任务记录";
+      return t("delete.title.record");
     }
     if (task.status === "done" && task.output_exists) {
-      return "删除任务及产物";
+      return t("delete.title.withOutput");
     }
-    return "删除任务";
+    return t("delete.title.task");
   };
 
   const getDeleteDialogDescription = (task: TaskResponse) => {
     if (task.file_expired) {
-      return "产物已被清理，确定删除任务记录？";
+      return t("delete.description.record");
     }
     if (task.status === "done" && task.output_exists) {
-      return "确定删除任务及其渲染产物？产物将被永久删除。";
+      return t("delete.description.withOutput");
     }
-    return "确定删除此任务？";
+    return t("delete.description.task");
   };
 
   // 按创建时间倒序
@@ -78,7 +82,7 @@ export function TaskQueuePanel() {
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4 text-muted-foreground" />
           <span className="text-xs text-muted-foreground">
-            队列中 {queueSize} 个任务待渲染
+            {t("queuePending", { count: queueSize })}
           </span>
         </div>
         <div className="flex items-center gap-4">
@@ -86,8 +90,8 @@ export function TaskQueuePanel() {
             <Gauge className="w-4 h-4 text-muted-foreground" />
             <span className="text-xs text-muted-foreground">
               {avgFps !== null
-                ? `平均渲速 ${avgFps.toFixed(1)} 帧/秒`
-                : "平均渲速 统计中"}
+                ? t("avgFps", { fps: avgFps.toFixed(1) })
+                : t("avgFpsCalculating")}
             </span>
           </div>
           <Button
@@ -109,11 +113,11 @@ export function TaskQueuePanel() {
       {/* 任务列表 */}
       {loading && tasks.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-4">
-          加载中...
+          {tc("loading")}
         </p>
       ) : sortedTasks.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-4">
-          暂无渲染任务
+          {t("empty")}
         </p>
       ) : (
         <div className="border border-unfocused-border-color rounded-md overflow-hidden">
@@ -132,24 +136,28 @@ export function TaskQueuePanel() {
 
               {/* 模式 + 编码 */}
               <span className="text-xs shrink-0">
-                {task.mode === "single" ? "单页" : "全部"} · {task.codec === "h264" ? "MP4" : "GIF"}
+                {t(task.mode === "single" ? "mode.single" : "mode.all")} ·{" "}
+                {task.codec === "h264" ? "MP4" : "GIF"}
               </span>
 
               {/* 创建时间 */}
               <span className="text-xs text-muted-foreground shrink-0">
-                {new Date(task.created_at).toLocaleString("zh-CN", {
-                  month: "numeric",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {new Date(task.created_at).toLocaleString(
+                  locale === "zh" ? "zh-CN" : "en-US",
+                  {
+                    month: "numeric",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  },
+                )}
               </span>
 
               {/* 过期提示 */}
               {task.file_expired && (
                 <div className="flex items-center gap-1 text-xs text-geist-error shrink-0">
                   <AlertTriangle className="w-3 h-3" />
-                  <span>产物已清理</span>
+                  <span>{t("outputCleaned")}</span>
                 </div>
               )}
 
@@ -172,9 +180,9 @@ export function TaskQueuePanel() {
                   <span className="text-xs text-muted-foreground shrink-0 whitespace-nowrap">
                     {task.total_frames && task.total_frames > 0 && task.rendered_frames !== null
                       ? `${task.rendered_frames}/${task.total_frames}`
-                      : "渲染中"}
+                      : t("status.running")}
                     {task.eta_seconds !== null && task.eta_seconds > 0
-                      ? ` · 剩 ${formatEtaSeconds(task.eta_seconds)}`
+                      ? ` · ${t("remaining", { eta: formatEtaSeconds(task.eta_seconds, locale as "en" | "zh") })}`
                       : ""}
                   </span>
                 </div>
@@ -183,7 +191,7 @@ export function TaskQueuePanel() {
               {/* 耗时 */}
               {task.duration_ms !== null && (
                 <span className="text-xs text-muted-foreground shrink-0">
-                  耗时 {(task.duration_ms / 1000).toFixed(1)} 秒
+                  {t("duration", { seconds: (task.duration_ms / 1000).toFixed(1) })}
                 </span>
               )}
 
@@ -225,7 +233,7 @@ export function TaskQueuePanel() {
           onOpenChange={setDeleteDialogOpen}
           title={getDeleteDialogTitle(taskToDelete)}
           description={getDeleteDialogDescription(taskToDelete)}
-          confirmLabel="删除"
+          confirmLabel={tc("delete")}
           danger={taskToDelete.status === "done" && taskToDelete.output_exists}
           onConfirm={handleConfirmDelete}
         />

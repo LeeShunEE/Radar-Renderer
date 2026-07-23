@@ -8,11 +8,11 @@ import {
 describe("checkBackgroundVideo", () => {
   it("超 50MB 给体积警告", () => {
     const w = checkBackgroundVideo({ width: 1920, height: 1080, sizeBytes: BG_VIDEO_SIZE_WARN_BYTES + 1 });
-    expect(w.some((m) => m.includes("体积"))).toBe(true);
+    expect(w.some((m) => m.code === "size")).toBe(true);
   });
   it("超 1080p 给分辨率警告", () => {
     const w = checkBackgroundVideo({ width: 3840, height: 2160, sizeBytes: 1000 });
-    expect(w.some((m) => m.includes("分辨率"))).toBe(true);
+    expect(w.some((m) => m.code === "resolution")).toBe(true);
   });
   it("正常视频无警告", () => {
     expect(checkBackgroundVideo({ width: 1280, height: 720, sizeBytes: 1000 })).toEqual([]);

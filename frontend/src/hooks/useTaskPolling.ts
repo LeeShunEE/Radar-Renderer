@@ -3,6 +3,7 @@
  * 终态（done/failed/canceled）时自动停止轮询。
  */
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { tasks, TaskResponse } from "@/lib/api-client";
 
 const POLL_INTERVAL_MS = 2000;
@@ -16,6 +17,7 @@ export interface UseTaskPollingResult {
 }
 
 export function useTaskPolling(): UseTaskPollingResult {
+  const tr = useTranslations("errors");
   const [task, setTask] = useState<TaskResponse | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,10 +36,10 @@ export function useTaskPolling(): UseTaskPollingResult {
         stop();
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "获取任务状态失败");
+      setError(e instanceof Error ? e.message : tr("taskStatusFailed"));
       stop();
     }
-  }, []);
+  }, [tr]);
 
   /** 开始轮询。 */
   const start = useCallback((taskId: number) => {

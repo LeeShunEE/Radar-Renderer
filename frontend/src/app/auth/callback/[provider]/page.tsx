@@ -8,11 +8,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getAuthState, handleOAuthCallback } from "@/lib/auth-store";
 import { Card } from "@/components/ui/card";
 
 export default function OAuthCallbackPage() {
+  const t = useTranslations("auth.callback");
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +27,7 @@ export default function OAuthCallbackPage() {
       const state = searchParams.get("state");
 
       if (!code || !state) {
-        setError("OAuth 回调参数缺失");
+        setError(t("missingParams"));
         setLoading(false);
         return;
       }
@@ -37,22 +39,22 @@ export default function OAuthCallbackPage() {
         const username = getAuthState().user?.username;
         router.push(username ? "/app" : "/welcome");
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "OAuth 登录失败";
+        const message = err instanceof Error ? err.message : t("failed");
         setError(message);
         setLoading(false);
       }
     };
 
     processCallback();
-  }, [router, searchParams]);
+  }, [router, searchParams, t]);
 
   return (
     <Card className="p-6 space-y-4">
       <div className="text-center">
-        <h1 className="text-xl font-semibold">OAuth 登录</h1>
+        <h1 className="text-xl font-semibold">{t("title")}</h1>
         {loading && (
           <p className="text-sm text-muted-foreground mt-4">
-            正在处理登录...
+            {t("processing")}
           </p>
         )}
         {error && (
@@ -62,7 +64,7 @@ export default function OAuthCallbackPage() {
               onClick={() => router.push("/login")}
               className="text-sm text-primary hover:underline"
             >
-              返回登录页面
+              {t("backToLogin")}
             </button>
           </div>
         )}

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { Label } from "../ui/label";
 import { Slider } from "../ui/slider";
 import { Input } from "../ui/input";
@@ -14,15 +15,14 @@ type FontSizeEditorProps = {
 
 const fields: {
   key: "characterName" | "attributeLabel" | "ratingLabel" | "valuePopup";
-  label: string;
   min: number;
   max: number;
   step: number;
 }[] = [
-  { key: "characterName", label: "角色名称", min: 30, max: 180, step: 1 },
-  { key: "attributeLabel", label: "属性标签", min: 18, max: 90, step: 1 },
-  { key: "ratingLabel", label: "评级标签", min: 15, max: 75, step: 1 },
-  { key: "valuePopup", label: "数值弹出", min: 18, max: 75, step: 1 },
+  { key: "characterName", min: 30, max: 180, step: 1 },
+  { key: "attributeLabel", min: 18, max: 90, step: 1 },
+  { key: "ratingLabel", min: 15, max: 75, step: 1 },
+  { key: "valuePopup", min: 18, max: 75, step: 1 },
 ];
 
 export const FontSizeEditor: React.FC<FontSizeEditorProps> = ({
@@ -30,6 +30,7 @@ export const FontSizeEditor: React.FC<FontSizeEditorProps> = ({
   onChange,
   importMenu,
 }) => {
+  const t = useTranslations("editor");
   const update = (key: "characterName" | "attributeLabel" | "ratingLabel" | "valuePopup", value: number) => {
     onChange({ ...font, [key]: value });
   };
@@ -40,13 +41,13 @@ export const FontSizeEditor: React.FC<FontSizeEditorProps> = ({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">字体大小</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t("fontSize.title")}</h3>
         {importMenu}
       </div>
-      {fields.map(({ key, label, min, max, step }) => (
+      {fields.map(({ key, min, max, step }) => (
         <div key={key} className="space-y-1">
           <div className="flex items-center justify-between">
-            <Label className="text-xs">{label}</Label>
+            <Label className="text-xs">{t(`fontFields.${key}`)}</Label>
             <Input
               type="number"
               min={min}

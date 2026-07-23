@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import {
@@ -22,6 +23,7 @@ export const ConfigPersistencePanel: React.FC<Props> = ({
   currentConfig,
   onLoadConfig,
 }) => {
+  const t = useTranslations("editor.persistence");
   const { savedNames, saveConfig, loadConfig, deleteConfig, hasName } =
     useSavedConfigs();
 
@@ -39,7 +41,7 @@ export const ConfigPersistencePanel: React.FC<Props> = ({
     setError(null);
     const result = saveConfig(saveName.trim(), currentConfig);
     if (result.ok) {
-      showFeedback("已保存!");
+      showFeedback(t("saved"));
       setSelectedName(saveName.trim());
     } else {
       setError(result.error);
@@ -51,16 +53,16 @@ export const ConfigPersistencePanel: React.FC<Props> = ({
     const config = loadConfig(selectedName);
     if (config) {
       onLoadConfig(config);
-      showFeedback("已加载!");
+      showFeedback(t("loaded"));
     }
   };
 
   const handleDelete = () => {
     if (!selectedName) return;
-    if (!confirm(`确定删除配置"${selectedName}"吗？`)) return;
+    if (!confirm(t("confirmDelete", { name: selectedName }))) return;
     deleteConfig(selectedName);
     setSelectedName("");
-    showFeedback("已删除!");
+    showFeedback(t("deleted"));
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -83,9 +85,9 @@ export const ConfigPersistencePanel: React.FC<Props> = ({
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      showFeedback("已导出文件!");
+      showFeedback(t("exportedFile"));
     } catch (e) {
-      setError(`导出失败：${e instanceof Error ? e.message : String(e)}`);
+      setError(t("exportFailed", { error: e instanceof Error ? e.message : String(e) }));
     }
   };
 
@@ -96,13 +98,13 @@ export const ConfigPersistencePanel: React.FC<Props> = ({
       const parsed = JSON.parse(text);
       const result = MultiPageSchema.safeParse(parsed);
       if (!result.success) {
-        setError(`配置不合法：${result.error.issues[0]?.message ?? "未知错误"}`);
+        setError(t("invalidConfig", { error: result.error.issues[0]?.message ?? t("unknownError") }));
         return;
       }
       onLoadConfig(result.data);
-      showFeedback("已从文件加载!");
+      showFeedback(t("loadedFromFile"));
     } catch (e) {
-      setError(`导入失败：${e instanceof Error ? e.message : String(e)}`);
+      setError(t("importFailed", { error: e instanceof Error ? e.message : String(e) }));
     }
   };
 
@@ -111,7 +113,7 @@ export const ConfigPersistencePanel: React.FC<Props> = ({
 
   return (
     <div className="rounded-lg border border-unfocused-border-color p-3 space-y-2">
-      <h3 className="text-sm font-medium text-foreground">配置存档</h3>
+      <h3 className="text-sm font-medium text-foreground">{t("title")}</h3>
 
       {/* 保存 */}
       <div className="flex items-center gap-2">
@@ -121,7 +123,7 @@ export const ConfigPersistencePanel: React.FC<Props> = ({
             setSaveName(e.target.value);
             setError(null);
           }}
-          placeholder="输入配置名称"
+          placeholder={t("namePlaceholder")}
           className="h-7 text-xs"
         />
         <Button
@@ -130,11 +132,11 @@ export const ConfigPersistencePanel: React.FC<Props> = ({
           disabled={trimmed.length === 0}
           className="h-7 text-xs shrink-0"
         >
-          保存
+          {t("save")}
         </Button>
       </div>
       {nameExists && (
-        <p className="text-xs text-yellow-600">已存在同名配置，保存将覆盖</p>
+        <p className="text-xs text-yellow-600">{t("overwriteHint")}</p>
       )}
       {error && <p className="text-xs text-red-500">{error}</p>}
 
@@ -142,12 +144,12 @@ export const ConfigPersistencePanel: React.FC<Props> = ({
       <div className="flex items-center gap-2">
         <Select value={selectedName} onValueChange={(v) => setSelectedName(v ?? "")}>
           <SelectTrigger className="h-7 text-xs flex-1">
-            <SelectValue placeholder="选择已保存配置" />
+            <SelectValue placeholder={t("selectPlaceholder")} />
           </SelectTrigger>
           <SelectContent>
             {savedNames.length === 0 ? (
               <SelectItem value="__empty__" disabled>
-                暂无保存的配置
+                {t("noneSaved")}
               </SelectItem>
             ) : (
               savedNames.map((name) => (
@@ -165,7 +167,7 @@ export const ConfigPersistencePanel: React.FC<Props> = ({
           disabled={!selectedName}
           className="h-7 text-xs shrink-0"
         >
-          加载
+          {t("load")}
         </Button>
         <Button
           size="sm"
@@ -174,7 +176,7 @@ export const ConfigPersistencePanel: React.FC<Props> = ({
           disabled={!selectedName}
           className="h-7 text-xs shrink-0 text-red-500 hover:text-red-600"
         >
-          删除
+          {t("delete")}
         </Button>
       </div>
 
@@ -185,18 +187,18 @@ export const ConfigPersistencePanel: React.FC<Props> = ({
           variant="outline"
           onClick={handleExportFile}
           className="h-7 text-xs flex-1"
-          title="将当前配置下载为 JSON 文件"
+          title={t("exportFileTitle")}
         >
-          导出到文件
+          {t("exportFile")}
         </Button>
         <Button
           size="sm"
           variant="outline"
           onClick={() => fileInputRef.current?.click()}
           className="h-7 text-xs flex-1"
-          title="从 JSON 文件加载配置"
+          title={t("importFileTitle")}
         >
-          从文件导入
+          {t("importFile")}
         </Button>
         <input
           ref={fileInputRef}

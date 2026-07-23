@@ -19,6 +19,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { useTranslations } from "next-intl";
+import { LanguageSwitcher } from "@/components/layout/LanguageSwitcher";
 
 interface OAuthAccount {
   id: number;
@@ -29,6 +31,9 @@ interface OAuthAccount {
 }
 
 export default function SettingsPage() {
+  const t = useTranslations("settings");
+  const tLang = useTranslations("language");
+  const tw = useTranslations("auth.welcome");
   const router = useRouter();
   const { user, logout } = useAuth();
   const [username, setUsernameValue] = useState("");
@@ -65,16 +70,16 @@ export default function SettingsPage() {
     setLoading(true);
 
     if (username.length < 3 || username.length > 64) {
-      setError("用户名长度应为 3-64 字符");
+      setError(tw("usernameLengthError"));
       setLoading(false);
       return;
     }
 
     try {
       await setUsername(username);
-      setSuccess("用户名已更新");
+      setSuccess(t("username.updated"));
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "设置用户名失败";
+      const message = err instanceof Error ? err.message : t("username.failed");
       setError(message);
     }
     setLoading(false);
@@ -87,17 +92,17 @@ export default function SettingsPage() {
     setLoading(true);
 
     if (password.length < 8) {
-      setError("密码长度应至少 8 位");
+      setError(tw("passwordTooShort"));
       setLoading(false);
       return;
     }
 
     try {
       await setPassword(password);
-      setSuccess("密码已设置");
+      setSuccess(t("password.updated"));
       setPasswordValue("");
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "设置密码失败";
+      const message = err instanceof Error ? err.message : t("password.failed");
       setError(message);
     }
     setLoading(false);
@@ -110,12 +115,12 @@ export default function SettingsPage() {
 
     try {
       await auth.unbindOAuth(provider);
-      setSuccess(`${provider} 账户已解绑`);
+      setSuccess(t("oauth.unbound", { provider }));
       // 重新加载账户列表
       const accounts = await auth.listOAuthAccounts();
       setOAuthAccounts(accounts);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "解绑失败";
+      const message = err instanceof Error ? err.message : t("oauth.unbindFailed");
       setError(message);
     }
     setLoading(false);
@@ -133,24 +138,32 @@ export default function SettingsPage() {
 
   return (
     <div className="container max-w-2xl py-8">
-      <h1 className="text-2xl font-bold mb-6">账户设置</h1>
+      <h1 className="text-2xl font-bold mb-6">{t("title")}</h1>
 
       <Card className="p-6 space-y-6">
+        {/* 语言 */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">{tLang("label")}</h2>
+          <LanguageSwitcher />
+        </div>
+
+        <Separator />
+
         {/* 用户信息 */}
         <div>
-          <h2 className="text-lg font-semibold mb-2">账户信息</h2>
+          <h2 className="text-lg font-semibold mb-2">{t("account.heading")}</h2>
           <div className="space-y-2 text-sm">
             <p>
-              <span className="text-muted-foreground">邮箱：</span>
+              <span className="text-muted-foreground">{t("account.email")}</span>
               {user.email}
             </p>
             <p>
-              <span className="text-muted-foreground">用户名：</span>
-              {user.username || "未设置"}
+              <span className="text-muted-foreground">{t("account.username")}</span>
+              {user.username || t("account.usernameUnset")}
             </p>
             <p>
-              <span className="text-muted-foreground">验证状态：</span>
-              {user.isVerified ? "已验证" : "未验证"}
+              <span className="text-muted-foreground">{t("account.verifyStatus")}</span>
+              {user.isVerified ? t("account.verified") : t("account.unverified")}
             </p>
           </div>
         </div>
@@ -159,20 +172,20 @@ export default function SettingsPage() {
 
         {/* 设置用户名 */}
         <form onSubmit={handleSetUsername} className="space-y-4">
-          <h2 className="text-lg font-semibold">用户名</h2>
+          <h2 className="text-lg font-semibold">{t("username.heading")}</h2>
           <div className="space-y-2">
-            <Label htmlFor="username">设置/修改用户名</Label>
+            <Label htmlFor="username">{t("username.label")}</Label>
             <Input
               id="username"
               value={username}
               onChange={(e) => setUsernameValue(e.target.value)}
-              placeholder="输入用户名（3-64 字符）"
+              placeholder={t("username.placeholder")}
               minLength={3}
               maxLength={64}
             />
           </div>
           <Button type="submit" disabled={loading}>
-            {loading ? "保存中..." : "保存用户名"}
+            {loading ? t("username.saving") : t("username.submit")}
           </Button>
         </form>
 
@@ -180,24 +193,24 @@ export default function SettingsPage() {
 
         {/* 设置密码 */}
         <form onSubmit={handleSetPassword} className="space-y-4">
-          <h2 className="text-lg font-semibold">密码</h2>
+          <h2 className="text-lg font-semibold">{t("password.heading")}</h2>
           <div className="space-y-2">
-            <Label htmlFor="password">设置/修改密码</Label>
+            <Label htmlFor="password">{t("password.label")}</Label>
             <Input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPasswordValue(e.target.value)}
-              placeholder="输入密码（至少 8 位）"
+              placeholder={t("password.placeholder")}
               minLength={8}
               autoComplete="new-password"
             />
             <p className="text-xs text-muted-foreground">
-              设置密码后可使用密码登录
+              {t("password.hint")}
             </p>
           </div>
           <Button type="submit" disabled={loading}>
-            {loading ? "保存中..." : "保存密码"}
+            {loading ? t("password.saving") : t("password.submit")}
           </Button>
         </form>
 
@@ -205,9 +218,9 @@ export default function SettingsPage() {
 
         {/* OAuth 账户 */}
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold">OAuth 账户绑定</h2>
+          <h2 className="text-lg font-semibold">{t("oauth.heading")}</h2>
           <p className="text-sm text-muted-foreground">
-            已绑定的 OAuth 账户可用于登录
+            {t("oauth.description")}
           </p>
 
           {oauthAccounts.length > 0 ? (
@@ -220,7 +233,7 @@ export default function SettingsPage() {
                   <div>
                     <p className="font-medium capitalize">{account.provider}</p>
                     <p className="text-sm text-muted-foreground">
-                      {account.provider_email || account.provider_display_name || "无信息"}
+                      {account.provider_email || account.provider_display_name || t("oauth.noInfo")}
                     </p>
                   </div>
                   <Button
@@ -229,13 +242,13 @@ export default function SettingsPage() {
                     onClick={() => handleUnbindOAuth(account.provider)}
                     disabled={loading}
                   >
-                    解绑
+                    {t("oauth.unbind")}
                   </Button>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">暂无绑定账户</p>
+            <p className="text-sm text-muted-foreground">{t("oauth.empty")}</p>
           )}
         </div>
 
@@ -247,7 +260,7 @@ export default function SettingsPage() {
 
         {/* 登出 */}
         <Button variant="destructive" onClick={handleLogout}>
-          登出
+          {t("logout")}
         </Button>
       </Card>
     </div>

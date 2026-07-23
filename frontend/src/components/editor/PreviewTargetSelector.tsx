@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import {
   Select,
   SelectTrigger,
@@ -31,6 +32,7 @@ export const PreviewTargetSelector: React.FC<PreviewTargetSelectorProps> = ({
   onSelectGlobal,
   onSelectPage,
 }) => {
+  const t = useTranslations("editor");
   const value =
     previewMode === "multi" ? GLOBAL_VALUE : `page-${activePageIndex}`;
 
@@ -46,18 +48,23 @@ export const PreviewTargetSelector: React.FC<PreviewTargetSelectorProps> = ({
 
   return (
     <div className="flex items-center gap-2 mb-3">
-      <span className="text-xs text-muted-foreground shrink-0">预览对象</span>
+      <span className="text-xs text-muted-foreground shrink-0">
+        {t("previewTarget.label")}
+      </span>
       <Select value={value} onValueChange={handleChange}>
         <SelectTrigger className="h-7 text-xs flex-1">
-          <SelectValue placeholder="选择预览对象" />
+          <SelectValue placeholder={t("previewTarget.placeholder")} />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={GLOBAL_VALUE}>
-            全局（{pages.length} 页完整视频）
+            {t("previewTarget.global", { pages: pages.length })}
           </SelectItem>
           {pages.map((page, i) => (
             <SelectItem key={i} value={`page-${i}`}>
-              第{i + 1}页：{page.characterName || `页${i + 1}`}
+              {t("page.title", {
+                n: i + 1,
+                name: page.characterName || t("pageLabel", { n: i + 1 }),
+              })}
             </SelectItem>
           ))}
         </SelectContent>

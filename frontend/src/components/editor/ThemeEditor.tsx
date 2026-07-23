@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { Label } from "../ui/label";
 import { ColorPicker } from "../ui/color-picker";
 import type { RadarTheme } from "../../types/radar";
@@ -11,18 +12,18 @@ type ThemeEditorProps = {
   importMenu?: React.ReactNode;
 };
 
-const colorFields: { key: keyof RadarTheme; label: string }[] = [
-  { key: "backgroundColor", label: "背景色" },
-  { key: "gridColor", label: "网格色" },
-  { key: "gridFillColor", label: "填充色" },
-  { key: "gridStrokeColor", label: "描边色" },
-  { key: "dotColor", label: "圆点色" },
-  { key: "highValueDotColor", label: "高属性圆点色" },
-  { key: "labelColor", label: "标签色" },
-  { key: "valueColor", label: "数值色" },
-  { key: "glowColor", label: "发光色" },
-  { key: "enhanceArrowColor", label: "增强箭头色" },
-  { key: "weakenArrowColor", label: "变弱箭头色" },
+const colorFields: { key: keyof RadarTheme; labelKey: string }[] = [
+  { key: "backgroundColor", labelKey: "backgroundColor" },
+  { key: "gridColor", labelKey: "gridColor" },
+  { key: "gridFillColor", labelKey: "gridFillColor" },
+  { key: "gridStrokeColor", labelKey: "gridStrokeColor" },
+  { key: "dotColor", labelKey: "dotColor" },
+  { key: "highValueDotColor", labelKey: "highValueDotColor" },
+  { key: "labelColor", labelKey: "labelColor" },
+  { key: "valueColor", labelKey: "valueColor" },
+  { key: "glowColor", labelKey: "glowColor" },
+  { key: "enhanceArrowColor", labelKey: "enhanceArrowColor" },
+  { key: "weakenArrowColor", labelKey: "weakenArrowColor" },
 ];
 
 export const ThemeEditor: React.FC<ThemeEditorProps> = ({
@@ -30,6 +31,7 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({
   onChange,
   importMenu,
 }) => {
+  const t = useTranslations("editor.theme");
   const updateColor = (key: keyof RadarTheme, value: string) => {
     onChange({ ...theme, [key]: value });
   };
@@ -37,15 +39,15 @@ export const ThemeEditor: React.FC<ThemeEditorProps> = ({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">主题配色</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t("title")}</h3>
         {importMenu}
       </div>
       <div className="grid grid-cols-3 gap-3">
-        {colorFields.map(({ key, label }) => {
+        {colorFields.map(({ key, labelKey }) => {
           const color = theme[key] as string;
           return (
             <div key={key} className="space-y-1">
-              <Label className="text-xs">{label}</Label>
+              <Label className="text-xs">{t(`colors.${labelKey}`)}</Label>
               <div className="flex items-center gap-2">
                 <ColorPicker
                   value={color}

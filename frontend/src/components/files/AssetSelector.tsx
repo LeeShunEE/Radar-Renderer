@@ -5,12 +5,17 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { usePublicAssets } from "@/hooks/usePublicAssets";
 import { useFileManagement } from "@/hooks/useFileManagement";
 import { useUploadObjectUrls } from "@/hooks/useUploadObjectUrls";
 import { RefreshCw, Upload, ClipboardPaste } from "lucide-react";
-import { checkBackgroundVideo, type BackgroundMediaKind } from "@/lib/media-guard";
+import {
+  checkBackgroundVideo,
+  type BackgroundMediaKind,
+  type BackgroundVideoWarning,
+} from "@/lib/media-guard";
 import { extractPastedImage, pastedImageName } from "@/lib/clipboard-image";
 import { AUDIO_EXTS, IMAGE_EXTS, VIDEO_EXTS, extRegex } from "@/lib/asset-exts";
 import { Progress } from "@/components/ui/progress";
@@ -75,6 +80,8 @@ export function AssetSelector({
   mediaKind,
   embedded = false,
 }: AssetSelectorProps) {
+  const t = useTranslations("files");
+  const tc = useTranslations("common");
   const {
     silhouettes,
     music,
@@ -98,7 +105,7 @@ export function AssetSelector({
   const [playing, setPlaying] = useState(false);
   const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
   // 背景视频上传软警告（决策 Q7）：仅提示，不拦截上传
-  const [bgWarnings, setBgWarnings] = useState<string[]>([]);
+  const [bgWarnings, setBgWarnings] = useState<BackgroundVideoWarning[]>([]);
   // 上传类型不符的硬拦截提示（如视频背景模式下选了图片）
   const [uploadError, setUploadError] = useState<string | null>(null);
   // 背景媒体过滤：仅 backgrounds 类别生效
@@ -156,12 +163,12 @@ export function AssetSelector({
     // 背景媒体类型硬拦截：accept 属性可被系统文件对话框的「所有文件」绕过，
     // 类型不符的文件传给渲染端会直接报错（图片进 <Video> / 视频进 <Img>），故在此拦下。
     if (bgKind === "video" && !isVideoFile) {
-      setUploadError("当前为视频背景，请选择视频文件（mp4 / webm / mov）");
+      setUploadError(t("uploadVideoOnly"));
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
     if (bgKind === "image" && !isImageFile) {
-      setUploadError("当前为图片背景，请选择图片文件（png / jpg / gif / webp / svg）");
+      setUploadError(t("uploadImageOnly"));
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
@@ -207,12 +214,12 @@ export function AssetSelector({
       if (!image) return;
       e.preventDefault();
       const name = pastedImageName(image);
-      setPasteHint(`已粘贴图片，正在上传 ${name}…`);
+      setPasteHint(t("pasting", { name }));
       try {
         await upload(new File([image], name, { type: image.type }));
         // 上传成功后自动选中该资源（用户上传文件需完整 URL）
         onChange(getDownloadUrl(name));
-        setPasteHint(`已上传并选中 ${name}`);
+        setPasteHint(t("pastedSelected", { name }));
       } catch {
         // 错误已在 hook 中处理
         setPasteHint(null);
@@ -276,14 +283,14 @@ export function AssetSelector({
   /** header 标签文字 */
   const headerLabel =
     category === "silhouettes"
-      ? "剪影图片"
+      ? t("category.silhouettes")
       : category === "music"
-        ? "背景音乐"
+        ? t("category.music")
         : bgKind === "image"
-          ? "背景图片"
+          ? t("category.backgroundImage")
           : bgKind === "video"
-            ? "背景视频"
-            : "背景媒体";
+            ? t("category.backgroundVideo")
+            : t("category.backgrounds");
 
   return (
     <div
@@ -302,7 +309,7 @@ export function AssetSelector({
         <div className="flex items-center gap-1">
           <Button
             type="button"
-            aria-label={`刷新${headerLabel}资源`}
+            aria-label={t("refreshCategory", { label: headerLabel })}
             onClick={refreshAssets}
             disabled={loading}
             variant="ghost"
@@ -313,7 +320,7 @@ export function AssetSelector({
           </Button>
           <Button
             type="button"
-            aria-label={`上传${headerLabel}`}
+            aria-label={t("uploadCategory", { label: headerLabel })}
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
             variant="ghost"
@@ -346,7 +353,7 @@ export function AssetSelector({
       {acceptsImagePaste && (
         <p className="text-xs text-muted-foreground flex items-center gap-1">
           <ClipboardPaste className="w-3 h-3 shrink-0" />
-          {pasteHint ?? "悬停此处按 Ctrl+V（⌘V）可粘贴图片"}
+          {pasteHint ?? t("pasteHint")}
         </p>
       )}
 
@@ -365,25 +372,25 @@ export function AssetSelector({
         <div className="rounded-md border border-yellow-400/50 bg-yellow-50/10 px-2 py-1.5 space-y-0.5">
           {bgWarnings.map((w, i) => (
             <p key={i} className="text-xs text-yellow-600 dark:text-yellow-400">
-              ⚠ {w}
+              ⚠ {w.code === "size"
+                ? t("videoWarn.size", { mb: w.mb })
+                : t("videoWarn.resolution", { width: w.width, height: w.height })}
             </p>
           ))}
         </div>
       )}
 
       {loading && allOptions.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-2">加载中...</p>
+        <p className="text-xs text-muted-foreground text-center py-2">{tc("loading")}</p>
       ) : allOptions.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-2">
-          暂无资源，点击上传按钮添加
-        </p>
+        <p className="text-xs text-muted-foreground text-center py-2">{t("empty")}</p>
       ) : (
         <div className="border border-unfocused-border-color rounded-md overflow-hidden max-h-[200px] overflow-y-auto">
           {/* 公共资源 */}
           {publicAssets.length > 0 && (
             <div className="border-b border-unfocused-border-color">
               <div className="px-2 py-1 text-xs text-muted-foreground bg-muted/30">
-                公共资源
+                {t("publicAssets")}
               </div>
               {useGridLayout ? (
                 <div className="grid grid-cols-5 gap-1 p-1">
@@ -440,7 +447,9 @@ export function AssetSelector({
                       )}
                       <span className="text-xs truncate">{asset.name}</span>
                       {selected && (
-                        <span className="text-xs text-blue-500 shrink-0">选中</span>
+                        <span className="text-xs text-blue-500 shrink-0">
+                          {t("selected")}
+                        </span>
                       )}
                     </div>
                   );
@@ -453,7 +462,7 @@ export function AssetSelector({
           {userAssets.length > 0 && (
             <div>
               <div className="px-2 py-1 text-xs text-muted-foreground bg-muted/30">
-                我的上传
+                {t("myUploads")}
               </div>
               {useGridLayout ? (
                 <div className="grid grid-cols-5 gap-1 p-1">
@@ -521,7 +530,9 @@ export function AssetSelector({
                       )}
                       <span className="text-xs truncate">{asset.name}</span>
                       {selected && (
-                        <span className="text-xs text-blue-500 shrink-0">选中</span>
+                        <span className="text-xs text-blue-500 shrink-0">
+                          {t("selected")}
+                        </span>
                       )}
                     </div>
                   );
@@ -539,7 +550,7 @@ export function AssetSelector({
           size="sm"
           className="h-6 text-xs text-muted-foreground"
         >
-          清除选择
+          {t("clearSelection")}
         </Button>
       )}
     </div>

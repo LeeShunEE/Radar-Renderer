@@ -9,6 +9,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { getAuthState, resetPassword, sendVerificationCode } from "@/lib/auth-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,8 @@ import { Card } from "@/components/ui/card";
 const RESEND_COUNTDOWN = 60;
 
 export default function ForgotPasswordPage() {
+  const t = useTranslations("auth.forgotPassword");
+  const tv = useTranslations("auth.verify");
   const router = useRouter();
   const [step, setStep] = useState<"email" | "reset">("email");
   const [email, setEmail] = useState("");
@@ -50,7 +53,7 @@ export default function ForgotPasswordPage() {
       startCountdown();
       setStep("reset");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "验证码发送失败");
+      setError(err instanceof Error ? err.message : t("sendCodeFailed"));
     } finally {
       setLoading(false);
     }
@@ -64,7 +67,7 @@ export default function ForgotPasswordPage() {
       await sendVerificationCode(email, "reset_password");
       startCountdown();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "验证码发送失败");
+      setError(err instanceof Error ? err.message : t("sendCodeFailed"));
     } finally {
       setLoading(false);
     }
@@ -75,11 +78,11 @@ export default function ForgotPasswordPage() {
     setError(null);
 
     if (newPassword.length < 8) {
-      setError("密码长度应至少 8 位");
+      setError(t("passwordTooShort"));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError("两次输入的密码不一致");
+      setError(t("passwordMismatch"));
       return;
     }
 
@@ -90,7 +93,7 @@ export default function ForgotPasswordPage() {
       const username = getAuthState().user?.username;
       router.push(username ? "/app" : "/welcome");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "重置密码失败");
+      setError(err instanceof Error ? err.message : t("resetFailed"));
     } finally {
       setLoading(false);
     }
@@ -99,24 +102,24 @@ export default function ForgotPasswordPage() {
   return (
     <Card className="p-6 space-y-4">
       <div className="text-center">
-        <h1 className="text-xl font-semibold">重置密码</h1>
+        <h1 className="text-xl font-semibold">{t("title")}</h1>
         <p className="text-sm text-muted-foreground mt-1">
           {step === "email"
-            ? "输入注册邮箱以接收验证码"
-            : `验证码已发送至 ${email}，请检查收件箱或垃圾邮件`}
+            ? t("subtitleEmail")
+            : tv("codeSent", { email })}
         </p>
       </div>
 
       {step === "email" ? (
         <form onSubmit={handleSendCode} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">邮箱</Label>
+            <Label htmlFor="email">{t("emailLabel")}</Label>
             <Input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="输入注册邮箱"
+              placeholder={t("emailPlaceholder")}
               required
               autoComplete="email"
             />
@@ -125,18 +128,18 @@ export default function ForgotPasswordPage() {
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "发送中…" : "发送验证码"}
+            {loading ? t("sending") : t("sendCode")}
           </Button>
         </form>
       ) : (
         <form onSubmit={handleReset} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="code">验证码</Label>
+            <Label htmlFor="code">{tv("codeLabel")}</Label>
             <Input
               id="code"
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="输入 6 位验证码"
+              placeholder={tv("codePlaceholder")}
               required
               minLength={6}
               maxLength={6}
@@ -146,13 +149,13 @@ export default function ForgotPasswordPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="newPassword">新密码</Label>
+            <Label htmlFor="newPassword">{t("newPasswordLabel")}</Label>
             <Input
               id="newPassword"
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="输入新密码（至少 8 位）"
+              placeholder={t("newPasswordPlaceholder")}
               required
               minLength={8}
               autoComplete="new-password"
@@ -160,13 +163,13 @@ export default function ForgotPasswordPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">确认新密码</Label>
+            <Label htmlFor="confirmPassword">{t("confirmPasswordLabel")}</Label>
             <Input
               id="confirmPassword"
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="再次输入新密码"
+              placeholder={t("confirmPasswordPlaceholder")}
               required
               minLength={8}
               autoComplete="new-password"
@@ -176,7 +179,7 @@ export default function ForgotPasswordPage() {
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "重置中…" : "重置密码"}
+            {loading ? t("submitting") : t("submit")}
           </Button>
 
           <div className="flex justify-between text-sm">
@@ -186,7 +189,7 @@ export default function ForgotPasswordPage() {
               className="text-muted-foreground hover:underline"
               disabled={loading}
             >
-              更换邮箱
+              {tv("changeEmail")}
             </button>
             <button
               type="button"
@@ -198,16 +201,18 @@ export default function ForgotPasswordPage() {
               }
               disabled={countdown > 0 || loading}
             >
-              {countdown > 0 ? `${countdown}s 后可重发` : "重新发送"}
+              {countdown > 0
+                ? tv("resendCountdown", { seconds: countdown })
+                : tv("resend")}
             </button>
           </div>
         </form>
       )}
 
       <div className="text-center text-sm text-muted-foreground">
-        想起密码了？{" "}
+        {t("rememberedPassword")}{" "}
         <Link href="/login" className="text-primary hover:underline">
-          返回登录
+          {t("backToLogin")}
         </Link>
       </div>
     </Card>

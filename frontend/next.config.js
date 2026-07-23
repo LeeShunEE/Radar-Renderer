@@ -1,5 +1,9 @@
 const { execSync } = require("child_process");
+const createNextIntlPlugin = require("next-intl/plugin");
 const pkg = require("./package.json");
+
+// 指向 request.ts：next-intl 据此在每次请求解析 locale 与 messages。
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 /**
  * 取构建版本号，按优先级降级（整段 try/catch 兜底，绝不让 build 崩）：
@@ -32,4 +36,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+module.exports = withNextIntl(nextConfig);

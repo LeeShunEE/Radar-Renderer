@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { Label } from "../ui/label";
 import { Slider } from "../ui/slider";
 import { Switch } from "../ui/switch";
@@ -34,6 +35,7 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
   theme,
   onChange,
 }) => {
+  const t = useTranslations("editor.background");
   // ── helpers ──────────────────────────────────────────────────────────────
   const media = background.media ?? BackgroundMediaSchema.parse({ src: "" });
 
@@ -77,23 +79,23 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">背景配置</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t("title")}</h3>
       </div>
 
       {/* 类型切换 */}
       <div className="flex items-center gap-1">
-        {(["gradient", "image", "video"] as const).map((t) => (
+        {(["gradient", "image", "video"] as const).map((kind) => (
           <button
-            key={t}
+            key={kind}
             type="button"
-            onClick={() => handleTypeChange(t)}
+            onClick={() => handleTypeChange(kind)}
             className={`text-xs px-2 py-0.5 rounded border ${
-              background.type === t
+              background.type === kind
                 ? "bg-primary text-primary-foreground border-primary"
                 : "border-input text-subtitle hover:text-foreground"
             }`}
           >
-            {t === "gradient" ? "渐变" : t === "image" ? "图片" : "视频"}
+            {t(`type.${kind}`)}
           </button>
         ))}
       </div>
@@ -111,7 +113,7 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
           {/* 不透明度 */}
           <div className="space-y-1">
             <div className="flex justify-between">
-              <Label className="text-xs">不透明度</Label>
+              <Label className="text-xs">{t("opacity")}</Label>
               <span className="text-xs text-subtitle">
                 {Math.round(media.opacity * 100)}%
               </span>
@@ -130,7 +132,7 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
           {/* 模糊 */}
           <div className="space-y-1">
             <div className="flex justify-between">
-              <Label className="text-xs">模糊</Label>
+              <Label className="text-xs">{t("blur")}</Label>
               <span className="text-xs text-subtitle">{media.blur}px</span>
             </div>
             <Slider
@@ -146,7 +148,7 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
 
           {/* 缩放模式 */}
           <div className="space-y-1">
-            <Label className="text-xs">缩放</Label>
+            <Label className="text-xs">{t("scale")}</Label>
             <div className="flex items-center gap-1">
               {SCALE_OPTIONS.map((s) => (
                 <button
@@ -167,7 +169,7 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
 
           {/* 位置 */}
           <div className="space-y-1">
-            <Label className="text-xs">位置</Label>
+            <Label className="text-xs">{t("position")}</Label>
             <div className="flex items-center gap-1 flex-wrap">
               {POSITION_OPTIONS.map((p) => (
                 <button
@@ -191,7 +193,7 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
             <div className="space-y-3 pt-2 border-t border-unfocused-border-color">
               {/* 循环 */}
               <div className="flex items-center justify-between">
-                <Label className="text-xs">循环</Label>
+                <Label className="text-xs">{t("loop")}</Label>
                 <Switch
                   checked={media.videoOptions.loop}
                   onCheckedChange={(v) => updateVideoOptions({ loop: v })}
@@ -201,7 +203,7 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
               {/* 播放速率 */}
               <div className="space-y-1">
                 <div className="flex justify-between">
-                  <Label className="text-xs">播放速率</Label>
+                  <Label className="text-xs">{t("playbackRate")}</Label>
                   <span className="text-xs text-subtitle">
                     {media.videoOptions.playbackRate}x
                   </span>
@@ -222,7 +224,7 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
               {/* 起始位置 */}
               <div className="space-y-1">
                 <div className="flex justify-between">
-                  <Label className="text-xs">起始位置 (ms)</Label>
+                  <Label className="text-xs">{t("startFrom")}</Label>
                   <span className="text-xs text-subtitle">
                     {media.videoOptions.startFrom}ms
                   </span>
@@ -242,7 +244,7 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
 
               {/* 声音（默认静音，开启后仅服务端渲染有效） */}
               <div className="flex items-center justify-between">
-                <Label className="text-xs">声音</Label>
+                <Label className="text-xs">{t("sound")}</Label>
                 <Switch
                   data-testid="video-muted-switch"
                   checked={!media.videoOptions.muted}
@@ -254,7 +256,7 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
                   data-testid="client-export-audio-notice"
                   className="text-xs rounded border border-yellow-400/50 bg-yellow-50/10 px-2 py-1.5 text-yellow-600 dark:text-yellow-400 leading-relaxed"
                 >
-                  ⚠ 背景视频声音仅在<strong>服务端渲染成片</strong>中生效；浏览器即时导出不含背景视频声音（音乐轨道不受影响）。
+                  {t("audioNotice")}
                 </p>
               )}
             </div>
@@ -265,7 +267,7 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
       {/* 暗角效果（迁自 ThemeEditor） */}
       <div className="space-y-3 pt-2 border-t border-unfocused-border-color">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-foreground">暗角效果</h3>
+          <h3 className="text-sm font-semibold text-foreground">{t("vignette.title")}</h3>
           <Switch
             checked={theme.vignetteEnabled}
             onCheckedChange={(v) => updateTheme({ vignetteEnabled: v })}
@@ -276,7 +278,7 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
           <div className="grid grid-cols-2 gap-x-4 gap-y-3">
             <div className="col-span-2 space-y-1">
               <div className="flex justify-between">
-                <Label className="text-xs">亮度偏移</Label>
+                <Label className="text-xs">{t("vignette.brightness")}</Label>
                 <span className="text-xs text-subtitle">
                   {theme.vignetteBrightness}
                 </span>
@@ -297,7 +299,7 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
 
             <div className="space-y-1">
               <div className="flex justify-between">
-                <Label className="text-xs">中心 X</Label>
+                <Label className="text-xs">{t("vignette.centerX")}</Label>
                 <span className="text-xs text-subtitle">
                   {theme.vignetteCenterX}%
                 </span>
@@ -315,7 +317,7 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
 
             <div className="space-y-1">
               <div className="flex justify-between">
-                <Label className="text-xs">中心 Y</Label>
+                <Label className="text-xs">{t("vignette.centerY")}</Label>
                 <span className="text-xs text-subtitle">
                   {theme.vignetteCenterY}%
                 </span>
@@ -333,7 +335,7 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
 
             <div className="space-y-1">
               <div className="flex justify-between">
-                <Label className="text-xs">内圈位置</Label>
+                <Label className="text-xs">{t("vignette.innerStop")}</Label>
                 <span className="text-xs text-subtitle">
                   {theme.vignetteInnerStop}%
                 </span>
@@ -353,7 +355,7 @@ export const BackgroundConfigPanel: React.FC<BackgroundConfigPanelProps> = ({
 
             <div className="space-y-1">
               <div className="flex justify-between">
-                <Label className="text-xs">外圈位置</Label>
+                <Label className="text-xs">{t("vignette.outerStop")}</Label>
                 <span className="text-xs text-subtitle">
                   {theme.vignetteOuterStop}%
                 </span>

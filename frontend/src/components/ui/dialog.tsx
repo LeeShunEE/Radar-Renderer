@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { Dialog } from "@base-ui/react/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -20,11 +21,12 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   onOpenChange,
   title,
   description,
-  confirmLabel = "确认",
-  cancelLabel = "取消",
+  confirmLabel,
+  cancelLabel,
   danger = false,
   onConfirm,
 }) => {
+  const tc = useTranslations("common");
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -42,7 +44,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                 size="sm"
                 onClick={() => onOpenChange(false)}
               >
-                {cancelLabel}
+                {cancelLabel ?? tc("cancel")}
               </Button>
               <Button
                 variant={danger ? "destructive" : "default"}
@@ -52,7 +54,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
                   onOpenChange(false);
                 }}
               >
-                {confirmLabel}
+                {confirmLabel ?? tc("confirm")}
               </Button>
             </div>
           </Dialog.Popup>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { PreviewPanel } from "./PreviewPanel";
 import { PreviewTargetSelector } from "./PreviewTargetSelector";
 import { GlobalConfigEditor } from "./GlobalConfigEditor";
@@ -24,6 +25,7 @@ import type { MultiPageConfig, RadarVideoProps } from "../../types/radar";
 import { defaultMultiPageConfig, defaultRadarProps } from "../../types/constants";
 
 export const RadarEditor: React.FC = () => {
+  const t = useTranslations("editor");
   const [config, setConfig] = useState<MultiPageConfig>(defaultMultiPageConfig);
   const [activePageIndex, setActivePageIndex] = useState(0);
   const [previewMode, setPreviewMode] = useState<"single" | "multi">("single");
@@ -42,7 +44,7 @@ export const RadarEditor: React.FC = () => {
         const success = saveAuto(config);
         if (success) {
           lastSavedConfigRef.current = currentJson;
-          setAutoSaveToast("已自动保存");
+          setAutoSaveToast(t("autoSaved"));
           setTimeout(() => setAutoSaveToast(null), 1500);
         }
       }
@@ -140,7 +142,10 @@ export const RadarEditor: React.FC = () => {
       ...prev,
       pages: [
         ...prev.pages,
-        { ...defaultRadarProps, characterName: `角色${prev.pages.length + 1}` },
+        {
+          ...defaultRadarProps,
+          characterName: t("defaultCharacterName", { n: prev.pages.length + 1 }),
+        },
       ],
     }));
   };
@@ -156,10 +161,17 @@ export const RadarEditor: React.FC = () => {
   };
 
   const duplicatePage = (index: number) => {
+    const source = config.pages[index];
     const result = duplicatePageInSequence(config, index);
+    // 复本名沿用 i18n 后缀（helper 内的 (副本) 仅为占位，这里按 locale 覆盖）
+    const pages = result.pages.map((page, i) =>
+      i === result.insertedPageIndex && source
+        ? { ...page, characterName: t("duplicateSuffix", { name: source.characterName }) }
+        : page,
+    );
     setConfig({
       ...config,
-      pages: result.pages,
+      pages,
       comparisons: result.comparisons,
     });
   };
@@ -224,26 +236,26 @@ export const RadarEditor: React.FC = () => {
         >
           <div className="px-6 pt-4 pb-2 border-b border-unfocused-border-color bg-background">
             <TabsList className="w-full justify-start">
-              <TabsTrigger value="persistence" title="保存当前配置到服务器，或加载、管理历史配置">
-                保存/加载
+              <TabsTrigger value="persistence" title={t("tabTitles.persistence")}>
+                {t("tabs.persistence")}
               </TabsTrigger>
-              <TabsTrigger value="global" title="管理页面列表，并统一覆盖各页面共用的全局参数（背景、字体等）">
-                全局
+              <TabsTrigger value="global" title={t("tabTitles.global")}>
+                {t("tabs.global")}
               </TabsTrigger>
-              <TabsTrigger value="comparison" title="配置相邻两页之间的对比过渡动画（切换/叠加布局）">
-                对比
+              <TabsTrigger value="comparison" title={t("tabTitles.comparison")}>
+                {t("tabs.comparison")}
               </TabsTrigger>
-              <TabsTrigger value="values" title="以表格批量编辑各页面的属性名称与评分数值">
-                数值
+              <TabsTrigger value="values" title={t("tabTitles.values")}>
+                {t("tabs.values")}
               </TabsTrigger>
-              <TabsTrigger value="pages" title="逐页调整动画时序、特效与元素布局参数">
-                动画细节
+              <TabsTrigger value="pages" title={t("tabTitles.pages")}>
+                {t("tabs.pages")}
               </TabsTrigger>
-              <TabsTrigger value="assets" title="管理上传的图片、视频、音乐等素材文件">
-                素材
+              <TabsTrigger value="assets" title={t("tabTitles.assets")}>
+                {t("tabs.assets")}
               </TabsTrigger>
-              <TabsTrigger value="export" title="创建视频渲染任务并查看渲染队列进度">
-                导出
+              <TabsTrigger value="export" title={t("tabTitles.export")}>
+                {t("tabs.export")}
               </TabsTrigger>
             </TabsList>
           </div>
@@ -336,7 +348,7 @@ export const RadarEditor: React.FC = () => {
           <TabsContent value="export" className="overflow-y-auto p-6 space-y-4">
             {/* 队列任务卡片 */}
             <div className="space-y-3 border border-unfocused-border-color rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-foreground">渲染队列</h3>
+              <h3 className="text-sm font-semibold text-foreground">{t("renderQueue")}</h3>
               <TaskQueuePanel />
             </div>
 

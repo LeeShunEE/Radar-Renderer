@@ -77,10 +77,11 @@ describe("TaskQueuePanel", () => {
     expect(screen.getByText("暂无渲染任务")).toBeInTheDocument();
   });
 
-  it("加载中且无任务显示「加载中...」", () => {
+  it("加载中且无任务显示加载文案", () => {
     queueState.loading = true;
     render(<TaskQueuePanel />);
-    expect(screen.getByText("加载中...")).toBeInTheDocument();
+    // 复用 common.loading（zh.json: "加载中…"）
+    expect(screen.getByText("加载中…")).toBeInTheDocument();
   });
 
   it("显示错误文案", () => {

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
 
 /**
@@ -9,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
  * 已认证 → /app，未认证 → /login。
  */
 export default function Home() {
+  const t = useTranslations("common");
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
 
@@ -24,7 +26,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="text-muted-foreground">加载中…</div>
+      <div className="text-muted-foreground">{t("loading")}</div>
     </div>
   );
 }

@@ -109,7 +109,7 @@ describe("auth-store", () => {
 
   describe("refreshTokens", () => {
     it("throws when no stored refresh token", async () => {
-      await expect(refreshTokens()).rejects.toThrow("无 refresh token");
+      await expect(refreshTokens()).rejects.toThrow("No refresh token");
     });
     it("refreshes tokens successfully", async () => {
       await register("testuser", "t@example.com", "pw");

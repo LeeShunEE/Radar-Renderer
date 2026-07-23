@@ -85,7 +85,7 @@ export async function renderInBrowser(options: BrowserRenderOptions): Promise<Br
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("无法创建 canvas context");
+  if (!ctx) throw new Error("Failed to create canvas context");
 
   if (mp4Supported) {
     encoder = createMp4Encoder({
@@ -111,7 +111,7 @@ export async function renderInBrowser(options: BrowserRenderOptions): Promise<Br
   try {
     // 逐帧渲染
     for (let frame = 0; frame < durationInFrames; frame++) {
-      if (signal?.aborted) throw new Error("渲染已取消");
+      if (signal?.aborted) throw new Error("Render cancelled");
 
       // seekTo 让 Player 渲染该帧
       playerRef.seekTo(frame);
@@ -158,7 +158,7 @@ export async function renderInBrowser(options: BrowserRenderOptions): Promise<Br
         };
       });
     } else {
-      throw new Error("编码器未初始化");
+      throw new Error("Encoder not initialized");
     }
 
     const endTime = performance.now();

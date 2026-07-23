@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import type { MultiPageConfig, RadarAttribute, RadarVideoProps } from "../../types/radar";
@@ -22,6 +23,7 @@ type WheelValueInputProps = {
 };
 
 const WheelValueInput: React.FC<WheelValueInputProps> = ({ value, onChange }) => {
+  const t = useTranslations("editor.values");
   const ref = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -52,7 +54,7 @@ const WheelValueInput: React.FC<WheelValueInputProps> = ({ value, onChange }) =>
         onChange(clampValue(n));
       }}
       className="h-6 w-14 text-xs px-1 text-right"
-      title="聚焦后滚轮调整：Shift=±10，Alt=±0.5"
+      title={t("wheelTip")}
     />
   );
 };
@@ -64,6 +66,7 @@ export const RadarValuesTable: React.FC<Props> = ({
   onSetActive,
   onAddPage,
 }) => {
+  const t = useTranslations("editor.values");
   const headerPage = config.pages[0];
   if (!headerPage) return null;
 
@@ -127,21 +130,20 @@ export const RadarValuesTable: React.FC<Props> = ({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">雷达数值表</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t("title")}</h3>
         <div className="relative group">
           <Button
             variant="outline"
             size="sm"
             onClick={syncLabelsFromFirstPage}
           >
-            同步表头到全部页面
+            {t("syncHeader")}
           </Button>
           <div
             role="tooltip"
             className="pointer-events-none absolute right-0 top-full mt-1 z-20 hidden group-hover:block w-64 rounded border border-unfocused-border-color bg-card p-2 text-xs text-foreground shadow-md"
           >
-            将第 1 页（首行）的各属性「简称」与「全称」复制到其余所有页面的对应列，
-            使全部页面共用同一套表头；各页数值不受影响。
+            {t("syncHeaderTip")}
           </div>
         </div>
       </div>
@@ -151,7 +153,7 @@ export const RadarValuesTable: React.FC<Props> = ({
           <thead className="bg-muted/40">
             <tr>
               <th className="sticky left-0 z-10 bg-muted/60 px-2 py-2 text-left font-medium border-b border-r border-unfocused-border-color min-w-[200px]">
-                角色 / 属性
+                {t("roleAttr")}
               </th>
               {headerPage.attributes.map((attr, i) => {
                 const total = headerPage.attributes.length;
@@ -166,7 +168,7 @@ export const RadarValuesTable: React.FC<Props> = ({
                           type="button"
                           onClick={() => swapAttributeColumns(i, i - 1)}
                           disabled={i === 0}
-                          title="与左侧列交换"
+                          title={t("swapLeft")}
                           className="text-[10px] w-4 h-4 rounded text-subtitle hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent"
                         >
                           ◀
@@ -176,7 +178,7 @@ export const RadarValuesTable: React.FC<Props> = ({
                           type="button"
                           onClick={() => swapAttributeColumns(i, i + 1)}
                           disabled={i === total - 1}
-                          title="与右侧列交换"
+                          title={t("swapRight")}
                           className="text-[10px] w-4 h-4 rounded text-subtitle hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent"
                         >
                           ▶
@@ -186,13 +188,13 @@ export const RadarValuesTable: React.FC<Props> = ({
                         value={attr.shortLabel}
                         onChange={(e) => updateHeaderLabel(i, "shortLabel", e.target.value)}
                         className="h-6 text-center text-xs px-1"
-                        placeholder="简称"
+                        placeholder={t("shortLabel")}
                       />
                       <Input
                         value={attr.label}
                         onChange={(e) => updateHeaderLabel(i, "label", e.target.value)}
                         className="h-6 text-center text-xs px-1"
-                        placeholder="全称"
+                        placeholder={t("fullLabel")}
                       />
                     </div>
                   </th>
@@ -222,7 +224,7 @@ export const RadarValuesTable: React.FC<Props> = ({
                         className={`text-xs px-1 rounded ${
                           isActive ? "text-amber-400 font-bold" : "text-subtitle hover:text-foreground"
                         }`}
-                        title="设为预览页"
+                        title={t("setPreviewPage")}
                       >
                         {pageIndex + 1}
                       </button>
@@ -232,7 +234,7 @@ export const RadarValuesTable: React.FC<Props> = ({
                           updatePage(pageIndex, { characterName: e.target.value })
                         }
                         className="h-6 text-xs px-2 flex-1 min-w-0"
-                        placeholder="角色名"
+                        placeholder={t("characterName")}
                       />
                     </div>
                   </td>
@@ -269,14 +271,11 @@ export const RadarValuesTable: React.FC<Props> = ({
 
       {onAddPage && (
         <Button variant="outline" size="sm" onClick={onAddPage}>
-          ＋ 添加新页
+          ＋ {t("addPage")}
         </Button>
       )}
 
-      <p className="text-xs text-subtitle">
-        数值范围 0–200。点击行首数字可将该页设为预览。修改首行属性名会同步覆盖所有页面的对应属性名。
-        使用表头 ◀ ▶ 按钮可交换两列（对所有页面生效）。
-      </p>
+      <p className="text-xs text-subtitle">{t("hint")}</p>
     </div>
   );
 };

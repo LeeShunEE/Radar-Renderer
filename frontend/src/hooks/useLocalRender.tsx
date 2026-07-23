@@ -7,6 +7,7 @@
  * 下载：文件名按返回 ext 用 .mp4/.webm
  */
 import { useState, useCallback, useRef, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import type { RadarVideoProps, MultiPageConfig } from "@/types/radar";
 import { LocalRenderStage, type LocalRenderMode } from "@/components/editor/LocalRenderStage";
 import { applyGlobalOverride } from "@/lib/global-override";
@@ -29,6 +30,7 @@ export interface UseLocalRenderResult {
 }
 
 export function useLocalRender(): UseLocalRenderResult {
+  const tr = useTranslations("errors");
   const [rendering, setRendering] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -72,8 +74,8 @@ export function useLocalRender(): UseLocalRenderResult {
       requestRef.current = null;
     }
     setRendering(false);
-    setError("渲染已取消");
-  }, []);
+    setError(tr("renderCancelled"));
+  }, [tr]);
 
   /** 进度回调 */
   const handleProgress = useCallback((frame: number, total: number) => {

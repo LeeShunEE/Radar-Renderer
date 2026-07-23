@@ -54,6 +54,8 @@ export default defineConfig({
       // next/navigation 与 next/link 的测试替身（集成测试不挂载 Next App Router）
       { find: /^next\/navigation$/, replacement: path.resolve(__dirname, "./src/test/__mocks__/next-navigation.ts") },
       { find: /^next\/link$/, replacement: path.resolve(__dirname, "./src/test/__mocks__/next-link.tsx") },
+      // next-intl 测试替身：以真实 zh.json 为消息源，集成测试不挂载 Next 请求上下文
+      { find: /^next-intl$/, replacement: path.resolve(__dirname, "./src/test/__mocks__/next-intl.tsx") },
       // 测试文件位于 frontend/ 之外（tests/dev-integration/frontend/），无法解析 frontend/node_modules，
       // 显式指向本地安装位置（与单元 config 同因）。
       { find: "@testing-library/react", replacement: path.resolve(__dirname, "./node_modules/@testing-library/react") },

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Player, type PlayerRef } from "@remotion/player";
 import { useUploadObjectUrls } from "@/hooks/useUploadObjectUrls";
 import {
@@ -33,7 +34,9 @@ type RenderSegment = {
   start: number;
   end: number;
   pageLabel: string;
+  // behavior 现为 i18n key（editor.preview.behaviors.<key>）；sideHighlight 另带 behaviorSide 参数。
   behavior: string;
+  behaviorSide?: "left" | "right";
   pageIndex?: number;
   comparisonIndex?: number;
   fieldIds: string[];
@@ -48,13 +51,14 @@ const TARGET_ORDER: TargetID[] = [
   "legend",
 ];
 
-const TARGET_META: Record<TargetID, { label: string; color: string }> = {
-  "radar-label":   { label: "属性标签",   color: "#94a3b8" },
-  "radar-rating":  { label: "评分",       color: "#f59e0b" },
-  "radar-octagon": { label: "数据多边形", color: "#6366f1" },
-  "avatar":        { label: "头像",       color: "#ec4899" },
-  "name":          { label: "角色名称",   color: "#22d3ee" },
-  "legend":        { label: "图例",       color: "#a3e635" },
+// label 文案下沉到 messages（editor.preview.targets.<id>）；此处只保留时间轴配色。
+const TARGET_META: Record<TargetID, { color: string }> = {
+  "radar-label":   { color: "#94a3b8" },
+  "radar-rating":  { color: "#f59e0b" },
+  "radar-octagon": { color: "#6366f1" },
+  "avatar":        { color: "#ec4899" },
+  "name":          { color: "#22d3ee" },
+  "legend":        { color: "#a3e635" },
 };
 
 const ROW_HEIGHT = 18;
@@ -196,7 +200,7 @@ function pushPageSegments(
       start: baseFrame + p.labelStart,
       end: baseFrame + labelPhaseEnd,
       pageLabel,
-      behavior: "标签淡入",
+      behavior: "labelFadeIn",
       pageIndex,
       fieldIds: pageFieldIds(pageIndex, LABEL_FIELDS),
     });
@@ -205,7 +209,7 @@ function pushPageSegments(
       start: baseFrame + ratingPhaseStart,
       end: baseFrame + ratingPhaseEnd,
       pageLabel,
-      behavior: "评分淡入",
+      behavior: "ratingFadeIn",
       pageIndex,
       fieldIds: pageFieldIds(pageIndex, LABEL_FIELDS),
     });
@@ -217,7 +221,7 @@ function pushPageSegments(
       start: baseFrame + p.fillStart,
       end: baseFrame + p.fillEnd,
       pageLabel,
-      behavior: "多边形填充",
+      behavior: "polygonFill",
       pageIndex,
       fieldIds: pageFieldIds(pageIndex, FILL_OCTAGON_FIELDS),
     });
@@ -230,7 +234,7 @@ function pushPageSegments(
       start: avatarStart,
       end: avatarStart + a.silhouetteFadeInDuration,
       pageLabel,
-      behavior: "头像淡入",
+      behavior: "avatarFadeIn",
       pageIndex,
       fieldIds: pageFieldIds(pageIndex, FILL_AVATAR_FIELDS),
     });
@@ -243,7 +247,7 @@ function pushPageSegments(
       start: nameStart,
       end: nameStart + a.nameFadeInDuration,
       pageLabel,
-      behavior: "名称淡入",
+      behavior: "nameFadeIn",
       pageIndex,
       fieldIds: pageFieldIds(pageIndex, NAME_FIELDS),
     });
@@ -255,7 +259,7 @@ function pushPageSegments(
       start: baseFrame + p.effectsStart,
       end: baseFrame + p.effectsEnd,
       pageLabel,
-      behavior: "高分发光",
+      behavior: "highGlow",
       pageIndex,
       fieldIds: pageFieldIds(pageIndex, EFFECT_OCTAGON_FIELDS),
     });
@@ -264,7 +268,7 @@ function pushPageSegments(
       start: baseFrame + p.effectsStart,
       end: baseFrame + p.effectsEnd,
       pageLabel,
-      behavior: "评分弹出",
+      behavior: "ratingPopup",
       pageIndex,
       fieldIds: pageFieldIds(pageIndex, EFFECT_RATING_FIELDS),
     });
@@ -297,7 +301,7 @@ function pushComparisonSegments(
     start: comparisonStart,
     end: comparisonStart + halfSwap,
     pageLabel,
-    behavior: "头像淡出",
+    behavior: "avatarFadeOut",
     comparisonIndex,
     fieldIds: compFields(SWAP_AVATAR_FIELDS),
   });
@@ -306,7 +310,7 @@ function pushComparisonSegments(
     start: comparisonStart,
     end: comparisonStart + halfSwap,
     pageLabel,
-    behavior: "名称淡出",
+    behavior: "nameFadeOut",
     comparisonIndex,
     fieldIds: compFields(SWAP_NAME_FIELDS),
   });
@@ -317,7 +321,7 @@ function pushComparisonSegments(
     start: comparisonStart + halfSwap,
     end: comparisonStart + swapDur,
     pageLabel,
-    behavior: "头像淡入",
+    behavior: "avatarFadeIn",
     comparisonIndex,
     fieldIds: compFields(SWAP_AVATAR_FIELDS),
   });
@@ -326,7 +330,7 @@ function pushComparisonSegments(
     start: comparisonStart + halfSwap,
     end: comparisonStart + swapDur,
     pageLabel,
-    behavior: "名称淡入",
+    behavior: "nameFadeIn",
     comparisonIndex,
     fieldIds: compFields(SWAP_NAME_FIELDS),
   });
@@ -338,7 +342,7 @@ function pushComparisonSegments(
     start: comparisonStart,
     end: comparisonStart + a.fillDuration,
     pageLabel,
-    behavior: "多边形过渡",
+    behavior: "polygonTransition",
     pageIndex: secondaryPageIndex,
     comparisonIndex,
     fieldIds: [
@@ -357,7 +361,7 @@ function pushComparisonSegments(
     start: ratingStart,
     end: ratingStart + ratingTransitionDur,
     pageLabel,
-    behavior: "评分滑动+淡入",
+    behavior: "ratingSlideFadeIn",
     comparisonIndex,
     fieldIds: compFields(SWAP_RATING_FIELDS),
   });
@@ -368,7 +372,7 @@ function pushComparisonSegments(
     start: comparisonStart,
     end: comparisonStart + 20,
     pageLabel,
-    behavior: "图例淡入",
+    behavior: "legendFadeIn",
     comparisonIndex,
     fieldIds: compFields(LEGEND_FIELDS),
   });
@@ -404,15 +408,16 @@ function pushOverlaySegments(
   const ofIds = (keys: string[]) =>
     keys.map((k) => `comparison:${comparisonIndex}:overlay.${k}`);
 
-  const first = overlay.highlightOrder === "right-first" ? "右方" : "左方";
-  const second = overlay.highlightOrder === "right-first" ? "左方" : "右方";
+  const first: "left" | "right" = overlay.highlightOrder === "right-first" ? "right" : "left";
+  const second: "left" | "right" = overlay.highlightOrder === "right-first" ? "left" : "right";
 
   out.push({
     targetId: "radar-octagon",
     start: base + phases.p1,
     end: base + phases.p3,
     pageLabel,
-    behavior: `${first}高亮`,
+    behavior: "sideHighlight",
+    behaviorSide: first,
     comparisonIndex,
     fieldIds: ofIds(OVERLAY_HIGHLIGHT_FIELDS),
   });
@@ -421,7 +426,8 @@ function pushOverlaySegments(
     start: base + phases.p3,
     end: base + phases.p5,
     pageLabel,
-    behavior: `${second}高亮`,
+    behavior: "sideHighlight",
+    behaviorSide: second,
     comparisonIndex,
     fieldIds: ofIds(OVERLAY_HIGHLIGHT_FIELDS),
   });
@@ -430,7 +436,7 @@ function pushOverlaySegments(
     start: base + phases.p1,
     end: base + phases.p6,
     pageLabel,
-    behavior: "双剪影高亮联动",
+    behavior: "dualSilhouetteHighlight",
     comparisonIndex,
     fieldIds: ofIds(OVERLAY_HIGHLIGHT_FIELDS),
   });
@@ -439,7 +445,7 @@ function pushOverlaySegments(
     start: base + phases.p1,
     end: base + phases.total,
     pageLabel,
-    behavior: "强弱箭头",
+    behavior: "diffArrows",
     comparisonIndex,
     fieldIds: ofIds(OVERLAY_ARROW_FIELDS),
   });
@@ -467,12 +473,12 @@ function buildMultiSegments(config: MultiPageConfig): RenderSegment[] {
     if (comp && compIdx !== undefined && i + 1 < config.pages.length) {
       const left = mergedPages[i];
       const right = mergedPages[i + 1];
-      pushPageSegments(out, left, `第${i + 1}页`, base, i);
+      pushPageSegments(out, left, `p${i + 1}`, base, i);
 
       if ((comp.layout ?? "transition") === "overlay") {
         // overlay：双方同图，从 comparison 层第 0 帧同画；绘制段已由
         // pushPageSegments(left) 覆盖，此处只补高亮编排与强弱箭头 seek 段
-        pushOverlaySegments(out, left, comp, compIdx, base, `第${i + 1}→${i + 2}页`);
+        pushOverlaySegments(out, left, comp, compIdx, base, `p${i + 1}-${i + 2}`);
       } else {
         const leftEnd = calculateDuration(left.animation);
         const comparisonStart = base + leftEnd + comp.delayFrames;
@@ -483,7 +489,7 @@ function buildMultiSegments(config: MultiPageConfig): RenderSegment[] {
           compIdx,
           comparisonStart,
           i + 1,
-          `第${i + 1}→${i + 2}页`,
+          `p${i + 1}-${i + 2}`,
         );
       }
 
@@ -491,7 +497,7 @@ function buildMultiSegments(config: MultiPageConfig): RenderSegment[] {
       compared.add(i);
       compared.add(i + 1);
     } else {
-      pushPageSegments(out, mergedPages[i], `第${i + 1}页`, base, i);
+      pushPageSegments(out, mergedPages[i], `p${i + 1}`, base, i);
       base += calculateDuration(mergedPages[i].animation);
     }
   }
@@ -524,6 +530,7 @@ function calcMultiDuration(config: MultiPageConfig): number {
 type HoverState = { frame: number; clientX: number; clientY: number } | null;
 
 export const PreviewPanel: React.FC<PreviewPanelProps> = (panelProps) => {
+  const t = useTranslations("editor.preview");
   const playerRef = useRef<PlayerRef>(null);
   const barRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
@@ -968,11 +975,10 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = (panelProps) => {
                 left: 0,
               }}
             >
-              <span>音乐</span>
+              <span>{t("music")}</span>
             </div>
           )}
           {TARGET_ORDER.map((id, gi) => {
-            const meta = TARGET_META[id];
             const top = laneLayout.groupTop[id];
             const height = laneLayout.groupHeight[id];
             const isLast = gi === TARGET_ORDER.length - 1;
@@ -988,7 +994,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = (panelProps) => {
                     left: 0,
                   }}
                 >
-                  <span>{meta.label}</span>
+                  <span>{t(`targets.${id}`)}</span>
                 </div>
                 {!isLast && (
                   <div
@@ -1091,7 +1097,9 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = (panelProps) => {
               0.2,
               ((seg.end - seg.start) / viewRange) * 100,
             );
-            const inlineLabel = seg.behavior;
+            const inlineLabel = seg.behaviorSide
+              ? t("behaviors.sideHighlight", { side: t(`side.${seg.behaviorSide}`) })
+              : t(`behaviors.${seg.behavior}`);
             const lane = laneLayout.laneByIndex.get(i) ?? 0;
             const top =
               laneLayout.groupTop[seg.targetId] +
@@ -1160,7 +1168,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = (panelProps) => {
               className="text-[10px] leading-none text-muted-foreground"
               style={hoverInfoStyle}
             >
-              帧 {hover.frame} / {durationInFrames} · {(hover.frame / VIDEO_FPS).toFixed(2)}s
+              {t("frameInfo", { frame: hover.frame, total: durationInFrames, sec: (hover.frame / VIDEO_FPS).toFixed(2) })}
             </div>
           )}
         </div>
@@ -1188,7 +1196,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = (panelProps) => {
           <div className="flex items-center gap-3 whitespace-nowrap">
             <span className="opacity-70">{audioDurationSec.toFixed(2)}s</span>
             <label className="flex items-center gap-1">
-              偏移
+              {t("offset")}
               <input
                 type="number"
                 value={audioOffsetFrames}
@@ -1197,7 +1205,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = (panelProps) => {
                 }
                 className="w-16 h-6 px-1 text-xs text-center rounded border border-unfocused-border-color bg-background text-foreground"
               />
-              帧
+              {t("unitFrame")}
             </label>
             <label className="flex items-center gap-1">
               <input
@@ -1205,7 +1213,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = (panelProps) => {
                 checked={audioMuted}
                 onChange={(e) => setAudioMuted(e.target.checked)}
               />
-              静音
+              {t("mute")}
             </label>
             <input
               type="range"
@@ -1225,7 +1233,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = (panelProps) => {
           onClick={togglePlay}
           className="px-4 py-1.5 text-sm rounded-md border border-unfocused-border-color bg-card hover:bg-muted text-foreground transition-colors"
         >
-          {isPaused ? "▶ 播放" : "⏸ 暂停"}
+          {isPaused ? t("play") : t("pause")}
         </button>
       </div>
     </div>

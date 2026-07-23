@@ -1,0 +1,772 @@
+{
+  "metadata": {
+    "title": "雷达图动画生成器",
+    "description": "基于 Remotion 的雷达图动画视频生成工具"
+  },
+  "common": {
+    "loading": "加载中…",
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "confirm": "确认",
+    "reset": "重置",
+    "close": "关闭",
+    "add": "添加",
+    "remove": "移除",
+    "edit": "编辑",
+    "done": "完成",
+    "yes": "是",
+    "no": "否",
+    "error": "错误",
+    "pickColor": "选择颜色",
+    "eyedropper": "屏幕取色"
+  },
+  "errors": {
+    "fileListFailed": "获取文件列表失败",
+    "uploadFailed": "上传失败",
+    "deleteFailed": "删除失败",
+    "downloadFailed": "下载失败",
+    "publicAssetsFailed": "获取公共资源失败",
+    "nameEmpty": "名称不能为空",
+    "saveQuotaExceeded": "保存失败：存储空间不足",
+    "renderFailed": "渲染失败",
+    "taskCancelled": "任务已取消",
+    "submitRenderFailed": "提交渲染失败",
+    "cancelTaskFailed": "取消任务失败",
+    "taskStatusFailed": "获取任务状态失败",
+    "taskListFailed": "获取任务列表失败",
+    "taskDeleteFailed": "删除任务失败",
+    "renderCancelled": "渲染已取消"
+  },
+  "footer": {
+    "version": "版本 {version}"
+  },
+  "files": {
+    "category": {
+      "silhouettes": "剪影图片",
+      "music": "背景音乐",
+      "backgroundImage": "背景图片",
+      "backgroundVideo": "背景视频",
+      "backgrounds": "背景媒体"
+    },
+    "selected": "选中",
+    "clearSelection": "清除选择",
+    "publicAssets": "公共资源",
+    "myUploads": "我的上传",
+    "empty": "暂无资源，点击上传按钮添加",
+    "emptyUploads": "暂无上传文件",
+    "pasteHint": "悬停此处按 Ctrl+V（⌘V）可粘贴图片",
+    "pasteHintFull": "支持 Ctrl+V（Mac 为 ⌘V）直接粘贴图片上传",
+    "pasting": "已粘贴图片，正在上传 {name}…",
+    "pasted": "已上传粘贴图片 {name}",
+    "pastedSelected": "已上传并选中 {name}",
+    "quotaUsed": "已用 {used} / {limit}",
+    "storageAlmostFull": "存储空间即将用尽",
+    "uploading": "上传中...",
+    "uploadFile": "上传文件",
+    "refreshCategory": "刷新{label}资源",
+    "uploadCategory": "上传{label}",
+    "uploadVideoOnly": "当前为视频背景，请选择视频文件（mp4 / webm / mov）",
+    "uploadImageOnly": "当前为图片背景，请选择图片文件（png / jpg / gif / webp / svg）",
+    "confirmDelete": "确定删除 \"{name}\"？",
+    "videoWarn": {
+      "size": "视频体积较大（{mb}MB，建议 ≤50MB），渲染较慢且占用较高",
+      "resolution": "视频分辨率较高（{width}×{height}，建议 ≤1920×1080），渲染较慢"
+    }
+  },
+  "language": {
+    "label": "语言"
+  },
+  "tasks": {
+    "status": {
+      "queued": "排队中",
+      "running": "渲染中",
+      "done": "完成",
+      "failed": "失败",
+      "canceled": "已取消"
+    },
+    "eta": "排队 #{position}，预计 {eta}",
+    "queuePending": "队列中 {count} 个任务待渲染",
+    "avgFps": "平均渲速 {fps} 帧/秒",
+    "avgFpsCalculating": "平均渲速 统计中",
+    "empty": "暂无渲染任务",
+    "mode": {
+      "single": "单页",
+      "all": "全部"
+    },
+    "outputCleaned": "产物已清理",
+    "remaining": "剩 {eta}",
+    "duration": "耗时 {seconds} 秒",
+    "delete": {
+      "title": {
+        "record": "删除任务记录",
+        "withOutput": "删除任务及产物",
+        "task": "删除任务"
+      },
+      "description": {
+        "record": "产物已被清理，确定删除任务记录？",
+        "withOutput": "确定删除任务及其渲染产物？产物将被永久删除。",
+        "task": "确定删除此任务？"
+      }
+    }
+  },
+  "editor": {
+    "tabs": {
+      "persistence": "保存/加载",
+      "global": "全局",
+      "comparison": "对比",
+      "values": "数值",
+      "pages": "动画细节",
+      "assets": "素材",
+      "export": "导出"
+    },
+    "tabTitles": {
+      "persistence": "保存当前配置到服务器，或加载、管理历史配置",
+      "global": "管理页面列表，并统一覆盖各页面共用的全局参数（背景、字体等）",
+      "comparison": "配置相邻两页之间的对比过渡动画（切换/叠加布局）",
+      "values": "以表格批量编辑各页面的属性名称与评分数值",
+      "pages": "逐页调整动画时序、特效与元素布局参数",
+      "assets": "管理上传的图片、视频、音乐等素材文件",
+      "export": "创建视频渲染任务并查看渲染队列进度"
+    },
+    "autoSaved": "已自动保存",
+    "autoSaveName": "自动保存",
+    "renderQueue": "渲染队列",
+    "defaultCharacterName": "角色{n}",
+    "duplicateSuffix": "{name} (副本)",
+    "importFrom": "从某一页面导入",
+    "pageLabel": "页{n}",
+    "previewTarget": {
+      "label": "预览对象",
+      "placeholder": "选择预览对象",
+      "global": "全局（{pages} 页完整视频）"
+    },
+    "sequence": {
+      "heading": "页面编排",
+      "subtitle": "拖动页面调整最终播放顺序",
+      "addPage": "添加页面",
+      "duplicate": "复制",
+      "delete": "删除",
+      "pageFallback": "页面 {n}",
+      "selectPage": "选择页面 {name}",
+      "duplicateName": "复制 {name}",
+      "deleteName": "删除 {name}",
+      "dragPage": "拖动页面 {name}",
+      "dragComparison": "拖动对比组 {a} 与 {b}",
+      "comparisonGroupAria": "对比绑定：{a} 与 {b}",
+      "comparisonBound": "对比绑定 · 整组拖动",
+      "unbindCompare": "解除对比",
+      "unbindCompareLabel": "解除 {a} 与 {b} 的对比",
+      "compareNext": "与下一页对比",
+      "alreadyCompared": "{name} 已参与对比",
+      "setCompareLabel": "将 {a} 与 {b} 设为对比",
+      "noNextPage": "{name} 没有下一页",
+      "cannotCompareNext": "{name} 无法与下一页对比",
+      "itemPage": "页面 {name}",
+      "itemComparison": "对比组 {a} 与 {b}",
+      "announceGrab": "已拿起{desc}",
+      "announceDragStart": "已开始拖动",
+      "announceOver": "当前位于{desc}",
+      "announceDropped": "{source}已放到{target}的位置",
+      "announceDragEnd": "拖动已结束",
+      "announceCancel": "已取消拖动",
+      "deleteTitle": "删除页面",
+      "deleteTitleNamed": "删除页面 {name}？",
+      "deleteDescSimple": "删除后无法恢复。",
+      "deleteDescComparison": "删除后将解除 {a} 与 {b} 的对比，但会保留另一页面。",
+      "confirmDelete": "确认删除"
+    },
+    "values": {
+      "title": "雷达数值表",
+      "syncHeader": "同步表头到全部页面",
+      "syncHeaderTip": "将第 1 页（首行）的各属性「简称」与「全称」复制到其余所有页面的对应列，使全部页面共用同一套表头；各页数值不受影响。",
+      "addPage": "添加新页",
+      "roleAttr": "角色 / 属性",
+      "swapLeft": "与左侧列交换",
+      "swapRight": "与右侧列交换",
+      "shortLabel": "简称",
+      "fullLabel": "全称",
+      "characterName": "角色名",
+      "setPreviewPage": "设为预览页",
+      "wheelTip": "聚焦后滚轮调整：Shift=±10，Alt=±0.5",
+      "hint": "数值范围 0–200。点击行首数字可将该页设为预览。修改首行属性名会同步覆盖所有页面的对应属性名。使用表头 ◀ ▶ 按钮可交换两列（对所有页面生效）。"
+    },
+    "attributes": {
+      "title": "属性编辑",
+      "namePlaceholder": "属性名",
+      "offsetX": "X偏移: {value}",
+      "offsetY": "Y偏移: {value}",
+      "thresholdHint": "超过阈值 ({threshold}) 的属性会触发特效"
+    },
+    "fontFields": {
+      "characterName": "角色名称",
+      "attributeLabel": "属性标签",
+      "ratingLabel": "评级标签",
+      "valuePopup": "数值弹出"
+    },
+    "fontSize": {
+      "title": "字体大小"
+    },
+    "fontFamily": {
+      "title": "字体",
+      "search": "搜索字体...",
+      "curated": "精选字体",
+      "all": "全部字体",
+      "notFound": "未找到匹配字体",
+      "defaultFont": "默认 (sans-serif)"
+    },
+    "page": {
+      "title": "第{n}页：{name}",
+      "previewing": "预览中",
+      "preview": "预览",
+      "duplicate": "复制",
+      "remove": "删除"
+    },
+    "character": {
+      "title": "角色配置",
+      "nameLabel": "角色名称",
+      "namePlaceholder": "输入角色名称（支持 \\n 换行）",
+      "align": {
+        "left": "左",
+        "center": "中",
+        "right": "右"
+      },
+      "alignTip": {
+        "left": "对齐：左",
+        "center": "对齐：中",
+        "right": "对齐：右"
+      },
+      "fontSize": "字号",
+      "nameOffsetX": "名称 X 偏移: {value}",
+      "nameOffsetY": "名称 Y 偏移: {value}",
+      "layoutDisabledTip": "对比模式下此页作为第二角色，布局跟随第一角色，此配置不会渲染",
+      "slug": {
+        "title": "Slug 标语（左上）",
+        "newlineHint": "支持 \\n 换行",
+        "placeholder": "例如：Gemini 3.1 Pro",
+        "font": "字体",
+        "fontSize": "字号",
+        "color": "颜色",
+        "offsetX": "Slug X 偏移: {value}",
+        "offsetY": "Slug Y 偏移: {value}",
+        "fadeDelay": "淡入延迟: {value} 帧"
+      },
+      "silhouette": {
+        "opacity": "剪影透明度: {value}%",
+        "scale": "剪影缩放: {value}x",
+        "syncOffset": "同步剪影与名称偏移",
+        "offsetX": "剪影 X",
+        "offsetY": "剪影 Y",
+        "imagePath": "图片路径"
+      }
+    },
+    "theme": {
+      "title": "主题配色",
+      "colors": {
+        "backgroundColor": "背景色",
+        "gridColor": "网格色",
+        "gridFillColor": "填充色",
+        "gridStrokeColor": "描边色",
+        "dotColor": "圆点色",
+        "highValueDotColor": "高属性圆点色",
+        "labelColor": "标签色",
+        "valueColor": "数值色",
+        "glowColor": "发光色",
+        "enhanceArrowColor": "增强箭头色",
+        "weakenArrowColor": "变弱箭头色"
+      }
+    },
+    "layout": {
+      "title": "布局配置",
+      "disabledTip": "对比模式下此页作为第二角色，布局跟随第一角色，此配置不会渲染",
+      "radarX": "雷达 X: {value}",
+      "radarY": "雷达 Y: {value}",
+      "gridRings": "网格环数: {value}",
+      "gridStroke": "网格线宽: {value}"
+    },
+    "global": {
+      "title": "全局配置",
+      "subtitle": "编排页面顺序、统一媒体与输出节奏",
+      "music": "背景音乐",
+      "noMusic": "未选择音乐",
+      "expand": "展开",
+      "collapse": "收起",
+      "musicAria": "{action}背景音乐选择器",
+      "durationAria": "{action}时长明细",
+      "totalLabel": "总时长",
+      "pagesSuffix": "共 {pages} 页",
+      "frameSeconds": "{frames} 帧 · {seconds} 秒",
+      "durationComparisonRow": "对比组 · 页 {a} {aName} + 页 {b} {bName}",
+      "durationPageRow": "页 {n} · {name}",
+      "previewAllComposited": "全局预览（{pages} 页拼接）",
+      "pageList": "页面列表",
+      "pageFallback": "页{n}",
+      "moveUp": "上移",
+      "moveDown": "下移",
+      "duplicate": "复制",
+      "delete": "删除",
+      "cancelCompare": "取消对比",
+      "compareRender": "对比渲染",
+      "compareBadge": "⚡对比",
+      "addPage": "+ 添加页面",
+      "totalDuration": "总时长：{frames} 帧 / {seconds} 秒（共 {pages} 页）",
+      "comparisonLine": "对比：页{a}（{aName}）+ 页{b}（{bName}）：{frames} 帧 / {seconds} 秒",
+      "singlePageLine": "页{n}（{name}）：{frames} 帧 / {seconds} 秒",
+      "previewAll": "▶ 全局预览（{pages} 页拼接）",
+      "totalShort": "共 {frames} 帧 / {seconds} 秒"
+    },
+    "override": {
+      "title": "全局覆盖（Global Override）",
+      "description": "勾选某个字段后，所有页面在渲染时都会使用此处的值覆盖各自的设置（不会修改页面原始数据）。当前启用 {count} 项。",
+      "closeAll": "全部关闭",
+      "groups": {
+        "roleSlug": "角色 / Slug",
+        "theme": "主题配色",
+        "font": "字体",
+        "animation": "动画",
+        "effects": "特效",
+        "layout": "布局",
+        "labelOffset": "标签全局偏移"
+      },
+      "fields": {
+        "characterNameAlign": "角色名对齐",
+        "slug_fontFamily": "Slug 字体",
+        "slug_fontSize": "Slug 字号",
+        "slug_color": "Slug 颜色",
+        "slug_offsetX": "Slug X 偏移",
+        "slug_offsetY": "Slug Y 偏移",
+        "slug_fadeOffsetFrames": "Slug 淡入延迟",
+        "theme_backgroundColor": "背景色",
+        "theme_gridColor": "网格色",
+        "theme_gridFillColor": "填充色",
+        "theme_gridStrokeColor": "描边色",
+        "theme_dotColor": "圆点色",
+        "theme_highValueDotColor": "高属性圆点色",
+        "theme_labelColor": "标签色",
+        "theme_valueColor": "数值色",
+        "theme_glowColor": "发光色",
+        "theme_enhanceArrowColor": "增强箭头色",
+        "theme_weakenArrowColor": "变弱箭头色",
+        "theme_silhouetteOpacity": "剪影透明度",
+        "theme_vignetteEnabled": "暗角开启",
+        "theme_vignetteBrightness": "暗角亮度",
+        "theme_vignetteCenterX": "暗角中心 X",
+        "theme_vignetteCenterY": "暗角中心 Y",
+        "theme_vignetteInnerStop": "暗角内停",
+        "theme_vignetteOuterStop": "暗角外停",
+        "font_characterName": "角色名 字号",
+        "font_characterNameFamily": "角色名 字体",
+        "font_attributeLabel": "属性标签 字号",
+        "font_attributeLabelFamily": "属性标签 字体",
+        "font_ratingLabel": "评级 字号",
+        "font_ratingLabelFamily": "评级 字体",
+        "font_valuePopup": "数值弹出 字号",
+        "font_valuePopupFamily": "数值弹出 字体",
+        "animation_fillDuration": "填充时长",
+        "animation_silhouetteDelay": "剪影延迟",
+        "animation_silhouetteFadeInDuration": "剪影淡入",
+        "animation_labelStagger": "标签错开",
+        "animation_highValueSpringDamping": "高值弹簧阻尼",
+        "animation_holdDuration": "保持时长",
+        "animation_nameFadeInDuration": "名称淡入",
+        "animation_nameAppearRatio": "名称出现比",
+        "animation_labelStartOffset": "标签起点偏移",
+        "animation_fillStartOffset": "填充起点偏移",
+        "animation_effectsStartOffset": "特效起点偏移",
+        "animation_holdStartOffset": "保持起点偏移",
+        "animation_highValueThreshold": "高值阈值",
+        "animation_valuePopupEnabled": "数值弹出开启",
+        "animation_valuePopupStyle": "弹出样式",
+        "animation_highValueGlowEnabled": "高值发光开启",
+        "animation_highValueGlowStyle": "发光样式",
+        "layout_radarCX": "雷达 X",
+        "layout_radarCY": "雷达 Y",
+        "layout_gridRingCount": "网格环数",
+        "layout_gridStrokeWidth": "网格描边",
+        "layout_silhouetteOffsetX": "剪影 X 偏移",
+        "layout_silhouetteOffsetY": "剪影 Y 偏移",
+        "layout_silhouetteScale": "剪影缩放",
+        "layout_characterNameOffsetX": "名称 X 偏移",
+        "layout_characterNameOffsetY": "名称 Y 偏移",
+        "layout_syncSilhouetteOffset": "同步剪影/名称偏移",
+        "layout_radarScale": "雷达缩放倍率",
+        "layout_attributeLabelOffsetX": "属性名 X 偏移",
+        "layout_attributeLabelOffsetY": "属性名 Y 偏移",
+        "layout_ratingLabelOffsetX": "评级标签 X 偏移",
+        "layout_ratingLabelOffsetY": "评级标签 Y 偏移"
+      }
+    },
+    "comparison": {
+      "title": "对比配置",
+      "fontSize": "字号",
+      "color": "颜色",
+      "offsetX": "X 偏移",
+      "offsetY": "Y 偏移",
+      "enhanceColor": "增强色",
+      "weakenColor": "减弱色",
+      "pageFallback": "页{n}",
+      "pairTitle": "页{a}（{leftName}）+ 页{b}（{rightName}）",
+      "arrowStyle": {
+        "title": "对比箭头样式（所有对比共用）",
+        "hint": "提示：叠加高亮布局的强弱箭头复用下方的「增强色 / 减弱色」。",
+        "directionArrow": "➜ 方向箭头",
+        "diffTriangle": "上下差异三角"
+      },
+      "layoutLabel": "对比布局",
+      "layoutOption": {
+        "transition": "切换过渡（A→B）",
+        "overlay": "叠加高亮（同图双方）"
+      },
+      "highlightOrderLabel": "先高亮",
+      "highlightOrderOption": {
+        "leftFirst": "左方优先",
+        "rightFirst": "右方优先"
+      },
+      "overlay": {
+        "delayAfterFill": "落定→高亮延迟(帧)",
+        "transitionFrames": "高亮渐变(帧)",
+        "holdFrames": "每方停留(帧)",
+        "holdTailFrames": "尾部停留(帧)",
+        "dimOpacity": "压暗透明度",
+        "glowRadius": "高亮光晕半径",
+        "arrowSize": "箭头尺寸",
+        "arrowSideOffset": "箭头距中线 X",
+        "arrowOffsetY": "箭头 Y 微调",
+        "nameSideOffset": "侧名距中线",
+        "silhouetteBaseOpacity": "剪影常态透明度",
+        "silhouetteEmphasisOpacity": "剪影高亮透明度",
+        "silhouetteDimOpacity": "剪影压暗透明度"
+      },
+      "transition": {
+        "delayFrames": "延迟帧数",
+        "swapDurationFrames": "切换动画时长(帧)",
+        "silhouetteSwapX": "头像错位 X",
+        "silhouetteSwapY": "头像错位 Y",
+        "silhouetteFadeOut": "A 角色淡出透明度",
+        "diffTriangleScale": "差异三角缩放",
+        "dualRatingSlideFrames": "评分滑动时长(帧)",
+        "dualRatingFadeFrames": "评分淡入时长(帧)",
+        "legendFontSize": "图例字号",
+        "legendDotRadius": "图例圆点半径",
+        "legendOffsetX": "图例 X 偏移",
+        "legendOffsetY": "图例 Y 偏移",
+        "legendFontFamily": "图例字体"
+      },
+      "polygonModeLabel": "第二多边形模式",
+      "polygonModeOption": {
+        "expand": "从中心展开",
+        "extend": "从A的值延伸"
+      },
+      "showLegend": "显示图例"
+    },
+    "animation": {
+      "title": "动画配置",
+      "stageOffsetHeading": "阶段时序偏移（负值=提前重叠）",
+      "unitFrame": "帧",
+      "ignoreGlobal": "无视全局",
+      "ignoredGlobal": "已无视全局",
+      "ignoreTipOn": "点击让本页忽略全局覆盖",
+      "ignoreTipOff": "本页已忽略全局覆盖",
+      "fields": {
+        "fillDuration": "填充时长",
+        "silhouetteDelay": "剪影延迟",
+        "silhouetteFadeInDuration": "剪影淡入时长",
+        "labelStagger": "标签交错",
+        "highValueSpringDamping": "弹簧阻尼",
+        "holdDuration": "保持时长",
+        "nameFadeInDuration": "名称淡入时长",
+        "nameAppearRatio": "名称出现占比",
+        "labelStartOffset": "标签开始偏移",
+        "fillStartOffset": "填充开始偏移",
+        "effectsStartOffset": "特效开始偏移",
+        "holdStartOffset": "保持开始偏移"
+      }
+    },
+    "background": {
+      "title": "背景配置",
+      "type": {
+        "gradient": "渐变",
+        "image": "图片",
+        "video": "视频"
+      },
+      "opacity": "不透明度",
+      "blur": "模糊",
+      "scale": "缩放",
+      "position": "位置",
+      "loop": "循环",
+      "playbackRate": "播放速率",
+      "startFrom": "起始位置 (ms)",
+      "sound": "声音",
+      "audioNotice": "⚠ 背景视频声音仅在服务端渲染成片中生效；浏览器即时导出不含背景视频声音（音乐轨道不受影响）。",
+      "vignette": {
+        "title": "暗角效果",
+        "brightness": "亮度偏移",
+        "centerX": "中心 X",
+        "centerY": "中心 Y",
+        "innerStop": "内圈位置",
+        "outerStop": "外圈位置"
+      }
+    },
+    "effects": {
+      "title": "特效配置",
+      "threshold": "高属性阈值: {value}",
+      "valuePopup": "数值弹窗",
+      "glow": "高数值光晕",
+      "popupStyle": {
+        "spring": "弹簧",
+        "bounce": "弹跳",
+        "fadeScale": "淡入缩放",
+        "slideIn": "滑入"
+      },
+      "glowStyle": {
+        "pulse": "脉冲",
+        "ring": "扩散环",
+        "ripple": "涟漪",
+        "sparkle": "闪烁"
+      }
+    },
+    "preview": {
+      "music": "音乐",
+      "offset": "偏移",
+      "unitFrame": "帧",
+      "mute": "静音",
+      "play": "▶ 播放",
+      "pause": "⏸ 暂停",
+      "frameInfo": "帧 {frame} / {total} · {sec}s",
+      "side": {
+        "left": "左方",
+        "right": "右方"
+      },
+      "targets": {
+        "radar-label": "属性标签",
+        "radar-rating": "评分",
+        "radar-octagon": "数据多边形",
+        "avatar": "头像",
+        "name": "角色名称",
+        "legend": "图例"
+      },
+      "behaviors": {
+        "labelFadeIn": "标签淡入",
+        "ratingFadeIn": "评分淡入",
+        "polygonFill": "多边形填充",
+        "avatarFadeIn": "头像淡入",
+        "nameFadeIn": "名称淡入",
+        "highGlow": "高分发光",
+        "ratingPopup": "评分弹出",
+        "avatarFadeOut": "头像淡出",
+        "nameFadeOut": "名称淡出",
+        "polygonTransition": "多边形过渡",
+        "ratingSlideFadeIn": "评分滑动+淡入",
+        "legendFadeIn": "图例淡入",
+        "dualSilhouetteHighlight": "双剪影高亮联动",
+        "diffArrows": "强弱箭头",
+        "sideHighlight": "{side}高亮"
+      }
+    },
+    "export": {
+      "title": "导出",
+      "mode": {
+        "label": "渲染方式：",
+        "server": "服务端",
+        "local": "本地浏览器"
+      },
+      "localHint": "本地渲染输出 MP4 格式（带音频），需要浏览器支持 WebCodecs。",
+      "localFallback": "当前浏览器不支持，将导出无音频 WebM。",
+      "serverHint": "服务器资源有限，渲染较慢、排队较久（可在下方任务列表查看当前负载与平均渲速）。建议仅在需要关闭浏览器的场景使用服务端渲染。",
+      "rangeLabel": "渲染范围：",
+      "rangeCurrentDisabledTip": "当前已经选中全局了",
+      "rangeCurrent": "渲染当前页",
+      "rangeAllTip": "当前只有 1 页",
+      "rangeAll": "渲染全部页面",
+      "status": {
+        "submitting": "提交任务...",
+        "queued": "排队中（第 {pos} 位 / 共 {size} 个，预计 {eta}）",
+        "downloading": "完成！正在下载...",
+        "done": "下载完成",
+        "failed": "失败：{error}"
+      },
+      "progress": {
+        "rendering": "渲染中 第 {rendered}/{total} 帧",
+        "etaSuffix": " · 预计剩余 {eta}",
+        "renderingNoFrames": "渲染中..."
+      },
+      "localStatus": {
+        "rendering": "本地渲染中... {progress}%",
+        "failed": "失败：{error}"
+      },
+      "exportCurrentLine": "导出当前页：{name}（{frames} 帧 / {seconds} 秒）",
+      "exportAllLine": "导出全部页面：{pages} 页，共 {frames} 帧 / {seconds} 秒",
+      "currentMp4": "导出当前页 MP4",
+      "currentGif": "导出当前页 GIF",
+      "allMp4": "导出全部 MP4",
+      "allGif": "导出全部 GIF",
+      "cancelTask": "取消任务",
+      "buttonRendering": "渲染中...",
+      "localCurrentMp4": "导出当前页 MP4（本地）",
+      "localAllMp4": "导出全部 MP4（本地）",
+      "cancelLocal": "取消渲染"
+    },
+    "persistence": {
+      "title": "配置存档",
+      "namePlaceholder": "输入配置名称",
+      "save": "保存",
+      "saved": "已保存!",
+      "overwriteHint": "已存在同名配置，保存将覆盖",
+      "loaded": "已加载!",
+      "confirmDelete": "确定删除配置\"{name}\"吗？",
+      "deleted": "已删除!",
+      "selectPlaceholder": "选择已保存配置",
+      "noneSaved": "暂无保存的配置",
+      "load": "加载",
+      "delete": "删除",
+      "exportFileTitle": "将当前配置下载为 JSON 文件",
+      "importFileTitle": "从 JSON 文件加载配置",
+      "exportFile": "导出到文件",
+      "importFile": "从文件导入",
+      "exportedFile": "已导出文件!",
+      "exportFailed": "导出失败：{error}",
+      "invalidConfig": "配置不合法：{error}",
+      "unknownError": "未知错误",
+      "loadedFromFile": "已从文件加载!",
+      "importFailed": "导入失败：{error}"
+    },
+    "localRender": {
+      "captureElNotFound": "无法找到 Player 内层容器",
+      "cancelled": "渲染已取消",
+      "failed": "渲染失败"
+    }
+  },
+  "settings": {
+    "title": "账户设置",
+    "account": {
+      "heading": "账户信息",
+      "email": "邮箱：",
+      "username": "用户名：",
+      "usernameUnset": "未设置",
+      "verifyStatus": "验证状态：",
+      "verified": "已验证",
+      "unverified": "未验证"
+    },
+    "username": {
+      "heading": "用户名",
+      "label": "设置/修改用户名",
+      "placeholder": "输入用户名（3-64 字符）",
+      "submit": "保存用户名",
+      "saving": "保存中...",
+      "updated": "用户名已更新",
+      "failed": "设置用户名失败"
+    },
+    "password": {
+      "heading": "密码",
+      "label": "设置/修改密码",
+      "placeholder": "输入密码（至少 8 位）",
+      "hint": "设置密码后可使用密码登录",
+      "submit": "保存密码",
+      "saving": "保存中...",
+      "updated": "密码已设置",
+      "failed": "设置密码失败"
+    },
+    "oauth": {
+      "heading": "OAuth 账户绑定",
+      "description": "已绑定的 OAuth 账户可用于登录",
+      "noInfo": "无信息",
+      "unbind": "解绑",
+      "unbound": "{provider} 账户已解绑",
+      "unbindFailed": "解绑失败",
+      "empty": "暂无绑定账户"
+    },
+    "logout": "登出"
+  },
+  "auth": {
+    "login": {
+      "title": "登录",
+      "subtitle": "登录以使用雷达图动画生成器",
+      "identifierLabel": "用户名或邮箱",
+      "identifierPlaceholder": "输入用户名或邮箱",
+      "passwordLabel": "密码",
+      "passwordPlaceholder": "输入密码",
+      "forgotPassword": "忘记密码？",
+      "submit": "登录",
+      "submitting": "登录中…",
+      "noAccount": "没有账户？",
+      "registerLink": "注册",
+      "failed": "登录失败"
+    },
+    "register": {
+      "title": "注册",
+      "subtitleEmail": "输入邮箱以接收验证码",
+      "emailLabel": "邮箱",
+      "emailPlaceholder": "输入邮箱",
+      "sendCode": "发送验证码",
+      "sending": "发送中…",
+      "submit": "注册",
+      "submitting": "注册中…",
+      "oauthHint": "或使用 GitHub / Google 快捷登录",
+      "haveAccount": "已有账户？",
+      "loginLink": "登录",
+      "sendCodeFailed": "验证码发送失败",
+      "registerFailed": "注册失败"
+    },
+    "forgotPassword": {
+      "title": "重置密码",
+      "subtitleEmail": "输入注册邮箱以接收验证码",
+      "emailLabel": "邮箱",
+      "emailPlaceholder": "输入注册邮箱",
+      "sendCode": "发送验证码",
+      "sending": "发送中…",
+      "newPasswordLabel": "新密码",
+      "newPasswordPlaceholder": "输入新密码（至少 8 位）",
+      "confirmPasswordLabel": "确认新密码",
+      "confirmPasswordPlaceholder": "再次输入新密码",
+      "submit": "重置密码",
+      "submitting": "重置中…",
+      "rememberedPassword": "想起密码了？",
+      "backToLogin": "返回登录",
+      "passwordTooShort": "密码长度应至少 8 位",
+      "passwordMismatch": "两次输入的密码不一致",
+      "sendCodeFailed": "验证码发送失败",
+      "resetFailed": "重置密码失败"
+    },
+    "welcome": {
+      "title": "欢迎加入！",
+      "subtitle": "完善账户信息以开始使用",
+      "usernameLabel": "用户名",
+      "usernamePlaceholder": "输入用户名（3-64 字符）",
+      "passwordLabel": "密码",
+      "passwordOptionalSuffix": "（可选）",
+      "passwordPlaceholderOptional": "设置密码后可用密码登录（可跳过）",
+      "passwordPlaceholderRequired": "输入密码（至少 8 位）",
+      "passwordHintOptional": "您已绑定第三方登录，密码为备选登录方式",
+      "passwordHintRequired": "邮箱注册用户需设置密码以便后续登录",
+      "submit": "完成并开始使用",
+      "submitting": "设置中…",
+      "usernameLengthError": "用户名长度应为 3-64 字符",
+      "passwordTooShort": "密码长度应至少 8 位",
+      "setupFailed": "设置失败"
+    },
+    "verify": {
+      "codeSent": "验证码已发送至 {email}，请检查收件箱或垃圾邮件",
+      "codeLabel": "验证码",
+      "codePlaceholder": "输入 6 位验证码",
+      "changeEmail": "更换邮箱",
+      "resend": "重新发送",
+      "resendCountdown": "{seconds}s 后可重发"
+    },
+    "oauth": {
+      "divider": "或使用",
+      "google": "使用 Google 登录",
+      "github": "使用 GitHub 登录",
+      "failed": "OAuth 登录失败"
+    },
+    "callback": {
+      "title": "OAuth 登录",
+      "processing": "正在处理登录...",
+      "missingParams": "OAuth 回调参数缺失",
+      "failed": "OAuth 登录失败",
+      "backToLogin": "返回登录页面"
+    },
+    "userMenu": {
+      "logout": "登出"
+    }
+  }
+}

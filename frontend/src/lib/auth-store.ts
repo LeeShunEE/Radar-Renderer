@@ -105,7 +105,7 @@ export async function login(identifier: string, password: string): Promise<void>
       error: null,
     };
   } catch (e: unknown) {
-    _state = { ..._state, loading: false, error: e instanceof Error ? e.message : "登录失败" };
+    _state = { ..._state, loading: false, error: e instanceof Error ? e.message : "Login failed" };
     notify();
     throw e;
   }
@@ -142,7 +142,7 @@ export async function registerWithCode(email: string, code: string): Promise<boo
     // 返回是否是新用户
     return tokens.is_new_user ?? false;
   } catch (e: unknown) {
-    _state = { ..._state, loading: false, error: e instanceof Error ? e.message : "注册失败" };
+    _state = { ..._state, loading: false, error: e instanceof Error ? e.message : "Registration failed" };
     notify();
     throw e;
   }
@@ -186,7 +186,7 @@ export async function handleOAuthCallback(
     // 返回是否是新用户（首次登录自动注册）
     return tokens.is_new_user ?? false;
   } catch (e: unknown) {
-    _state = { ..._state, loading: false, error: e instanceof Error ? e.message : "OAuth 登录失败" };
+    _state = { ..._state, loading: false, error: e instanceof Error ? e.message : "OAuth login failed" };
     notify();
     throw e;
   }
@@ -210,7 +210,7 @@ export async function setUsername(username: string): Promise<void> {
       error: null,
     };
   } catch (e: unknown) {
-    _state = { ..._state, loading: false, error: e instanceof Error ? e.message : "设置用户名失败" };
+    _state = { ..._state, loading: false, error: e instanceof Error ? e.message : "Failed to set username" };
     notify();
     throw e;
   }
@@ -225,7 +225,7 @@ export async function setPassword(password: string): Promise<void> {
     await auth.setPassword(password);
     _state = { ..._state, loading: false, error: null };
   } catch (e: unknown) {
-    _state = { ..._state, loading: false, error: e instanceof Error ? e.message : "设置密码失败" };
+    _state = { ..._state, loading: false, error: e instanceof Error ? e.message : "Failed to set password" };
     notify();
     throw e;
   }
@@ -261,7 +261,7 @@ export async function register(username: string, email: string, password: string
       error: null,
     };
   } catch (e: unknown) {
-    _state = { ..._state, loading: false, error: e instanceof Error ? e.message : "注册失败" };
+    _state = { ..._state, loading: false, error: e instanceof Error ? e.message : "Registration failed" };
     notify();
     throw e;
   }
@@ -295,7 +295,7 @@ export async function resetPassword(
       error: null,
     };
   } catch (e: unknown) {
-    _state = { ..._state, loading: false, error: e instanceof Error ? e.message : "重置密码失败" };
+    _state = { ..._state, loading: false, error: e instanceof Error ? e.message : "Failed to reset password" };
     notify();
     throw e;
   }
@@ -313,7 +313,7 @@ export async function logout(): Promise<void> {
 export async function refreshTokens(): Promise<void> {
   const storedRefresh = getRefreshToken();
   if (!storedRefresh) {
-    throw new Error("无 refresh token");
+    throw new Error("No refresh token");
   }
   const tokens = await auth.refresh(storedRefresh);
   setTokens(tokens.access_token, tokens.refresh_token);

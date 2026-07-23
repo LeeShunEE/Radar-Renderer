@@ -241,7 +241,7 @@ export function createMp4Encoder(options: Mp4EncoderOptions): Mp4Encoder {
    * 处理 encodeQueueSize 背压。
    */
   async function addFrame(canvas: HTMLCanvasElement, frameIndex: number): Promise<void> {
-    if (videoEncoderClosed) throw new Error("VideoEncoder 已关闭");
+    if (videoEncoderClosed) throw new Error("VideoEncoder is closed");
 
     const timestampUs = Math.round(frameIndex * (1e6 / fps));
     const durationUs = Math.round(1e6 / fps);
@@ -279,7 +279,7 @@ export function createMp4Encoder(options: Mp4EncoderOptions): Mp4Encoder {
    * 5. 从 target.buffer 创建 Blob
    */
   async function finalize(): Promise<Blob> {
-    if (videoEncoderClosed) throw new Error("VideoEncoder 已关闭");
+    if (videoEncoderClosed) throw new Error("VideoEncoder is closed");
 
     // 计算视频时长
     const videoDurationSec = totalFrameCount / fps;

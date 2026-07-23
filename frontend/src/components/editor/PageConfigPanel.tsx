@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useTranslations } from "next-intl";
 import { Separator } from "../ui/separator";
 import { CharacterConfig } from "./CharacterConfig";
 import { LayoutEditor } from "./LayoutEditor";
@@ -97,6 +98,7 @@ export const PageConfigPanel: React.FC<PageConfigPanelProps> = ({
   globalOverrideEnabled,
   onToggleIgnoreOverride,
 }) => {
+  const t = useTranslations("editor");
   const sources: ImportSource[] = allPages
     .map((p, i) => ({ index: i, label: p.characterName }))
     .filter((s) => s.index !== index);
@@ -190,11 +192,14 @@ export const PageConfigPanel: React.FC<PageConfigPanelProps> = ({
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">▸</span>
           <span className="text-sm font-medium text-foreground">
-            第{index + 1}页：{page.characterName || `页${index + 1}`}
+            {t("page.title", {
+              n: index + 1,
+              name: page.characterName || t("pageLabel", { n: index + 1 }),
+            })}
           </span>
           {previewing && (
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-              预览中
+              {t("page.previewing")}
             </span>
           )}
         </div>
@@ -204,14 +209,14 @@ export const PageConfigPanel: React.FC<PageConfigPanelProps> = ({
             onClick={onPreview}
             className="px-2 py-1 text-xs rounded hover:bg-muted text-muted-foreground hover:text-foreground"
           >
-            ▶ 预览
+            ▶ {t("page.preview")}
           </button>
           <button
             type="button"
             onClick={onDuplicate}
             className="px-2 py-1 text-xs rounded hover:bg-muted text-muted-foreground hover:text-foreground"
           >
-            复制
+            {t("page.duplicate")}
           </button>
           {canRemove && (
             <button
@@ -219,7 +224,7 @@ export const PageConfigPanel: React.FC<PageConfigPanelProps> = ({
               onClick={onRemove}
               className="px-2 py-1 text-xs rounded hover:bg-muted text-geist-error"
             >
-              删除
+              {t("page.remove")}
             </button>
           )}
         </div>

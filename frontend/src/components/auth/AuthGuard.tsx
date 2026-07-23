@@ -5,9 +5,11 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
+  const t = useTranslations("common");
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
 
@@ -20,7 +22,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-muted-foreground">加载中…</div>
+        <div className="text-muted-foreground">{t("loading")}</div>
       </div>
     );
   }

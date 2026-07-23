@@ -6,6 +6,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAuthState } from "@/lib/auth-store";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { Card } from "@/components/ui/card";
 import { OAuthButtons } from "@/components/auth/OAuthButtons";
 
 export default function LoginPage() {
+  const t = useTranslations("auth.login");
   const router = useRouter();
   const { login, loading, error } = useAuth();
   const [identifier, setIdentifier] = useState("");
@@ -30,7 +32,7 @@ export default function LoginPage() {
       const username = getAuthState().user?.username;
       router.push(username ? "/app" : "/welcome");
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "登录失败";
+      const message = err instanceof Error ? err.message : t("failed");
       setLocalError(message);
     }
   };
@@ -40,33 +42,31 @@ export default function LoginPage() {
   return (
     <Card className="p-6 space-y-4">
       <div className="text-center">
-        <h1 className="text-xl font-semibold">登录</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          登录以使用雷达图动画生成器
-        </p>
+        <h1 className="text-xl font-semibold">{t("title")}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t("subtitle")}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="identifier">用户名或邮箱</Label>
+          <Label htmlFor="identifier">{t("identifierLabel")}</Label>
           <Input
             id="identifier"
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
-            placeholder="输入用户名或邮箱"
+            placeholder={t("identifierPlaceholder")}
             required
             autoComplete="username"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">密码</Label>
+          <Label htmlFor="password">{t("passwordLabel")}</Label>
           <Input
             id="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="输入密码"
+            placeholder={t("passwordPlaceholder")}
             required
             autoComplete="current-password"
           />
@@ -75,7 +75,7 @@ export default function LoginPage() {
               href="/forgot-password"
               className="text-xs text-primary hover:underline"
             >
-              忘记密码？
+              {t("forgotPassword")}
             </Link>
           </div>
         </div>
@@ -85,16 +85,16 @@ export default function LoginPage() {
         )}
 
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "登录中…" : "登录"}
+          {loading ? t("submitting") : t("submit")}
         </Button>
       </form>
 
       <OAuthButtons />
 
       <div className="text-center text-sm text-muted-foreground">
-        没有账户？{" "}
+        {t("noAccount")}{" "}
         <Link href="/register" className="text-primary hover:underline">
-          注册
+          {t("registerLink")}
         </Link>
       </div>
     </Card>
